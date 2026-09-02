@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Services\DriverRegistry;
+use App\Services\Services\MailpitDriver;
 use App\Services\Services\MariaDbDriver;
 use App\Services\Services\MeilisearchDriver;
 use App\Services\Services\ReverbDriver;
@@ -59,7 +60,7 @@ it('describes redis with no init step', function () use ($instance) {
 
 it('registers the drivers, rejects unknown types, and maps formulae back to drivers', function () {
     $r = new DriverRegistry;
-    expect(array_keys($r->all()))->toBe(['postgresql', 'mysql', 'mariadb', 'redis', 'meilisearch', 'typesense', 'seaweedfs', 'reverb'])
+    expect(array_keys($r->all()))->toBe(['postgresql', 'mysql', 'mariadb', 'redis', 'meilisearch', 'typesense', 'seaweedfs', 'reverb', 'mailpit'])
         ->and(fn () => $r->get('mongo'))->toThrow(RuntimeException::class, 'Unknown service type')
         ->and($r->driverForFormula('postgresql@14')?->type())->toBe('postgresql')
         ->and($r->driverForFormula('mysql')?->type())->toBe('mysql')
@@ -145,4 +146,14 @@ it('describes reverb as site-bound: runs the site\'s php from the site dir', fun
         ->and($d->workingDirectory($i))->toBe('/Users/me/Sites/alpha')
         ->and($d->programArguments($i, '/b'))->toBe(['/b/php', 'artisan', 'reverb:start', '--host=127.0.0.1', '--port=8080', '--no-interaction'])
         ->and($d->env($i))->toMatchArray(['BROADCAST_CONNECTION' => 'reverb', 'REVERB_APP_KEY' => $opts['app_key'], 'REVERB_PORT' => '8080', 'VITE_REVERB_APP_KEY' => '"${REVERB_APP_KEY}"']);
+});
+
+it('describes mailpit: smtp main port, http aux port, laravel mail env', function () {
+    $d = new MailpitDriver;
+    $i = new ServiceInstance(name: 'mailpit', type: 'mailpit', formula: 'mailpit', version: '1.31.0', port: 1025, dir: '/svc/m', createdAt: 'now', options: ['http_port' => 8025]);
+
+    expect($d->auxPorts())->toBe(['http' => 8025])
+        ->and($d->versionArgs())->toBe(['version'])
+        ->and($d->programArguments($i, '/b'))->toBe(['/b/mailpit', '--smtp', '127.0.0.1:1025', '--listen', '127.0.0.1:8025', '--database', '/svc/m/data/mailpit.db'])
+        ->and($d->env($i))->toMatchArray(['MAIL_MAILER' => 'smtp', 'MAIL_HOST' => '127.0.0.1', 'MAIL_PORT' => '1025', 'MAIL_USERNAME' => 'null', 'MAIL_ENCRYPTION' => 'null']);
 });

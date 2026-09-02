@@ -26,6 +26,11 @@ final class StatusService
         $tld = $installed ? $this->valet->tld() : 'test';
         $loopback = $installed ? $this->valet->loopback() : '127.0.0.1';
         $smtpPort = (int) $this->config->get('mail.smtp_port', 1025);
+        foreach ($this->services->all() as $i) {
+            if ($i->type === 'mailpit') {
+                $smtpPort = $i->port;   // the devkit instance wins over the configured default
+            }
+        }
 
         return [
             'devkit' => [

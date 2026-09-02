@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, del, post } from '@/api/client';
-import type { BrewService, Enqueued, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
+import type { BrewService, Enqueued, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -177,5 +177,48 @@ export function useAdoptable() {
 export function useAdopt() {
   return useMutation({
     mutationFn: (body: { formula: string; name?: string; port?: number }) => post<Enqueued>('/services/adopt', body),
+  });
+}
+
+export function useMailStatus() {
+  return useQuery({
+    queryKey: ['mail', 'status'],
+    queryFn: async () => (await api<{ data: MailStatus }>('/mail/status')).data,
+    refetchInterval: 5000,
+  });
+}
+
+export function useMailTags(enabled: boolean) {
+  return useQuery({
+    queryKey: ['mail', 'tags'],
+    queryFn: async () => (await api<{ data: string[] }>('/mail/tags')).data,
+    enabled,
+    refetchInterval: 5000,
+  });
+}
+
+export function useMailMessages(tag: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['mail', 'messages', tag],
+    queryFn: async () => (await api<{ data: MailPage }>(`/mail/messages${tag ? `?tag=${encodeURIComponent(tag)}` : ''}`)).data,
+    enabled,
+    refetchInterval: 4000,
+  });
+}
+
+export function useMailMessage(id: string | null) {
+  return useQuery({
+    queryKey: ['mail', 'message', id],
+    queryFn: async () => (await api<{ data: MailMessage }>(`/mail/messages/${encodeURIComponent(id!)}`)).data,
+    enabled: id !== null,
+    staleTime: 60000,
+  });
+}
+
+export function useDeleteMail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tag: string | null) => del<{ deleted: number }>(`/mail/messages${tag ? `?tag=${encodeURIComponent(tag)}` : ''}`),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['mail'] }),
   });
 }

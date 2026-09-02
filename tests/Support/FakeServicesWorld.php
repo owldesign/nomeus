@@ -53,6 +53,7 @@ final class FakeServicesWorld
             ->formula('meilisearch', '1.15.2', ['meilisearch'])
             ->formula('typesense/tap/typesense-server', '29.0', ['typesense-server'])
             ->formula('seaweedfs', '3.97', ['weed'])
+            ->formula('mailpit', '1.31.0', ['mailpit'])
             ->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4');
         file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
         $this->valetFs = new FakeValet;
@@ -128,6 +129,7 @@ final class FakeServicesWorld
             },
             '*--version*' => Process::result("stub 1.0\n"),   // driver binary pre-flight
             "*weed' 'version*" => Process::result("weed version 30GB 4.45\n"),
+            "*mailpit' 'version*" => Process::result("mailpit v1.31.0\n"),
             '*initdb*' => Process::result("Success. You can now start the database server\n"),
             '*psql*' => Process::result("DO\n"),
             '*brew*install*' => Process::result("==> Installing\n"),

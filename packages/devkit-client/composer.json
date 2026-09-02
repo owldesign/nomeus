@@ -1,0 +1,21 @@
+{
+    "name": "zhuk/devkit-client",
+    "description": "In-app hooks for devkit: tags outgoing mail so Mailpit shows one inbox per app.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "illuminate/mail": "^11.0|^12.0|^13.0"
+    },
+    "autoload": {
+        "psr-4": { "Zhuk\\DevkitClient\\": "src/" }
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["Zhuk\\DevkitClient\\DevkitClientServiceProvider"]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

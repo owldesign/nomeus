@@ -134,3 +134,53 @@ export interface BrewService {
   port: number | null;
   answering: boolean | null;
 }
+
+export interface MailStatus {
+  instance: string | null;
+  available: boolean;
+  smtp_port: number;
+  http_port: number;
+  ui_url: string;
+  env: Record<string, string> | null;
+}
+
+export interface MailAddress {
+  Name: string;
+  Address: string;
+}
+
+export interface MailSummary {
+  ID: string;
+  From: MailAddress | null;
+  To: MailAddress[];
+  Subject: string;
+  Created: string;
+  Tags: string[];
+  Read: boolean;
+  Snippet: string;
+  Size: number;
+  Attachments: number;
+  view_url: string;
+}
+
+export interface MailMessage {
+  ID: string;
+  From: MailAddress | null;
+  To: MailAddress[];
+  Cc: MailAddress[];
+  Subject: string;
+  Date: string;
+  Tags: string[];
+  Text: string;
+  HTML: string;
+  Attachments: { PartID: string; FileName: string; ContentType: string; Size: number }[];
+  view_url: string;
+}
+
+export interface MailPage {
+  total: number;
+  unread: number;
+  count: number;
+  start: number;
+  messages: MailSummary[];
+}

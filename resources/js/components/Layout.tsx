@@ -8,7 +8,7 @@ const NAV: Array<{ to: string; label: string; phase: string; ready: boolean }> =
   { to: '/php', label: 'PHP', phase: '1', ready: true },
   { to: '/tasks', label: 'Tasks', phase: '1', ready: true },
   { to: '/services', label: 'Services', phase: '2', ready: true },
-  { to: '/mail', label: 'Mail', phase: '3', ready: false },
+  { to: '/mail', label: 'Mail', phase: '3', ready: true },
   { to: '/logs', label: 'Logs', phase: '4', ready: false },
   { to: '/debug', label: 'Debug', phase: '5', ready: false },
 ];

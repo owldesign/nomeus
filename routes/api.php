@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\MailController;
 use App\Http\Controllers\Api\PhpController;
 use App\Http\Controllers\Api\ServicesController;
 use App\Http\Controllers\Api\SitesController;
@@ -37,3 +38,9 @@ Route::post('/services/{name}/stop', [ServicesController::class, 'stop'])->name(
 Route::post('/services/{name}/restart', [ServicesController::class, 'restart'])->name('api.services.restart');
 Route::post('/services/{name}/clone', [ServicesController::class, 'clone'])->name('api.services.clone');
 Route::delete('/services/{name}', [ServicesController::class, 'destroy'])->name('api.services.destroy');
+
+Route::get('/mail/status', [MailController::class, 'status'])->name('api.mail.status');
+Route::get('/mail/tags', [MailController::class, 'tags'])->name('api.mail.tags');
+Route::get('/mail/messages', [MailController::class, 'messages'])->name('api.mail.messages');
+Route::get('/mail/messages/{id}', [MailController::class, 'message'])->name('api.mail.message');
+Route::delete('/mail/messages', [MailController::class, 'destroy'])->name('api.mail.destroy');

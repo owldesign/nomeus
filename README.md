@@ -34,6 +34,9 @@ part of `secure`/`isolate`/`use`, which would sever an inline response and kill 
 service's process group — `task:run` detaches with `posix_setsid()` first. `devkit tasks` and
 `devkit task:log <id>` are the audit trail.
 
+`packages/devkit-client` is a Composer package sites require via a path repository; it tags outgoing
+mail with the app's slug so the Mail page shows one inbox per app.
+
 ## Layout
 
 ```
@@ -54,7 +57,7 @@ resources/js/       React SPA
 | 0 | Brewfile, install.sh, config | done |
 | 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | done |
 | 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | done — postgresql, mysql, mariadb, redis, meilisearch, typesense, seaweedfs (s3), reverb |
-| 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | — |
+| 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | 3a done (mailpit instance, Mail page, zhuk/devkit-client); 3b init next |
 | 4 | log watcher; Logs page | — |
 | 5 | Xdebug toggle, then auto-detect | — |
 | 6 | MCP server, Linux via Valet Linux | optional |
