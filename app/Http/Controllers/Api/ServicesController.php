@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ServiceInstanceResource;
 use App\Services\BrewBridge;
+use App\Services\BrewServices;
 use App\Services\ServiceManager;
 use App\Services\Services\DriverRegistry;
 use App\Services\TaskRunner;
@@ -27,6 +28,7 @@ class ServicesController extends Controller
         private readonly DriverRegistry $drivers,
         private readonly BrewBridge $brew,
         private readonly TaskRunner $tasks,
+        private readonly BrewServices $brewServices,
     ) {}
 
     public function index(): JsonResponse
@@ -49,6 +51,36 @@ class ServicesController extends Controller
                 'version' => $this->brew->formulaVersion($f),
             ], $d->formulae()),
         ], $this->drivers->all()))]);
+    }
+
+    /** brew services clusters devkit could take over. */
+    public function adoptable(): JsonResponse
+    {
+        return response()->json(['data' => $this->brewServices->adoptable()]);
+    }
+
+    public function adopt(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'formula' => ['required', 'string', 'regex:/^[A-Za-z0-9._@-]+$/'],
+            'name' => ['nullable', 'string', self::NAME],
+            'port' => ['nullable', 'integer', 'between:1024,65535'],
+        ]);
+        if ($this->drivers->driverForFormula($data['formula']) === null) {
+            return response()->json(['message' => "No devkit driver for [{$data['formula']}]."], 422);
+        }
+        if (! empty($data['name']) && $this->services->find($data['name']) !== null) {
+            return response()->json(['message' => "Service [{$data['name']}] already exists."], 422);
+        }
+        $args = ['services:adopt', $data['formula']];
+        if (! empty($data['name'])) {
+            $args[] = '--name='.$data['name'];
+        }
+        if (! empty($data['port'])) {
+            $args[] = '--port='.$data['port'];
+        }
+
+        return $this->enqueue("services:adopt {$data['formula']}", $args, timeout: 3600);
     }
 
     public function show(Request $request, string $name): JsonResponse

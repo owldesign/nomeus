@@ -26,7 +26,9 @@ beforeEach(function () {
     Process::fake([
         '*launchctl*print-disabled*' => Process::result(''),
         '*launchctl*print*' => Process::result('', '', 113),
+        "*'launchctl' 'list'*" => Process::result(''),   // exact quoted form: a bare launchctl*list glob also matches "…bootstrap … .plist"; overridden in place by the adoptable test
         '*launchctl*' => Process::result(''),
+        '*--version*' => Process::result("stub 1.0\n"),   // driver binary pre-flight
     ]);
 
     // one existing instance, stopped
@@ -59,7 +61,8 @@ it('lists instances with status and env, types with formulae, and detail with a 
         ->assertJsonPath('data.0.default_port', 5432)
         ->assertJsonPath('data.0.formulae.0', ['formula' => 'postgresql@17', 'installed' => true, 'version' => '17.6'])
         ->assertJsonPath('data.0.formulae.1.installed', false)
-        ->assertJsonPath('data.2.type', 'redis');
+        ->assertJsonPath('data.2.type', 'mariadb')
+        ->assertJsonPath('data.3.type', 'redis');
 
     $this->getJson('/api/services/redis?lines=20')
         ->assertOk()
@@ -119,4 +122,25 @@ it('summarises instances in the status snapshot', function () {
 
     $this->getJson('/api/status')->assertOk()
         ->assertJsonPath('instances', [['name' => 'redis', 'type' => 'redis', 'port' => 6379, 'running' => false]]);
+});
+
+it('lists adoptable brew services and enqueues an adoption', function () use ($h, $artisan) {
+    $dataDir = $this->brewFs->root.'/var/postgresql@17';
+    mkdir($dataDir, 0700, true);
+    file_put_contents("{$this->root}/agents/homebrew.mxcl.postgresql@17.plist", '<plist/>');
+    Process::fake(["*'launchctl' 'list'*" => Process::result("869\t0\thomebrew.mxcl.postgresql@17\n")]);
+
+    $this->getJson('/api/services/adoptable')->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.formula', 'postgresql@17')
+        ->assertJsonPath('data.0.type', 'postgresql')
+        ->assertJsonPath('data.0.loaded', true)
+        ->assertJsonPath('data.0.pid', 869)
+        ->assertJsonPath('data.0.port', 5432);
+
+    $this->postJson('/api/services/adopt', ['formula' => 'postgresql@17', 'name' => 'pg17'], $h)->assertStatus(202)
+        ->assertJsonPath('task.argv', $artisan(['services:adopt', 'postgresql@17', '--name=pg17']));
+    $this->postJson('/api/services/adopt', ['formula' => 'nginx'], $h)->assertUnprocessable();
+    $this->postJson('/api/services/adopt', ['formula' => 'redis', 'name' => 'redis'], $h)->assertUnprocessable(); // name taken
+    $this->postJson('/api/services/adopt', ['formula' => 'redis'])->assertForbidden();
 });

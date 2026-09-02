@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 2c · adopt brew services</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 2c · adopt brew services · doctor · mariadb</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~30 min · phases 0–6</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>your four <code>brew services</code> clusters become devkit instances on the ports your sites already use, with their data</b> — and nothing is deleted on the way.
+  Order matters: redis first (nothing depends on it), then postgresql@17, postgresql@14, mysql — each followed by a real site connecting through it.
+  Precondition: 2b committed. Note the devkit instances from 2a/2b are empty experiments; step 1.2 clears them so the adopted ones get the clean names.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-2c.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; chmod +x bin/devkit &amp;&amp; vendor/bin/pest &amp;&amp; npm run build &amp;&amp; devkit status | head -2</pre>
+<pre class="out">Tests: 112 passed — +Drivers 3 · BrewServices 2 · Adopt 5 · Doctor 4 · Manager retarget 1 · Cli 2 · Api 1 · FakePatterns 1 · devkit 0.2.8</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>Doctor and the adoptable list <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">What the doctor sees before anything changes</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:doctor --self-test</pre>
+<pre class="out">OK   launchd        gui/501 reachable
+OK   agents dir     ~/Library/LaunchAgents
+OK   binary …       postgres/mysqld/redis-server --version runs, one line per formula in use
+OK   instance …     running / stopped for each devkit instance
+WARN brew services  postgresql@14 runs under brew services on 5432 — take it over with: devkit services:adopt postgresql@14
+WARN brew services  postgresql@17 … · mysql … · redis …
+create selftest-xxxxxx · clone · round trip ok · delete · self-test passed</pre>
+    </div>
+    <div class="callout blue">The self-test is the clone-and-connect round trip that both 2b bugs would have failed. It uses a throwaway redis on the next free port and deletes it whatever happens.</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Clear the empty experiments</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:list</pre>
+<pre class="out">the 2a/2b instances: redis, postgresql, fsv-pg, mysql, … — none holds data you want</pre>
+<pre class="cmd">for s in $(devkit services:list --json | python3 -c 'import json,sys; print(" ".join(i["name"] for i in json.load(sys.stdin)))'); do devkit services:delete "$s" --force; done; devkit services:list</pre>
+<pre class="out">No services.</pre>
+    </div>
+    <div class="callout gold">Skip this if any of them holds something you made (e.g. a database you created in <code>fsv-pg</code>). Adoption then names the new instances <code>redis-2</code>, <code>postgresql-2</code>… unless you pass <code>--name</code>.</div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">The adoptable list</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:adopt</pre>
+<pre class="out">mysql          mysql       running  3306  /opt/homebrew/var/mysql
+postgresql@14  postgresql  running  5432  /opt/homebrew/var/postgresql@14
+postgresql@17  postgresql  running  5433 (silent)  /opt/homebrew/var/postgresql@17     ← default port shown; brew's @17 is on 5433
+redis          redis       running  6379  /opt/homebrew/var/db/redis</pre>
+    </div>
+    <div class="callout gold">"(silent)" means nothing answers on the driver's <em>default</em> port — brew's postgresql@17 listens on 5433 because @14 has 5432. Adoption doesn't care what port brew used; it gives the instance the standard port if free, else the next, and prints it.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>redis <span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Adopt, verify, note what's left behind</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:adopt redis &amp;&amp; redis-cli -p 6379 ping &amp;&amp; brew services list | grep redis</pre>
+<pre class="out">brew services stop redis · copying /opt/homebrew/var/db/redis → …/services/redis/data · starting redis on 127.0.0.1:6379
+redis: redis 8.x on 127.0.0.1:6379, adopted from /opt/homebrew/var/db/redis · PONG · redis  none  (brew no longer starts it)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>postgresql@17, then postgresql@14 <span class="t">~8 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">@17 first — it's the one on the odd port</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:adopt postgresql@17 --name=pg17 --port=5433</pre>
+<pre class="out">brew services stop postgresql@17 · copying … · starting pg17 on 127.0.0.1:5433 · ensure role postgres · DO
+pg17: postgresql@17 17.x on 127.0.0.1:5433, adopted from /opt/homebrew/var/postgresql@17</pre>
+<pre class="cmd">/opt/homebrew/opt/postgresql@17/bin/psql -h 127.0.0.1 -p 5433 -U postgres -lqt | cut -d'|' -f1 | sed '/^\s*$/d'</pre>
+<pre class="out">every database that was in brew's cluster, now served by devkit — and role postgres exists alongside your username's</pre>
+    </div>
+    <div class="callout gold">Explicit <code>--port=5433</code> keeps whatever pointed at brew's @17 working unchanged. Without it, devkit would have taken 5432 — which is about to be @14's.</div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">@14 on 5432, the one your sites use</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:adopt postgresql@14 --name=pg14 &amp;&amp; devkit services:list</pre>
+<pre class="out">… starting pg14 on 127.0.0.1:5432 · ensure role postgres · pg14 listed running on 5432 next to pg17 on 5433 and redis</pre>
+<pre class="cmd">devkit db coavaorders.com --print &amp;&amp; devkit db coavaorders.com</pre>
+<pre class="out">the site's own DB_* from its .env, unchanged · TablePlus opens it — served by pg14 now</pre>
+    </div>
+    <div class="callout red">If a site fails to connect after adoption with "role X does not exist": brew's cluster had your username as its only superuser and the site's .env used a different DB_USERNAME that lived in that cluster — it's in the copy too, so this can only mean the wrong port. <code>devkit services:env pg14</code> vs the site's DB_PORT.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>mysql <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Which MySQL wrote the data, which one may read it</span></label>
+    <div class="body">
+<pre class="cmd">grep -h 'MySQL Server - start\|starting as process' /opt/homebrew/var/mysql/*.err 2&gt;/dev/null | tail -2; brew list --versions | grep mysql</pre>
+<pre class="out">the version that last ran the data (yours: 9.6.0) · the kegs brew has now (yours: mysql 26.7.0 after the upgrade)</pre>
+    </div>
+    <div class="callout red">MySQL's upgrade lineage is strict: an Innovation data dir may only move to the <em>next</em> release, and calendar-versioned 26.x may only be reached from the preceding LTS. 9.6 → 26.7 is refused ("Cannot upgrade from 90600 to 260700"); 9.6 → 9.7 LTS is allowed, and LTS is where site data belongs. Same rule for 8.4 data (8.4 → 9.7). Only 9.7 data can go to 26.7 — don't.</div>
+  </div>
+
+  <div class="step" data-step="4.2"><label><input type="checkbox"><span class="id">4.2</span><span class="title">Adopt under mysql@9.7 — or upgrade the instance if you already adopted</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:adopt mysql --formula=mysql@9.7</pre>
+<pre class="out">brew install mysql@9.7 (not installed yet) … · brew services stop mysql · copying /opt/homebrew/var/mysql → … · starting mysql on 127.0.0.1:3306
+mysql: mysql@9.7 9.7.x on 127.0.0.1:3306, adopted from /opt/homebrew/var/mysql</pre>
+<pre class="cmd">devkit services:upgrade mysql mysql@9.7 --yes</pre>
+<pre class="out">for an instance adopted earlier (kept stopped after the 26.7 refusal): brew install mysql@9.7 … starting mysql as mysql@9.7 9.7.x on 127.0.0.1:3306 · mysql: mysql@9.7 … (was mysql)</pre>
+<pre class="cmd">/opt/homebrew/opt/mysql@9.7/bin/mysql -h 127.0.0.1 -P 3306 -u root -e 'show databases; select version();'</pre>
+<pre class="out">your schemas · 9.7.x — the data dictionary was upgraded on that first start (mysql-error.log shows it)</pre>
+<pre class="cmd">devkit db homesteadsewing.com</pre>
+<pre class="out">TablePlus opens the site's database, served by devkit's mysql on 3306</pre>
+    </div>
+    <div class="callout gold">If <code>brew install mysql@9.7</code> says no such formula, <code>brew search mysql@</code> lists the versioned ones brew has; the LTS one after 9.6 is the target. If root has a password in that cluster, <code>services:env mysql</code> still prints an empty DB_PASSWORD; the sites' .env files already carry the real one.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 5 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">5</span>Doctor again, dashboard, and the leftover data <span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="5.1"><label><input type="checkbox"><span class="id">5.1</span><span class="title">All green, no brew overlap</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:doctor &amp;&amp; launchctl list | grep homebrew.mxcl</pre>
+<pre class="out">every instance OK running · no "brew services" warnings · no homebrew.mxcl.* agents loaded</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="5.2"><label><input type="checkbox"><span class="id">5.2</span><span class="title">The Services page shows the same, and no adopt panel</span></label>
+    <div class="body">
+<pre class="cmd">open https://devkit.test/services</pre>
+<pre class="out">redis · pg17 · pg14 · mysql, all green · the "running under brew services" panel is gone · strip: svc 4/4</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="5.3"><label><input type="checkbox"><span class="id">5.3</span><span class="title">brew's copies — your call, later</span></label>
+    <div class="body">
+<pre class="cmd">du -sh /opt/homebrew/var/postgresql@14 /opt/homebrew/var/postgresql@17 /opt/homebrew/var/mysql /opt/homebrew/var/db/redis</pre>
+<pre class="out">what the fallback costs on disk. Leave them for a week; `brew services start &lt;formula&gt;` restores the old setup (after `devkit services:stop &lt;name&gt;` to free the port).</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 6 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">6</span>Commit and hand-off</h2>
+
+  <div class="step" data-step="6.1"><label><input type="checkbox"><span class="id">6.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-2c: services:adopt, services:doctor, mariadb driver, adopt panel"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="6.2"><label><input type="checkbox"><span class="id">6.2</span><span class="title">Hand-off for 2d</span></label>
+    <div class="body"><p>Paste the doctor output after 5.1. 2d: Meilisearch, Typesense, SeaweedFS (S3), Reverb drivers — no engine changes.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>"X's mysqld does not run: dyld: Library not loaded: …libprotobuf-lite.34…"</b> — Homebrew dependency drift: a library was upgraded under a bottle that wasn't rebuilt. brew's own agent only ran because it loaded the old library before the upgrade; any fresh start fails. <code>brew reinstall &lt;formula&gt;</code>, then <code>devkit services:start &lt;name&gt;</code> if the instance was already created (its data copy is fine). The pre-flight now catches this before brew's service is stopped; <code>services:doctor</code> reports it as "binary &lt;formula&gt;".</div>
+  <div class="callout red"><b>adopt: "brew has no data directory for X"</b> — brew's cluster lives somewhere non-default. <code>cat ~/Library/LaunchAgents/homebrew.mxcl.X.plist</code> shows the real <code>-D</code>/<code>--datadir</code>; the drivers assume brew's defaults (<code>var/postgresql@N</code>, <code>var/mysql</code>, <code>var/db/redis</code>).</div>
+  <div class="callout red"><b>mysql-error.log: "Invalid MySQL server upgrade: Cannot upgrade from 90600 to 260700"</b> — see 4.1. The data needs mysql@9.7: <code>devkit services:upgrade mysql mysql@9.7 --yes</code>. The dyld lines above it in <code>services:logs</code> are older attempts from before <code>brew upgrade</code>; the newest lines are at the bottom of each log.</div>
+  <div class="callout red"><b>adopt: instance kept stopped, log says "database files are incompatible with server"</b> — the formula devkit picked isn't the one that wrote the data (e.g. brew's <code>postgresql</code> bare formula vs <code>postgresql@17</code>). Delete the instance and adopt the exact formula name from <code>devkit services:adopt</code>'s list.</div>
+  <div class="callout red"><b>ensure role postgres fails: "role owldesign does not exist"</b> — brew's cluster superuser isn't your current username (created under another account). Connect as whatever role exists and <code>CREATE ROLE postgres SUPERUSER LOGIN</code> by hand; the instance itself is fine.</div>
+  <div class="callout red"><b>Sites can't connect after adopting mysql: "Access denied for user root"</b> — the cluster had a root password; devkit didn't change it. Use it in the sites' .env as before; <code>services:env</code>'s empty DB_PASSWORD is the convention for instances devkit initialized, not adopted ones.</div>
+  <div class="callout red"><b>Undo</b> — <code>devkit services:stop &lt;name&gt; &amp;&amp; brew services start &lt;formula&gt;</code>. brew's data was never touched.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-2c';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

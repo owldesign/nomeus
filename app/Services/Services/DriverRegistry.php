@@ -11,7 +11,7 @@ final class DriverRegistry
 
     public function __construct()
     {
-        foreach ([new PostgresDriver, new MySqlDriver, new RedisDriver] as $driver) {
+        foreach ([new PostgresDriver, new MySqlDriver, new MariaDbDriver, new RedisDriver] as $driver) {
             $this->drivers[$driver->type()] = $driver;
         }
     }
@@ -30,5 +30,20 @@ final class DriverRegistry
     public function has(string $type): bool
     {
         return isset($this->drivers[$type]);
+    }
+
+    /** The driver whose formula list names this formula (short or tap-qualified), or null. */
+    public function driverForFormula(string $formula): ?Driver
+    {
+        $short = basename($formula);
+        foreach ($this->drivers as $driver) {
+            foreach ($driver->formulae() as $f) {
+                if ($f === $formula || basename($f) === $short) {
+                    return $driver;
+                }
+            }
+        }
+
+        return null;
     }
 }

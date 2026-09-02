@@ -158,6 +158,27 @@ final class BrewBridge
         return preg_match('/^\d/', $keg) ? $keg : null;
     }
 
+    /**
+     * Does the formula's server binary even load? Homebrew dependency drift (a library upgraded
+     * under an unrebuilt bottle) shows up as a dyld error on any fresh start; brew's own agent
+     * hides it because it loaded the old library before the upgrade. Returns null when fine,
+     * otherwise the first useful lines of the failure.
+     */
+    public function binaryCheck(string $formula, string $binary): ?string
+    {
+        $bin = ($this->formulaBinDir($formula) ?? '').'/'.$binary;
+        if (! is_executable($bin)) {
+            return "{$bin} is missing or not executable";
+        }
+        $result = $this->shell->run([$bin, '--version'], timeout: 20);
+        if ($result->successful()) {
+            return null;
+        }
+        $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $result->errorOutput().$result->output()))));
+
+        return implode("\n", array_slice($lines, 0, 3)) ?: "exit {$result->exitCode()} with no output";
+    }
+
     public function installFormulaPlan(string $formula): array
     {
         if (! preg_match('#^[A-Za-z0-9._@/-]+$#', $formula)) {

@@ -11,64 +11,16 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeBrew;
 
-/**
- * A tiny world: fake brew prefix with postgres/redis stubs, temp ~/.devkit and LaunchAgents,
- * a Probe whose "answering" ports the fake launchctl toggles on bootstrap/bootout.
- */
+use Tests\Support\FakeServicesWorld;
+
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-svc-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
-    $this->brewFs = (new FakeBrew)
-        ->formula('postgresql@17', '17.6', ['initdb', 'postgres'])
-        ->formula('redis', '8.2.1', ['redis-server']);
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
-
-    $config = new DevkitConfig("{$this->root}/devkit/config.json");
-    $shell = new Shell($config);
-    $this->answering = [];                       // ports that currently answer
-    $this->probe = Mockery::mock(Probe::class);
-    $this->probe->shouldReceive('tcp')->andReturnUsing(fn (string $h, int $p) => in_array($p, $this->answering, true));
-    $this->launchd = new LaunchdManager($shell, "{$this->root}/agents", 501);
-    $this->m = new ServiceManager($config, new BrewBridge($shell), new DriverRegistry, $this->launchd, $shell, $this->probe);
-
-    // launchctl: bootstrap makes the plist's port answer; bootout silences it. Port is read from the plist.
-    $this->loaded = [];
-    $labelOf = fn (string $target): string => substr($target, strrpos($target, '/') + 1);
-    $portOf = function (string $plist): int {
-        preg_match('/<string>(?:-p|--port)<\/string>\s*<string>(\d+)<\/string>|<string>--port=(\d+)<\/string>/', file_get_contents($plist), $m);
-
-        return (int) (($m[1] ?? '') !== '' ? $m[1] : ($m[2] ?? 0));
-    };
-    Process::fake([
-        '*launchctl*print-disabled*' => Process::result(''),
-        '*launchctl*print*' => fn ($p) => in_array($labelOf($p->command[2]), $this->loaded, true)
-            ? Process::result("state = running\n\tpid = 99\n")
-            : Process::result('', '', 113),
-        '*launchctl*bootstrap*' => function ($p) use ($portOf) {
-            $this->answering[] = $portOf($p->command[3]);
-            $this->loaded[] = basename($p->command[3], '.plist');
-
-            return Process::result('');
-        },
-        '*launchctl*bootout*' => function ($p) use ($labelOf) {
-            $label = $labelOf($p->command[2]);
-            $this->loaded = array_values(array_diff($this->loaded, [$label]));
-            if ($i = $this->m->find(substr($label, strlen(LaunchdManager::PREFIX)))) {
-                $this->answering = array_values(array_diff($this->answering, [$i->port]));
-            }
-
-            return Process::result('');
-        },
-        '*launchctl*' => Process::result(''),
-        '*initdb*' => Process::result("Success. You can now start the database server\n"),
-        '*brew*install*' => Process::result("==> Installing\n"),
-    ]);
+    $this->w = new FakeServicesWorld;
+    $this->m = $this->w->manager;
+    $this->launchd = $this->w->launchd;
+    $this->brewFs = $this->w->brewFs;
 });
 
-afterEach(function () {
-    File::deleteDirectory($this->root);
-    $this->brewFs->destroy();
-});
+afterEach(fn () => $this->w->destroy());
 
 it('creates a postgres instance: dirs, initdb, plist, launchd, ready', function () {
     $lines = [];
@@ -90,7 +42,7 @@ it('creates a postgres instance: dirs, initdb, plist, launchd, ready', function 
 });
 
 it('takes the standard port when free, the next free one otherwise, and names instances type, type-2', function () {
-    $this->answering = [6379];                                   // something else (brew services?) owns 6379
+    $this->w->answering = [6379];                                   // something else (brew services?) owns 6379
     $a = $this->m->create('redis', start: false);
     $b = $this->m->create('redis', start: false);
 
@@ -210,4 +162,24 @@ it('deletes, optionally keeping data, and prints env', function () {
     $j = $this->m->create('redis', start: false);
     $this->m->delete($j);
     expect(is_dir($j->dir))->toBeFalse();
+});
+
+it('retargets an instance to another formula of the same type and restarts it', function () {
+    $this->brewFs->formula('postgresql@16', '16.10', ['initdb', 'postgres']);
+    $i = $this->m->create('postgresql');           // postgresql@17
+    file_put_contents($i->dataDir().'/base.dat', 'DATA');
+
+    $u = $this->m->retarget($i, 'postgresql@16');
+
+    expect($u->formula)->toBe('postgresql@16')
+        ->and($u->version)->toBe('16.10')
+        ->and($u->options['previous_formula'])->toBe('postgresql@17')
+        ->and(file_get_contents($u->dataDir().'/base.dat'))->toBe('DATA')
+        ->and(file_get_contents($this->launchd->plistPath('postgresql')))->toContain('/opt/postgresql@16/bin/postgres')
+        ->and($this->m->status($u)['running'])->toBeTrue()
+        ->and(json_decode(file_get_contents($u->file()), true)['formula'])->toBe('postgresql@16');
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootout', 'gui/501/dev.zhuk.devkit.svc.postgresql']);
+
+    expect(fn () => $this->m->retarget($u, 'redis'))->toThrow(RuntimeException::class, 'is not a PostgreSQL formula')
+        ->and(fn () => $this->m->retarget($u, 'postgresql@16'))->toThrow(RuntimeException::class, 'already runs');
 });

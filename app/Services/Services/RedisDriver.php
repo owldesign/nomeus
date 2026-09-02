@@ -14,6 +14,8 @@ final class RedisDriver extends AbstractDriver
 
     public function defaultPort(): int { return 6379; }
 
+    public function binary(): string { return 'redis-server'; }
+
     public function initialize(ServiceInstance $i, string $binDir): array { return []; }
 
     public function programArguments(ServiceInstance $i, string $binDir): array
@@ -31,6 +33,11 @@ final class RedisDriver extends AbstractDriver
     public function staleFiles(ServiceInstance $i): array
     {
         return [];
+    }
+
+    public function brewDataDir(string $prefix, string $formula): ?string
+    {
+        return "{$prefix}/var/db/redis";
     }
 
     public function env(ServiceInstance $i): array

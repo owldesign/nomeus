@@ -23,6 +23,9 @@ interface Driver
 
     public function defaultPort(): int;
 
+    /** The server binary inside the formula's bin dir (postgres, mysqld, …) — pre-flighted with --version. */
+    public function binary(): string;
+
     /**
      * One-time setup commands, run in order after the instance dirs exist.
      *
@@ -44,4 +47,17 @@ interface Driver
      * @return list<string> absolute paths
      */
     public function staleFiles(ServiceInstance $instance): array;
+
+    /** Lock files inside an arbitrary data dir (brew's layout, before adoption). @return list<string> */
+    public function lockFilesIn(string $dataDir): array;
+
+    /** Where `brew services` keeps this formula's data, e.g. <prefix>/var/postgresql@14. */
+    public function brewDataDir(string $prefix, string $formula): ?string;
+
+    /**
+     * Commands to run once an adopted instance answers (e.g. PostgreSQL: ensure a `postgres` role).
+     *
+     * @return list<array{label:string, argv:list<string>, cwd:?string, timeout:int}>
+     */
+    public function postAdopt(ServiceInstance $instance, string $binDir): array;
 }

@@ -3,7 +3,7 @@ import type { ServiceInstance, ServiceType } from '@/api/types';
 import { ApiError } from '@/api/client';
 import { copyText } from '@/lib/clipboard';
 import TaskProgress from '@/components/TaskProgress';
-import { useCreateService, useRefetchAfterTask, useService, useServiceAction, useServiceTypes, useServices } from '@/hooks/useApi';
+import { useAdopt, useAdoptable, useCreateService, useRefetchAfterTask, useService, useServiceAction, useServiceTypes, useServices } from '@/hooks/useApi';
 
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : String(e));
 
@@ -187,6 +187,49 @@ function CreateForm({ types, existing }: { types: ServiceType[]; existing: Servi
   );
 }
 
+function AdoptPanel() {
+  const adoptable = useAdoptable();
+  const adopt = useAdopt();
+  const refetch = useRefetchAfterTask();
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  if (!adoptable.data || adoptable.data.length === 0) return null;
+
+  return (
+    <div className="mt-6 border border-gold/40 bg-panel px-4 py-3">
+      <div className="mb-1 text-gold">running under brew services</div>
+      <div className="mb-3 text-dim">devkit can take these over on their standard ports. The data is copied; brew's copy stays where it is until you remove it.</div>
+      <table className="w-full border-collapse">
+        <tbody>
+          {adoptable.data.map((s) => (
+            <tr key={s.formula} className="border-t border-dashed border-line">
+              <td className="py-1 pr-4">{s.formula} <span className="text-dim">{s.type}</span></td>
+              <td className="py-1 pr-4">{s.loaded ? <span className="text-green">running</span> : <span className="text-dim">{s.plist ? 'stopped, starts at login' : 'stopped'}</span>}</td>
+              <td className="py-1 pr-4 text-dim">{s.port}{s.answering === false ? ' (silent)' : ''}</td>
+              <td className="py-1 pr-4 break-all text-dim">{s.data_dir}</td>
+              <td className="py-1">
+                {taskId && busy === s.formula
+                  ? <TaskProgress id={taskId} onFinished={() => { refetch(); setTimeout(() => { setTaskId(null); setBusy(null); }, 4000); }} />
+                  : (
+                    <button
+                      type="button"
+                      className="border border-line px-2 py-0.5 hover:border-gold hover:text-gold disabled:text-mute"
+                      disabled={adopt.isPending || taskId !== null}
+                      onClick={() => { setBusy(s.formula); adopt.mutate({ formula: s.formula }, { onSuccess: (r) => setTaskId(r.task.id) }); }}
+                    >
+                      adopt
+                    </button>
+                  )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {adopt.isError && <div className="mt-2 text-red">{errorText(adopt.error)}</div>}
+    </div>
+  );
+}
+
 export default function Services() {
   const services = useServices();
   const types = useServiceTypes();
@@ -228,6 +271,7 @@ export default function Services() {
       )}
 
       {types.data && <CreateForm types={types.data} existing={services.data ?? []} />}
+      <AdoptPanel />
     </div>
   );
 }

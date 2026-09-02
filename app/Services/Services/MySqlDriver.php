@@ -10,13 +10,18 @@ final class MySqlDriver extends AbstractDriver
 
     public function label(): string { return 'MySQL'; }
 
-    /** mysql@8.4 is the LTS; bare `mysql` is the current innovation release. */
+    /**
+     * LTS lines first (9.7 is current, 8.4 previous); bare `mysql` is the Innovation line, which
+     * since 26.7 is calendar-versioned and can only be upgraded to from the preceding LTS.
+     */
     public function formulae(): array
     {
-        return ['mysql@8.4', 'mysql@8.0', 'mysql'];
+        return ['mysql@9.7', 'mysql@8.4', 'mysql@8.0', 'mysql'];
     }
 
     public function defaultPort(): int { return 3306; }
+
+    public function binary(): string { return 'mysqld'; }
 
     public function initialize(ServiceInstance $i, string $binDir): array
     {
@@ -52,6 +57,17 @@ final class MySqlDriver extends AbstractDriver
             $i->runDir().'/mysql.sock.lock',
             $i->dataDir().'/auto.cnf',
         ];
+    }
+
+    /** brew's mysqld writes <datadir>/<hostname>.pid. */
+    public function lockFilesIn(string $dataDir): array
+    {
+        return glob("{$dataDir}/*.pid") ?: [];
+    }
+
+    public function brewDataDir(string $prefix, string $formula): ?string
+    {
+        return "{$prefix}/var/mysql";
     }
 
     public function env(ServiceInstance $i): array

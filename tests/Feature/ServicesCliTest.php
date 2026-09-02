@@ -14,6 +14,7 @@ beforeEach(function () {
     config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
     config()->set('devkit.launch_agents_dir', "{$this->root}/agents");
     config()->set('devkit.uid', 501);
+    mkdir("{$this->root}/agents", 0755, true);
 
     $this->answering = [];
     $this->loaded = [];
@@ -24,8 +25,15 @@ beforeEach(function () {
     $labelOf = fn (string $t): string => substr($t, strrpos($t, '/') + 1);
     Process::fake([
         '*launchctl*print-disabled*' => Process::result(''),
-        '*launchctl*print*' => fn ($p) => in_array($labelOf($p->command[2]), $this->loaded, true)
-            ? Process::result("state = running\n\tpid = 7\n") : Process::result('', '', 113),
+        '*launchctl*print*' => fn ($p) => $p->command[2] === 'gui/501'
+            ? Process::result("gui/501 = {}\n")
+            : (in_array($labelOf($p->command[2]), $this->loaded, true) ? Process::result("state = running\n\tpid = 7\n") : Process::result('', '', 113)),
+        // placeholders: tests override these keys in place, which keeps them ahead of the catch-all.
+        // The list key is exact — "*launchctl*list*" would also match "launchctl bootstrap … .plist".
+        "*'launchctl' 'list'*" => Process::result(''),
+        '*brew*services*stop*' => Process::result(''),
+        '*cp*-a*' => Process::result(''),
+        '*psql*' => Process::result(''),
         '*launchctl*bootstrap*' => function ($p) {
             preg_match('/<string>(?:-p|--port)<\/string>\s*<string>(\d+)<\/string>/', file_get_contents($p->command[3]), $m);
             $this->answering[] = (int) ($m[1] ?? 0);
@@ -40,6 +48,7 @@ beforeEach(function () {
             return Process::result('');
         },
         '*launchctl*' => Process::result(''),
+        '*--version*' => Process::result("stub 1.0\n"),   // driver binary pre-flight
         '*initdb*' => Process::result("ok\n"),
     ]);
 });
@@ -99,4 +108,51 @@ it('reports the usual mistakes', function () {
     $this->artisan('services:start nope')->expectsOutputToContain('No service [nope]')->assertFailed();
     $this->artisan('services:env nope')->assertFailed();
     $this->artisan('services:logs nope')->assertFailed();
+});
+
+it('lists adoptable brew services and adopts one, and runs the doctor', function () {
+    // a brew redis cluster: agent plist + data dir + answering on 6379
+    $dataDir = $this->brewFs->root.'/var/db/redis';
+    mkdir($dataDir, 0755, true);
+    file_put_contents("$dataDir/dump.rdb", 'x');
+    file_put_contents("{$this->root}/agents/homebrew.mxcl.redis.plist", '<plist/>');
+    $this->answering = [6379];
+    Process::fake([
+        "*'launchctl' 'list'*" => Process::result("854\t0\thomebrew.mxcl.redis\n"),
+        '*brew*services*stop*' => function () {
+            $this->answering = [];
+            @unlink("{$this->root}/agents/homebrew.mxcl.redis.plist");
+
+            return Process::result('');
+        },
+        '*cp*-a*' => function ($p) {
+            \Illuminate\Support\Facades\File::copyDirectory(rtrim(preg_replace('#/\\.$#', '', $p->command[2]), '/'), rtrim($p->command[3], '/'));
+
+            return Process::result('');
+        },
+    ]);
+
+    $this->artisan('services:adopt')->expectsOutputToContain('var/db/redis')->assertSuccessful();
+    $this->artisan('services:adopt redis')
+        ->expectsOutputToContain('brew services stop redis')
+        ->expectsOutputToContain('adopted from')
+        ->assertSuccessful();
+    $this->artisan('services:list')->expectsOutputToContain('6379')->assertSuccessful();
+    expect(file_exists("{$this->root}/devkit/services/redis/data/dump.rdb"))->toBeTrue();
+
+    $this->artisan('services:doctor')->expectsOutputToContain('launchd')->assertSuccessful();
+    $this->artisan('services:doctor --json')->expectsOutputToContain('"level": "ok"')->assertSuccessful();
+    $this->artisan('services:adopt nginx')->expectsOutputToContain('No devkit driver')->assertFailed();
+});
+
+it('upgrades an instance to another formula from the cli', function () {
+    $this->brewFs->formula('postgresql@16', '16.10', ['initdb', 'postgres']);
+    $this->artisan('services:create postgresql 17 --name=pg')->assertSuccessful();
+
+    $this->artisan('services:upgrade pg postgresql@16 --yes')
+        ->expectsOutputToContain('starting pg as postgresql@16')
+        ->expectsOutputToContain('(was postgresql@17)')
+        ->assertSuccessful();
+    $this->artisan('services:upgrade pg redis --yes')->expectsOutputToContain('is not a PostgreSQL formula')->assertFailed();
+    $this->artisan('services:upgrade nope redis --yes')->assertFailed();
 });

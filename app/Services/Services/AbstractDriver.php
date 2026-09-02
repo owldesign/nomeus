@@ -4,6 +4,21 @@ namespace App\Services\Services;
 
 abstract class AbstractDriver implements Driver
 {
+    public function lockFilesIn(string $dataDir): array
+    {
+        return [];
+    }
+
+    public function brewDataDir(string $prefix, string $formula): ?string
+    {
+        return null;
+    }
+
+    public function postAdopt(\App\Support\ServiceInstance $instance, string $binDir): array
+    {
+        return [];
+    }
+
     public function formulaFor(?string $version): ?string
     {
         $formulae = $this->formulae();

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, del, post } from '@/api/client';
-import type { Enqueued, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
+import type { BrewService, Enqueued, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -163,5 +163,19 @@ export function useCreateService() {
   return useMutation({
     mutationFn: (body: { type: string; version?: string; name?: string; port?: number; start?: boolean }) =>
       post<Enqueued>('/services', body),
+  });
+}
+
+export function useAdoptable() {
+  return useQuery({
+    queryKey: ['services', 'adoptable'],
+    queryFn: async () => (await api<{ data: BrewService[] }>('/services/adoptable')).data,
+    refetchInterval: 15000,
+  });
+}
+
+export function useAdopt() {
+  return useMutation({
+    mutationFn: (body: { formula: string; name?: string; port?: number }) => post<Enqueued>('/services/adopt', body),
   });
 }

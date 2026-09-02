@@ -25,6 +25,7 @@ final class ServiceManager
         private readonly LaunchdManager $launchd,
         private readonly Shell $shell,
         private readonly Probe $probe,
+        private readonly BrewServices $brewServices,
     ) {}
 
     public function dir(): string
@@ -111,8 +112,9 @@ final class ServiceManager
             }
         }
         $binDir = $this->brew->formulaBinDir($formula) ?? throw new RuntimeException("Formula {$formula} has no bin dir under ".$this->brew->prefix().'/opt');
+        $this->preflight($formula, $driver);
 
-        $instance = new ServiceInstance(
+        $instance = $this->materialize(new ServiceInstance(
             name: $name,
             type: $type,
             formula: $formula,
@@ -120,25 +122,11 @@ final class ServiceManager
             port: $port,
             dir: $this->dir().'/'.$name,
             createdAt: now()->toIso8601String(),
-        );
-        foreach ([$instance->dir, $instance->dataDir(), $instance->confDir(), $instance->runDir(), $instance->logDir()] as $d) {
-            if (! is_dir($d)) {
-                mkdir($d, 0755, true);
-            }
-        }
-        $instance->save();
+        ));
 
         try {
-            foreach ($driver->initialize($instance, $binDir) as $step) {
-                $log($step['label']);
-                $result = $this->shell->run($step['argv'], $step['cwd'], $step['timeout'], fn ($type, $buf) => $log(rtrim($buf)));
-                if (! $result->successful()) {
-                    throw new RuntimeException("{$step['label']} failed (exit {$result->exitCode()}): ".trim($result->errorOutput() ?: $result->output()));
-                }
-            }
-            // The agent gets devkit's whole environment: PATH and HOME, but also LC_ALL/LANG,
-            // which PostgreSQL on macOS needs to start at all.
-            $this->launchd->writePlist($name, $driver->programArguments($instance, $binDir), $instance->dir, $instance->logFile(), $this->shell->env());
+            $this->runSteps($driver->initialize($instance, $binDir), $log);
+            $this->writeAgent($instance, $driver, $binDir);
         } catch (RuntimeException $e) {
             File::deleteDirectory($instance->dir);
             $this->launchd->removePlist($name);
@@ -160,6 +148,161 @@ final class ServiceManager
         }
 
         return $instance;
+    }
+
+    // ── adopt: a `brew services` cluster becomes a devkit instance, data copied ───
+
+    /**
+     * @param  callable(string):void|null  $log
+     */
+    /**
+     * @param  string|null  $runAs  run the adopted data under this formula instead of brew's — e.g. brew's
+     *                              `mysql` (9.6 data) under `mysql@9.7`, which upgrades it in place on start.
+     * @param  callable(string):void|null  $log
+     */
+    public function adopt(string $formula, ?string $name = null, ?int $port = null, ?callable $log = null, ?string $runAs = null): ServiceInstance
+    {
+        $log ??= fn () => null;
+        $driver = $this->drivers->driverForFormula($formula)
+            ?? throw new RuntimeException("No devkit driver for [{$formula}]. Adoptable: ".implode(', ', array_map(fn ($s) => $s['formula'], $this->brewServices->adoptable())));
+        $formula = $this->brew->shortName($formula);
+        $src = $driver->brewDataDir($this->brew->prefix(), $formula);
+        if ($src === null || ! is_dir($src)) {
+            throw new RuntimeException("brew has no data directory for {$formula}".($src ? " at {$src}" : '').'.');
+        }
+
+        $runFormula = $runAs !== null ? $this->brew->shortName($runAs) : $formula;
+        if ($runAs !== null && $this->drivers->driverForFormula($runFormula)?->type() !== $driver->type()) {
+            throw new RuntimeException("[{$runFormula}] is not a {$driver->label()} formula; adopting {$formula} data needs one of: ".implode(', ', $driver->formulae()));
+        }
+        if (! $this->brew->isFormulaInstalled($runFormula)) {
+            $plan = $this->brew->installFormulaPlan($runFormula);
+            $log("{$plan['label']} (not installed yet)");
+            $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($type, $buf) => $log(rtrim($buf)));
+            if (! $result->successful()) {
+                throw new RuntimeException("brew install {$runFormula} failed (exit {$result->exitCode()}).");
+            }
+        }
+        $binDir = $this->brew->formulaBinDir($runFormula) ?? throw new RuntimeException("Formula {$runFormula} has no bin dir.");
+        $this->preflight($runFormula, $driver); // before brew's service is stopped: a broken binary means no takeover at all
+
+        $name = $name ?? $this->defaultName($driver->type());
+        if (! preg_match('/^[a-z0-9][a-z0-9-]*$/', $name)) {
+            throw new RuntimeException("Instance name must be lowercase letters, digits and dashes, got [{$name}].");
+        }
+        if ($this->find($name) !== null) {
+            throw new RuntimeException("Service [{$name}] already exists.");
+        }
+
+        $brewSvc = $this->brewServices->find($formula);
+        if ($brewSvc !== null && ($brewSvc['loaded'] || $brewSvc['plist'] !== null)) {
+            $log("brew services stop {$formula}");
+            $this->brewServices->stop($formula);
+        }
+        $this->waitForFilesGone($driver->lockFilesIn($src), 'brew\'s '.$formula.' to finish shutting down');
+
+        // Standard port is usually free now — brew's copy just stopped.
+        $port = $this->allocatePort($port ?? $driver->defaultPort(), explicit: $port !== null);
+
+        $instance = $this->materialize(new ServiceInstance(
+            name: $name,
+            type: $driver->type(),
+            formula: $runFormula,
+            version: $this->brew->formulaVersion($runFormula) ?? '',
+            port: $port,
+            dir: $this->dir().'/'.$name,
+            createdAt: now()->toIso8601String(),
+            options: ['adopted_from' => $src, 'adopted_at' => now()->toIso8601String()]
+                + ($runFormula !== $formula ? ['adopted_formula' => $formula] : []),
+        ));
+
+        try {
+            $log("copying {$src} → {$instance->dataDir()} (brew's copy is left in place)");
+            // cp -a: modes, ownership and timestamps intact — Postgres insists on 0700.
+            $result = $this->shell->run(['cp', '-a', rtrim($src, '/').'/.', $instance->dataDir().'/'], null, 3600);
+            if (! $result->successful()) {
+                throw new RuntimeException('copy failed: '.trim($result->errorOutput() ?: $result->output()));
+            }
+            $this->removeStaleFiles($instance);
+            $this->writeAgent($instance, $driver, $binDir);
+        } catch (RuntimeException $e) {
+            File::deleteDirectory($instance->dir);
+            $this->launchd->removePlist($name);
+            throw $e;
+        }
+
+        $log("starting {$name} on 127.0.0.1:{$port}");
+        try {
+            $this->start($instance);
+            $this->runSteps($driver->postAdopt($instance, $binDir), $log);
+        } catch (RuntimeException $e) {
+            try {
+                $this->stop($instance);
+            } catch (RuntimeException) {
+            }
+            throw new RuntimeException($e->getMessage()."\n\nKept {$name} stopped for inspection: devkit services:logs {$name}   ·   devkit services:delete {$name}. brew's data is untouched at {$src}; `brew services start {$formula}` restores the old setup.");
+        }
+
+        return $instance;
+    }
+
+    // ── retarget: same instance, same data, different formula of the same type ───
+
+    /**
+     * Point an instance at another formula (e.g. mysql → mysql@9.7). The server performs whatever
+     * in-place data upgrade it supports on the next start; devkit only swaps the binary the agent runs.
+     * One-way for databases — MySQL and Postgres do not downgrade a data dir.
+     *
+     * @param  callable(string):void|null  $log
+     */
+    public function retarget(ServiceInstance $i, string $formula, ?callable $log = null): ServiceInstance
+    {
+        $log ??= fn () => null;
+        $formula = $this->brew->shortName($formula);
+        $driver = $this->driver($i);
+        if ($this->drivers->driverForFormula($formula)?->type() !== $i->type) {
+            throw new RuntimeException("[{$formula}] is not a {$driver->label()} formula. Known: ".implode(', ', $driver->formulae()));
+        }
+        if ($formula === $i->formula) {
+            throw new RuntimeException("{$i->name} already runs {$formula}.");
+        }
+        if (! $this->brew->isFormulaInstalled($formula)) {
+            $plan = $this->brew->installFormulaPlan($formula);
+            $log("{$plan['label']} (not installed yet)");
+            $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($type, $buf) => $log(rtrim($buf)));
+            if (! $result->successful()) {
+                throw new RuntimeException("brew install {$formula} failed (exit {$result->exitCode()}).");
+            }
+        }
+        $binDir = $this->brew->formulaBinDir($formula) ?? throw new RuntimeException("Formula {$formula} has no bin dir.");
+        $this->preflight($formula, $driver);
+
+        if ($this->launchd->state($i->name)['loaded']) {
+            $log("stopping {$i->name}");
+            $this->stop($i);
+            $this->waitForStaleFilesGone($i);
+        }
+
+        $updated = $i->with([
+            'formula' => $formula,
+            'version' => $this->brew->formulaVersion($formula) ?? '',
+            'options' => ['previous_formula' => $i->formula, 'retargeted_at' => now()->toIso8601String()] + $i->options,
+        ]);
+        $updated->save();
+        $this->writeAgent($updated, $driver, $binDir);
+
+        $log("starting {$updated->name} as {$formula} {$updated->version} on 127.0.0.1:{$updated->port}");
+        try {
+            $this->start($updated);
+        } catch (RuntimeException $e) {
+            try {
+                $this->stop($updated);
+            } catch (RuntimeException) {
+            }
+            throw new RuntimeException($e->getMessage()."\n\nKept {$updated->name} stopped (now {$formula}): devkit services:logs {$updated->name}. To go back: devkit services:upgrade {$updated->name} {$i->formula} — only if the server did not already rewrite the data.");
+        }
+
+        return $updated;
     }
 
     // ── lifecycle ─────────────────────────────────────────────────────────────
@@ -290,6 +433,49 @@ final class ServiceManager
         throw new RuntimeException("No free port near {$preferred}.");
     }
 
+    /** Fail in a second with the dyld error, not after a 30 s wait for a port that will never answer. */
+    private function preflight(string $formula, Driver $driver): void
+    {
+        $problem = $this->brew->binaryCheck($formula, $driver->binary());
+        if ($problem !== null) {
+            throw new RuntimeException("{$formula}'s {$driver->binary()} does not run:\n{$problem}\n\nUsually Homebrew dependency drift after an upgrade — fix with: brew reinstall {$formula}");
+        }
+    }
+
+    /** Directories, service.json — the parts every instance has before anything runs. */
+    private function materialize(ServiceInstance $instance): ServiceInstance
+    {
+        foreach ([$instance->dir, $instance->dataDir(), $instance->confDir(), $instance->runDir(), $instance->logDir()] as $d) {
+            if (! is_dir($d)) {
+                mkdir($d, 0755, true);
+            }
+        }
+        $instance->save();
+
+        return $instance;
+    }
+
+    /**
+     * The agent gets devkit's whole environment: PATH and HOME, but also LC_ALL/LANG,
+     * which PostgreSQL on macOS needs to start at all.
+     */
+    private function writeAgent(ServiceInstance $instance, Driver $driver, string $binDir): void
+    {
+        $this->launchd->writePlist($instance->name, $driver->programArguments($instance, $binDir), $instance->dir, $instance->logFile(), $this->shell->env());
+    }
+
+    /** @param  list<array{label:string, argv:list<string>, cwd:?string, timeout:int}>  $steps */
+    private function runSteps(array $steps, callable $log): void
+    {
+        foreach ($steps as $step) {
+            $log($step['label']);
+            $result = $this->shell->run($step['argv'], $step['cwd'], $step['timeout'], fn ($type, $buf) => $log(rtrim($buf)));
+            if (! $result->successful()) {
+                throw new RuntimeException("{$step['label']} failed (exit {$result->exitCode()}): ".trim($result->errorOutput() ?: $result->output()));
+            }
+        }
+    }
+
     private function removeStaleFiles(ServiceInstance $i): void
     {
         foreach ($this->driver($i)->staleFiles($i) as $file) {
@@ -304,16 +490,22 @@ final class ServiceManager
 
     private function waitForStaleFilesGone(ServiceInstance $i, ?int $seconds = null): void
     {
-        $files = $this->driver($i)->staleFiles($i);
+        $files = array_filter($this->driver($i)->staleFiles($i), fn ($f) => ! str_ends_with($f, 'auto.cnf'));
+        $this->waitForFilesGone($files, "{$i->name} to finish shutting down", $seconds);
+    }
+
+    /** @param  list<string>  $files */
+    private function waitForFilesGone(array $files, string $what, ?int $seconds = null): void
+    {
         $deadline = microtime(true) + ($seconds ?? $this->shutdownTimeout);
         while (microtime(true) < $deadline) {
-            $present = array_filter($files, fn ($f) => file_exists($f) && ! str_ends_with($f, 'auto.cnf'));
-            if ($present === []) {
+            clearstatcache();
+            if (array_filter($files, 'file_exists') === []) {
                 return;
             }
             usleep(250_000);
         }
-        // Give up waiting; the copy is stripped afterwards anyway.
+        // Give up waiting for {$what}; the copy is stripped afterwards anyway.
     }
 
     private function defaultName(string $type): string

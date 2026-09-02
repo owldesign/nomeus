@@ -28,6 +28,8 @@ Route::post('/php/{version}/update', [PhpController::class, 'update'])->where('v
 
 Route::get('/services', [ServicesController::class, 'index'])->name('api.services.index');
 Route::get('/services/types', [ServicesController::class, 'types'])->name('api.services.types');
+Route::get('/services/adoptable', [ServicesController::class, 'adoptable'])->name('api.services.adoptable');
+Route::post('/services/adopt', [ServicesController::class, 'adopt'])->name('api.services.adopt');
 Route::post('/services', [ServicesController::class, 'store'])->name('api.services.store');
 Route::get('/services/{name}', [ServicesController::class, 'show'])->name('api.services.show');
 Route::post('/services/{name}/start', [ServicesController::class, 'start'])->name('api.services.start');

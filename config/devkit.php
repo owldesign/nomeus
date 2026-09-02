@@ -4,7 +4,7 @@ use App\Support\DevkitConfig;
 
 return [
     // Bumped per slice; `devkit status --json | grep version` tells which cut is live.
-    'version' => '0.2.5',
+    'version' => '0.2.8',
 
     // ~/.devkit/config.json — written by install/install.sh
     'config_path' => env('DEVKIT_CONFIG_PATH') ?: DevkitConfig::defaultPath(),

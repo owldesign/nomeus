@@ -119,3 +119,16 @@ export interface ServiceType {
   default_port: number;
   formulae: { formula: string; installed: boolean; version: string | null }[];
 }
+
+export interface BrewService {
+  formula: string;
+  label: string;
+  loaded: boolean;
+  pid: number | null;
+  plist: string | null;
+  type: string | null;
+  data_dir: string | null;
+  has_data: boolean;
+  port: number | null;
+  answering: boolean | null;
+}
