@@ -48,14 +48,37 @@ rc_add() { # rc_add <grep-pattern> <line>
 [[ "$EUID" -ne 0 ]]               || die "Run as your normal user, not root. Valet will sudo when it needs to."
 command -v brew >/dev/null        || die "Homebrew is required first: https://brew.sh"
 BREW_PREFIX="$(brew --prefix)"
+BREW_MAJOR="$(brew --version | head -1 | sed -E 's/^Homebrew ([0-9]+).*/\1/')"
+[[ "${BREW_MAJOR:-0}" -ge 6 ]]    || die "Homebrew 6+ required (Brewfile declares tap trust). Run: brew update"
 touch "$RC"
 
 # ── 1. Homebrew bundle ────────────────────────────────────────────────────────
-log "brew bundle ($DEVKIT_HOME/install/Brewfile)"
-if ! brew bundle --file="$DEVKIT_HOME/install/Brewfile"; then
+# --no-upgrade: install what's missing, never upgrade what's present. Upgrades are a deliberate
+# `brew upgrade` (later: `devkit self-update`), not a side effect of re-running the bootstrap.
+log "brew bundle --no-upgrade ($DEVKIT_HOME/install/Brewfile)"
+if ! brew bundle --no-upgrade --file="$DEVKIT_HOME/install/Brewfile"; then
   warn "brew bundle reported failures — check output above. Continuing with what installed."
 fi
-[[ -d "/Applications/LaraDumps.app" ]] || warn "LaraDumps.app not found — grab it from https://github.com/laradumps/app/releases"
+
+# Post-bundle verification: name every missing item with its exact fix, so a partial bundle is never silent.
+MISSING=0
+check() { # check <test-expr> <label> <fix-command>
+  if ! eval "$1" >/dev/null 2>&1; then
+    warn "missing: $2"
+    printf '           fix: %s\n' "$3" >&2
+    MISSING=1
+  fi
+}
+check 'command -v mailpit'                          'mailpit'      'brew install mailpit'
+check 'test -d "/Applications/PHP Monitor.app"'     'PHP Monitor'  'brew tap nicoverbruggen/homebrew-cask && brew install --cask nicoverbruggen/cask/phpmon'
+check 'test -d "/Applications/LaraDumps.app"'       'LaraDumps'    'brew tap laradumps/app && brew install --cask laradumps/app/laradumps'
+check 'test -d "/Applications/TablePlus.app"'       'TablePlus'    'brew install --cask tableplus'
+check 'brew list --versions "php@$PHP_DEFAULT"'     "php@$PHP_DEFAULT" "brew install shivammathur/php/php@$PHP_DEFAULT"
+if [[ -d "/Applications/LaraDumps.app" ]] && xattr -p com.apple.quarantine "/Applications/LaraDumps.app" >/dev/null 2>&1; then
+  warn "LaraDumps.app is quarantined (unnotarized build). If macOS reports it as damaged on launch, run:"
+  printf '           xattr -dr com.apple.quarantine "/Applications/LaraDumps.app"\n' >&2
+fi
+[[ "$MISSING" -eq 0 ]] || warn "run the fix commands above, then re-run this script (it is idempotent)"
 
 # ── 2. Composer global bin on PATH ────────────────────────────────────────────
 COMPOSER_BIN="$(composer global config bin-dir --absolute 2>/dev/null || echo "$HOME/.composer/vendor/bin")"
@@ -102,6 +125,10 @@ if [[ ! -f "$CONFIG_DIR/config.json" ]]; then
       "$DEVKIT_HOME/install/config.default.json" > "$CONFIG_DIR/config.json"
 else
   log "$CONFIG_DIR/config.json exists — left untouched"
+  STORED_CODE_DIR="$(sed -n 's/.*"code_dir": *"\([^"]*\)".*/\1/p' "$CONFIG_DIR/config.json")"
+  if [[ -n "$STORED_CODE_DIR" && "$STORED_CODE_DIR" != "$CODE_DIR" ]]; then
+    warn "config.json code_dir is $STORED_CODE_DIR but this run parked $CODE_DIR — edit config.json or run: cd $STORED_CODE_DIR && valet forget"
+  fi
 fi
 
 # ── 6. CLI shim (bin/devkit lands in Phase 1a) ────────────────────────────────

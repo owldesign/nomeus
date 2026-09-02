@@ -1,12 +1,19 @@
 # devkit — macOS Brewfile (Phase 0a)
-# Run via install/install.sh, or directly: brew bundle --file=install/Brewfile
+# Run via install/install.sh, or directly: brew bundle --no-upgrade --file=install/Brewfile
+#
+# Homebrew 6 requires explicit trust for non-official taps (docs.brew.sh/Tap-Trust).
+# Trust is declared here so `brew bundle` grants it before installing — no manual `brew trust` step.
 
-tap "shivammathur/php"
-tap "shivammathur/extensions"        # xdebug@X.Y — installed in Phase 5, not here (see install.sh header)
-tap "axllent/apps"
-tap "nicoverbruggen/homebrew-cask"
+# Whole-tap trust: PHP Monitor and devkit's `php:install` enumerate this tap to offer versions
+# that aren't listed below, and item-level trust would refuse to load them.
+tap "shivammathur/php", trusted: true
+# shivammathur/extensions (xdebug@X.Y) is tapped in Phase 5 with item-level trust — not here.
 
-# Valet core. Valet would install these itself, declared here so `brew bundle` is the single source of truth.
+# Item-level trust only: one cask each, nothing else from these taps should ever load.
+tap "nicoverbruggen/homebrew-cask", trusted: { cask: "phpmon" }
+tap "laradumps/app",                trusted: { cask: "laradumps" }
+
+# Valet core. Valet would install these itself; declared here so `brew bundle` is the single source of truth.
 brew "nginx"
 brew "dnsmasq"
 brew "composer"                      # pulls homebrew-core `php` as a dependency; `valet use` relinks the active version
@@ -20,10 +27,10 @@ brew "shivammathur/php/php@8.5"
 # Node version management (Herd parity: nvm + .nvmrc)
 brew "nvm"
 
-# Mail catcher (Phase 3 wires it up; installing now so `brew bundle` is one-shot)
-brew "axllent/apps/mailpit"
+# Mail catcher — homebrew-core formula. Phase 3 wires it up; installed now so `brew bundle` is one-shot.
+brew "mailpit"
 
-# GUI companions
-cask "phpmon"                        # menubar: PHP switching, Valet services, site isolation
-cask "laradumps"                     # dumps/queries/jobs/logs viewer — if this cask is missing, install.sh prints the release URL
+# GUI companions — fully-qualified so resolution never depends on tap search order
+cask "nicoverbruggen/cask/phpmon"    # menubar: PHP switching, Valet services, site isolation
+cask "laradumps/app/laradumps"       # dumps/queries/jobs/logs viewer; unnotarized — install.sh post-check flags the quarantine bit
 cask "tableplus"                     # target of `devkit db`; free tier is sufficient
