@@ -43,6 +43,20 @@ final class SeaweedFsDriver extends AbstractDriver
 
     public function staleFiles(ServiceInstance $i): array { return []; }
 
+    public function databaseEnvKey(): ?string { return 'AWS_BUCKET'; }
+
+    /** PUT /<bucket> on the S3 gateway; SeaweedFS answers 200 for new and existing buckets alike. */
+    public function createDatabasePlan(ServiceInstance $i, string $binDir, string $name): ?array
+    {
+        return [
+            'label' => "create bucket {$name}",
+            'argv' => ['curl', '-sf', '-o', '/dev/null', '-X', 'PUT', "http://127.0.0.1:{$i->port}/{$name}"],
+            'cwd' => null,
+            'timeout' => 30,
+            'tolerate' => '/BucketAlreadyOwnedByYou|BucketAlreadyExists/',
+        ];
+    }
+
     public function env(ServiceInstance $i): array
     {
         return [

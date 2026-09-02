@@ -71,6 +71,22 @@ class SitesController extends Controller
         return $this->enqueue('link', null, ['path' => $data['path']], name: $data['name']);
     }
 
+    /** `devkit init <path>` as a task — it links, isolates, creates services and runs scripts, none of which fits in a request. */
+    public function init(Request $request, string $name): JsonResponse
+    {
+        $site = $this->findOrFail($name);
+        if ($site->type === 'proxy' || ! is_file("{$site->path}/dev.yml")) {
+            return response()->json(['message' => "[{$site->name}] has no dev.yml."], 422);
+        }
+        $args = ['init', $site->path];
+        if ($request->boolean('skip_scripts')) {
+            $args[] = '--skip-scripts';
+        }
+        $task = $this->tasks->spawn($this->tasks->artisanPlan("init {$site->name}", $args, timeout: 3600));
+
+        return response()->json(['task' => $task->toArray()], 202);
+    }
+
     public function unlink(string $name): JsonResponse
     {
         $site = $this->findOrFail($name);

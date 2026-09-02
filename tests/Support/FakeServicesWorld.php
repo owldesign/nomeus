@@ -131,6 +131,13 @@ final class FakeServicesWorld
             "*weed' 'version*" => Process::result("weed version 30GB 4.45\n"),
             "*mailpit' 'version*" => Process::result("mailpit v1.31.0\n"),
             '*initdb*' => Process::result("Success. You can now start the database server\n"),
+            // init's collaborators: valet mutations, composer, post-init shells, database creation
+            '*bin/valet*' => Process::result("ok\n"),
+            "*'composer'*" => Process::result("ok\n"),
+            "*'sh' '-c'*" => Process::result("ok\n"),
+            '*createdb*' => Process::result(''),
+            '*CREATE DATABASE*' => Process::result(''),
+            "*'curl'*" => Process::result(''),
             '*psql*' => Process::result("DO\n"),
             '*brew*install*' => Process::result("==> Installing\n"),
         ]);

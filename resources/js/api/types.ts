@@ -43,6 +43,7 @@ export interface Site {
   secured: boolean;
   php: string | null; // isolated version, or null = global
   laravel: boolean;
+  manifest: boolean;  // has a dev.yml
   nginx_conf: string | null;
 }
 

@@ -61,7 +61,7 @@ export function useTask(id: string | null, opts?: { onFinished?: (task: Task) =>
 export const isFinished = (t: Task) => t.status === 'done' || t.status === 'failed';
 
 export type SiteAction =
-  | { name: string; action: 'secure' | 'unsecure' | 'unisolate' }
+  | { name: string; action: 'secure' | 'unsecure' | 'unisolate' | 'init' }
   | { name: string; action: 'isolate'; php: string }
   | { name: string; action: 'unlink' };
 

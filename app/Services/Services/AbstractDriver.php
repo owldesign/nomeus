@@ -9,6 +9,16 @@ abstract class AbstractDriver implements Driver
         return ['--version'];
     }
 
+    public function databaseEnvKey(): ?string
+    {
+        return null;
+    }
+
+    public function createDatabasePlan(\App\Support\ServiceInstance $instance, string $binDir, string $name): ?array
+    {
+        return null;
+    }
+
     public function defaultOptions(): array
     {
         return [];

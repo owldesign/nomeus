@@ -76,6 +76,9 @@ function RowActions({ site, phpVersions, globalPhp }: { site: Site; phpVersions:
           {site.php && (
             <button type="button" className="hover:text-gold" onClick={() => run({ name: site.name, action: 'unisolate' })}>unisolate</button>
           )}
+          {site.manifest && (
+            <button type="button" className="text-gold hover:underline" title="devkit init — apply the site's dev.yml" onClick={() => run({ name: site.name, action: 'init' })}>init</button>
+          )}
           {site.type === 'linked' && (
             <button type="button" className="hover:text-red" onClick={() => setConfirm('unlink')}>unlink</button>
           )}

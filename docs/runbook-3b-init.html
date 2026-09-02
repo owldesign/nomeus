@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 3b · init + dev.yml</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 3b · init + dev.yml</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~20 min · phases 0–4</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>a site declares what it needs in <code>dev.yml</code> and one command makes it so</b> — link, tls, php, node, services, databases, mail, the client package, .env, scripts — and the same command run again changes nothing.
+  This closes Phase 3. Precondition: 3a committed.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, dependency, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay + symfony/yaml</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-3b.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; chmod +x bin/devkit &amp;&amp; composer require symfony/yaml &amp;&amp; vendor/bin/pest &amp;&amp; npm run build &amp;&amp; devkit status | head -2</pre>
+<pre class="out">Tests: 146 passed — +Manifest 3 · DotenvEditor 3 · InitPlanner 5 · InitCli 4 · devkit 0.3.2</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>smoke, from a manifest <span class="t">~8 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Write dev.yml</span></label>
+    <div class="body">
+<pre class="cmd">cat &gt; ~/Sites/smoke/dev.yml &lt;&lt;'EOF'
+name: smoke
+domain: smoke
+php: "8.4"
+node: "22"
+secure: true
+services:
+  - { type: postgresql, instance: pg17, database: smoke }
+  - { type: redis }
+mail: true
+env:
+  QUEUE_CONNECTION: redis
+  CACHE_STORE: redis
+post-init:
+  - php artisan migrate --force
+EOF
+devkit init ~/Sites/smoke --dry-run</pre>
+<pre class="out">step                 action
+site                 site smoke.test                 skip  parked at /Users/owldesign/Sites/smoke
+secure               tls                             skip  already secured            (or run, if you unsecured it)
+php                  isolate php@8.4                 run   valet isolate php@8.4 --site=smoke
+node                 node 22                         run   write .nvmrc (absent → 22); nvm install/use is yours to run
+service:postgresql   postgresql → pg17               skip  running on 5433
+db:pg17              pg17: smoke                     run   create smoke on pg17 if missing
+service:redis        redis → redis                   skip  running on 6379
+mail                 mail → mailpit                  skip  running on 1025
+client               zhuk/devkit-client              skip  already required            (from runbook 3a)
+env                  .env                            run   write QUEUE_CONNECTION CACHE_STORE APP_URL APP_NAME + service and mail keys
+post-init:0          php artisan migrate --force     run   in /Users/owldesign/Sites/smoke, with the site's php first on PATH</pre>
+    </div>
+    <div class="callout gold">Every line is either <b>skip</b> with the reason or <b>run</b> with the exact thing it will do. <code>instance: pg17</code> names the adopted @17 cluster; without it, the first existing instance of the type is reused, and only if none exists is one created.</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Run it</span></label>
+    <div class="body">
+<pre class="cmd">devkit init ~/Sites/smoke</pre>
+<pre class="out">▶ isolate php@8.4 … ▶ node 22 … ▶ pg17: smoke → createdb smoke: ok … ▶ .env → set 6, added 9: APP_URL … DB_DATABASE … ▶ php artisan migrate --force → migration output
+smoke.test ready — 5 steps run, 6 already in place</pre>
+<pre class="cmd">grep -E '^(APP_URL|DB_|MAIL_(MAILER|PORT)|REDIS_PORT|QUEUE_CONNECTION|DEVKIT_)' ~/Sites/smoke/.env &amp;&amp; /opt/homebrew/opt/postgresql@17/bin/psql -h 127.0.0.1 -p 5433 -U postgres -lqt | cut -d'|' -f1 | grep -w smoke</pre>
+<pre class="out">APP_URL=https://smoke.test · DB_CONNECTION=pgsql DB_PORT=5433 DB_DATABASE=smoke … · MAIL_MAILER=smtp MAIL_PORT=1025 · REDIS_PORT=6379 · QUEUE_CONNECTION=redis · DEVKIT_MAIL_TAG=smoke · smoke (the database)</pre>
+    </div>
+    <div class="callout red">Failing step? init stops there and names it, e.g. <code>[post-init:0] php artisan migrate --force: sh -c … exited 1</code>. Fix the cause, run init again — everything before it is now "skip".</div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">Idempotent</span></label>
+    <div class="body">
+<pre class="cmd">devkit init ~/Sites/smoke --skip-scripts</pre>
+<pre class="out">every step skip except env (".env → set 0, added 0 — nothing to change") · smoke.test ready — 1 step run, 10 already in place</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>From the dashboard <span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">The Sites row knows about the manifest</span></label>
+    <div class="body">
+<pre class="cmd">open https://devkit.test/sites</pre>
+<pre class="out">smoke row → a gold "init" action (only rows with a dev.yml have it) → click → task "init smoke" → Tasks page shows the same step-by-step log</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>One of your real sites <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Manifest that matches what the site already uses</span></label>
+    <div class="body">
+<pre class="cmd">grep -E '^DB_(CONNECTION|DATABASE)=' ~/Sites/coavaorders.com/.env</pre>
+<pre class="out">DB_CONNECTION=mysql · DB_DATABASE=&lt;its schema&gt;   ← put exactly that schema in database:, so init reuses it</pre>
+<pre class="cmd">cat &gt; ~/Sites/coavaorders.com/dev.yml &lt;&lt;'EOF'
+name: coavaorders
+domain: coavaorders.com
+secure: true
+services:
+  - { type: mysql, instance: mysql, database: &lt;its schema&gt; }
+  - { type: redis }
+mail: true
+EOF
+devkit init ~/Sites/coavaorders.com --dry-run</pre>
+<pre class="out">site skip · tls skip/run · mysql → mysql skip (running on 3306) · db:mysql run (CREATE DATABASE IF NOT EXISTS — a no-op for the existing schema) · redis skip · mail skip · client run · env run</pre>
+<pre class="cmd">devkit init ~/Sites/coavaorders.com</pre>
+<pre class="out">client package required · .env: MAIL_* now point at mailpit, DB_* unchanged in value, DEVKIT_MAIL_TAG=coavaorders</pre>
+    </div>
+    <div class="callout gold">init never drops or renames anything: databases are created only if missing, .env keys are replaced in place. What it does change on an existing site is MAIL_* (to Mailpit) and APP_URL/APP_NAME — glance at <code>git diff .env</code> if the site tracks one, or at the "set N" list init prints.</div>
+    <div class="callout red">The site's .env says <code>DB_PORT=3306</code> but the manifest resolved a different instance? <code>instance:</code> pins it. Two DB types in one manifest (postgres and mysql) both want DB_* — first listed wins; use <code>env:</code> for the other's keys.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Commit — Phase 3 complete</h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-3b: dev.yml manifest, devkit init (planner/runner), dotenv editor, database creation hooks — phase 3 complete"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="4.2"><label><input type="checkbox"><span class="id">4.2</span><span class="title">Hand-off for Phase 4</span></label>
+    <div class="body"><p>Paste the <code>--dry-run</code> table from 1.3. Phase 4 is the log viewer: a watcher over every site's <code>storage/logs</code>, streamed to a Logs page with IDE deep links.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>Class "Symfony\Component\Yaml\Yaml" not found</b> — 0.1's <code>composer require symfony/yaml</code> didn't run.</div>
+  <div class="callout red"><b>[php] … php@X is not installed</b> — the manifest asks for a version devkit doesn't have: <code>devkit php:install X</code>, or change <code>php:</code>.</div>
+  <div class="callout red"><b>[db:…] createdb … failed: role "postgres" does not exist</b> — an adopted cluster whose postAdopt didn't get to create the role. <code>psql -U &lt;your user&gt; -d postgres -c "CREATE ROLE postgres SUPERUSER LOGIN"</code> on that instance's port.</div>
+  <div class="callout red"><b>[client] composer require … exited 1</b> — the site's dependency set can't take the package (it only needs illuminate/support ^11–13); the composer output above the line says which constraint. <code>client: false</code> in the manifest skips it.</div>
+  <div class="callout red"><b>init from the dashboard hangs</b> — a post-init script is waiting for input. Scripts run with <code>--no-interaction</code> semantics only if they honour it; add the flag to the command in dev.yml (e.g. <code>migrate --force</code>).</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-3b';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

@@ -74,6 +74,20 @@ final class PostgresDriver extends AbstractDriver
         ]];
     }
 
+    public function databaseEnvKey(): ?string { return 'DB_DATABASE'; }
+
+    /** createdb is not idempotent; "already exists" on stderr is the success case here. */
+    public function createDatabasePlan(ServiceInstance $i, string $binDir, string $name): ?array
+    {
+        return [
+            'label' => "createdb {$name}",
+            'argv' => ["{$binDir}/createdb", '-h', '127.0.0.1', '-p', (string) $i->port, '-U', 'postgres', $name],
+            'cwd' => null,
+            'timeout' => 60,
+            'tolerate' => '/already exists/',
+        ];
+    }
+
     public function env(ServiceInstance $i): array
     {
         return [

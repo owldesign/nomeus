@@ -41,6 +41,7 @@ final readonly class Site
             'secured' => $this->secured,
             'php' => $this->php,
             'laravel' => $this->isLaravel(),
+            'manifest' => $this->type !== 'proxy' && is_file("{$this->path}/dev.yml"),
             'nginx_conf' => $this->nginxConf,
         ];
     }

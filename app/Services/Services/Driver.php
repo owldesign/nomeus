@@ -56,6 +56,16 @@ interface Driver
     /** @return array<string, string> .env lines for a Laravel app using this instance */
     public function env(ServiceInstance $instance): array;
 
+    /** .env key that names the per-site database/bucket on this service (DB_DATABASE, AWS_BUCKET), or null. */
+    public function databaseEnvKey(): ?string;
+
+    /**
+     * Idempotent command that creates a database/bucket, or null when the type has none.
+     *
+     * @return array{label:string, argv:list<string>, cwd:?string, timeout:int, tolerate?:string}|null  tolerate: regex on output meaning "already exists"
+     */
+    public function createDatabasePlan(ServiceInstance $instance, string $binDir, string $name): ?array;
+
     /**
      * Lock/identity files the server writes while running and removes on clean shutdown.
      * clone waits for them to vanish from the source, then strips them from the copy;
