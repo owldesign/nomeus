@@ -123,6 +123,15 @@ final class Shell
         return $process->run($command, $output);
     }
 
+    /** Absolute path of a binary on devkit's PATH, or null. */
+    public function which(string $bin): ?string
+    {
+        $result = $this->run(['which', $bin], timeout: 10);
+        $path = trim($result->output());
+
+        return $result->successful() && $path !== '' ? $path : null;
+    }
+
     /** True when a process with exactly this name is running. */
     public function running(string $processName): bool
     {

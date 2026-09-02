@@ -51,7 +51,7 @@ resources/js/       React SPA
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Brewfile, install.sh, config | done |
-| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | 1a–1c done; 1d (ini/db/edit/config) next |
+| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | done |
 | 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | — |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | — |
 | 4 | log watcher; Logs page | — |
