@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\DumpsController;
 use App\Http\Controllers\Api\LogsController;
 use App\Http\Controllers\Api\MailController;
@@ -63,3 +64,6 @@ Route::delete('/dumps', [DumpsController::class, 'destroy'])->name('api.dumps.de
 Route::get('/xdebug', [XdebugController::class, 'index'])->name('api.xdebug.index');
 Route::post('/xdebug/install', [XdebugController::class, 'install'])->name('api.xdebug.install');
 Route::post('/xdebug/mode', [XdebugController::class, 'mode'])->name('api.xdebug.mode');
+
+Route::get('/doctor', [DoctorController::class, 'index'])->name('api.doctor');
+Route::post('/update', [DoctorController::class, 'update'])->name('api.update');

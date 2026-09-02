@@ -138,6 +138,9 @@ final class FakeServicesWorld
             '*createdb*' => Process::result(''),
             '*CREATE DATABASE*' => Process::result(''),
             "*'curl'*" => Process::result(''),
+            '*pgrep*' => Process::result('', '', 1),
+            '*which*' => Process::result(''),
+            '*git*' => Process::result(''),
             '*psql*' => Process::result("DO\n"),
             '*brew*install*' => Process::result("==> Installing\n"),
         ]);

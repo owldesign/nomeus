@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api, del, post } from '@/api/client';
-import type { BrewService, DumpEntry, DumpKind, DumpRequest, DumpsStatus, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task, XdebugMode, XdebugStatus } from '@/api/types';
+import type { BrewService, DoctorReport, DumpEntry, DumpKind, DumpRequest, DumpsStatus, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task, XdebugMode, XdebugStatus } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -378,5 +378,19 @@ export function useXdebugAction() {
       a.action === 'install'
         ? post<Enqueued>('/xdebug/install', { version: a.version })
         : post<Enqueued>('/xdebug/mode', { version: a.version, mode: a.mode }),
+  });
+}
+
+export function useDoctor() {
+  return useQuery({
+    queryKey: ['doctor'],
+    queryFn: async () => (await api<{ data: DoctorReport }>('/doctor')).data,
+    refetchInterval: 30000,
+  });
+}
+
+export function useSelfUpdate() {
+  return useMutation({
+    mutationFn: (opts: { check?: boolean; noBuild?: boolean } = {}) => post<Enqueued>('/update', { check: !!opts.check, no_build: !!opts.noBuild }),
   });
 }

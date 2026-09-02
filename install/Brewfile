@@ -1,4 +1,4 @@
-# devkit — macOS Brewfile (Phase 0a)
+# devkit — macOS Brewfile
 # Run via install/install.sh, or directly: brew bundle --no-upgrade --file=install/Brewfile
 #
 # Homebrew 6 requires explicit trust for non-official taps (docs.brew.sh/Tap-Trust).
@@ -11,7 +11,6 @@ tap "shivammathur/php", trusted: true
 
 # Item-level trust only: one cask each, nothing else from these taps should ever load.
 tap "nicoverbruggen/homebrew-cask", trusted: { cask: "phpmon" }
-tap "laradumps/app",                trusted: { cask: "laradumps" }
 
 # Valet core. Valet would install these itself; declared here so `brew bundle` is the single source of truth.
 brew "nginx"
@@ -32,5 +31,5 @@ brew "mailpit"
 
 # GUI companions — fully-qualified so resolution never depends on tap search order
 cask "nicoverbruggen/cask/phpmon"    # menubar: PHP switching, Valet services, site isolation
-cask "laradumps/app/laradumps"       # dumps/queries/jobs/logs viewer; unnotarized — install.sh post-check flags the quarantine bit
 cask "tableplus"                     # target of `devkit db`; free tier is sufficient
+# Dumps need no app: devkit's own dump server + Debug page (Phase 5a).

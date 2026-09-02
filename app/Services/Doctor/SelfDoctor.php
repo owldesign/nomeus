@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Services\Doctor;
+
+use App\Services\ValetBridge;
+use App\Support\DevkitConfig;
+use App\Support\Shell;
+
+/** devkit itself: config, dirs, the dashboard site, the shim, the build, its git state. */
+final class SelfDoctor implements Section
+{
+    public function __construct(
+        private readonly DevkitConfig $config,
+        private readonly ValetBridge $valet,
+        private readonly Shell $shell,
+    ) {}
+
+    public function name(): string
+    {
+        return 'devkit';
+    }
+
+    public function checks(): array
+    {
+        $r = new Rows;
+        $r->ok('version', (string) config('devkit.version').' at '.base_path());
+
+        $cfg = $this->config->path();
+        if (! $this->config->exists()) {
+            $r->fail('config', "{$cfg} missing — copy install/config.default.json there");
+        } else {
+            $r->expect(json_decode((string) file_get_contents($cfg), true) !== null, 'config', $cfg, "{$cfg} is not valid JSON");
+        }
+        foreach (['tasks', 'services', 'dumps', 'php'] as $sub) {
+            $dir = $this->config->dir().'/'.$sub;
+            $r->expect(is_dir($dir) ? is_writable($dir) : is_writable($this->config->dir()), "dir {$sub}", $dir, "{$dir} not writable");
+        }
+
+        $site = (string) config('devkit.site', 'devkit');
+        $tld = $this->valet->isInstalled() ? $this->valet->tld() : 'test';
+        $r->expect($this->valet->isInstalled() && $this->valet->isLinked($site), 'dashboard', "https://{$site}.{$tld}", "{$site}.{$tld} is not linked — cd ".base_path()." && valet link {$site}");
+        $r->expect($this->valet->isInstalled() && in_array($site, $this->valet->secured(), true), 'dashboard tls', 'secured', "not secured — the clipboard and other browser APIs need https: devkit secure {$site}", 'warn');
+
+        $shim = $this->shell->which('devkit');
+        $r->expect($shim !== null, 'bin/devkit', $shim ?? '', 'not on PATH — add '.base_path('bin').' to PATH (install.sh does)', 'warn');
+        $r->expect(is_file(base_path('public/build/manifest.json')), 'build', 'public/build present', 'no build — npm run build');
+        $r->expect(is_file(base_path('vendor/autoload.php')), 'vendor', 'composer deps present', 'composer install');
+        $r->expect(class_exists(\Symfony\Component\Yaml\Yaml::class), 'symfony/yaml', 'present (dev.yml)', 'composer require symfony/yaml', 'warn');
+
+        if (is_dir(base_path('.git'))) {
+            $dirty = trim($this->shell->run(['git', 'status', '--porcelain'], base_path(), 20)->output());
+            $r->expect($dirty === '', 'git', 'clean working tree', substr_count($dirty, "\n") + 1 .' changed file(s) — self-update refuses until committed or stashed', 'warn');
+        }
+
+        return $r->all();
+    }
+}

@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { useStatus } from '@/hooks/useApi';
+import type { DoctorRow } from '@/api/types';
+import TaskProgress from '@/components/TaskProgress';
+import { useDoctor, useSelfUpdate, useStatus } from '@/hooks/useApi';
 
 function Row({ k, children }: { k: string; children: ReactNode }) {
   return (
@@ -19,6 +21,61 @@ function State({ on, children }: { on: boolean; children?: ReactNode }) {
   );
 }
 
+const levelClass = { ok: 'text-green', warn: 'text-gold', fail: 'text-red' } as const;
+
+/** Every layer, one glance: counts up top, problems listed, everything else behind a toggle. */
+function DoctorPanel() {
+  const { data, isLoading, refetch } = useDoctor();
+  const [showOk, setShowOk] = useState(false);
+  if (isLoading || !data) return <p className="text-dim">doctor…</p>;
+  const problems = data.rows.filter((r) => r.level !== 'ok');
+  const shown: DoctorRow[] = showOk ? data.rows : problems;
+  return (
+    <div className="mt-6 border border-line bg-panel px-4 py-3">
+      <div className="mb-2 flex flex-wrap items-baseline gap-4">
+        <span className="text-dim">doctor</span>
+        <span className="text-green">{data.counts.ok} ok</span>
+        <span className={data.counts.warn ? 'text-gold' : 'text-dim'}>{data.counts.warn} warn</span>
+        <span className={data.counts.fail ? 'text-red' : 'text-dim'}>{data.counts.fail} fail</span>
+        <button type="button" className="text-dim hover:text-gold" onClick={() => setShowOk(!showOk)}>{showOk ? 'problems only' : 'show all'}</button>
+        <button type="button" className="text-dim hover:text-gold" onClick={() => refetch()}>re-check</button>
+      </div>
+      {shown.length === 0 && <p className="text-green">nothing to report</p>}
+      {shown.map((r, i) => (
+        <div key={i} className="grid grid-cols-[52px_90px_1fr] gap-3 border-t border-dashed border-line py-1">
+          <span className={levelClass[r.level]}>{r.level.toUpperCase()}</span>
+          <span className="text-dim">{r.section} · {r.check}</span>
+          <span className="break-words">{r.detail}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function UpdateButton() {
+  const update = useSelfUpdate();
+  const [taskId, setTaskId] = useState<string | null>(null);
+  if (taskId) {
+    return (
+      <TaskProgress
+        id={taskId}
+        onFinished={() => setTimeout(() => window.location.reload(), 2500)}   // the bundle this page came from was just replaced
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="border border-line px-2 py-0.5 hover:border-gold hover:text-gold disabled:text-mute"
+      disabled={update.isPending}
+      title="git pull --ff-only · composer install · npm run build · dumps:install · doctor"
+      onClick={() => { if (confirm('Update devkit now? (pull, deps, rebuild — the dashboard reloads when done)')) update.mutate({}, { onSuccess: (r) => setTaskId(r.task.id) }); }}
+    >
+      {update.isPending ? 'enqueuing…' : 'update devkit'}
+    </button>
+  );
+}
+
 export default function Status() {
   const { data, error, isLoading, dataUpdatedAt } = useStatus();
   const [raw, setRaw] = useState(false);
@@ -33,6 +90,7 @@ export default function Status() {
       <div className="mb-4 flex items-baseline justify-between">
         <h1 className="text-[15px] font-semibold">Status</h1>
         <div className="flex items-center gap-4 text-dim">
+          <UpdateButton />
           <span>polled {new Date(dataUpdatedAt).toLocaleTimeString()}</span>
           <button
             type="button"
@@ -87,6 +145,7 @@ export default function Status() {
           </Row>
         </div>
       )}
+      <DoctorPanel />
     </div>
   );
 }

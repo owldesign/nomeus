@@ -270,3 +270,16 @@ export interface XdebugStatus {
   port: number;
   ide_listening: boolean;
 }
+
+export interface DoctorRow {
+  section: string;
+  level: 'ok' | 'warn' | 'fail';
+  check: string;
+  detail: string;
+}
+
+export interface DoctorReport {
+  rows: DoctorRow[];
+  counts: { ok: number; warn: number; fail: number };
+  sections: string[];
+}

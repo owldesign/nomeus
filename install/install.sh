@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 #
-# devkit — Phase 0a bootstrap (macOS)
+# devkit — macOS bootstrap
 #
-#   ./install/install.sh [--trust] [--skip-node]
+#   ./install/install.sh [--trust] [--skip-node] [--check]
 #
 #   --trust       run `valet trust` so later valet commands don't prompt for sudo
 #   --skip-node   don't `nvm install --lts` (nvm itself is still installed)
+#   --check       report what is and isn't in place; change nothing
 #
 # Env overrides:
 #   DEVKIT_CODE_DIR      directory to `valet park`      (default: ~/Code)
 #   DEVKIT_PHP_DEFAULT   global PHP version for Valet   (default: 8.4)
 #
-# Idempotent — safe to re-run. Xdebug is deliberately NOT installed here:
-# shivammathur/extensions writes an always-on conf.d ini, which defeats the
-# Phase 5 "load only when debugging" toggle. Phase 5 installs and quarantines it.
+# Idempotent — safe to re-run; every step is skipped when its result exists. Ends with `devkit doctor`.
+# Xdebug is installed on demand by `devkit xdebug:install` (which quarantines the tap's always-on ini).
 
 set -euo pipefail
 
@@ -24,12 +24,14 @@ CONFIG_DIR="$HOME/.devkit"
 RC="${ZDOTDIR:-$HOME}/.zshrc"
 TRUST=0
 SKIP_NODE=0
+CHECK=0
 
 for arg in "$@"; do
   case "$arg" in
     --trust)     TRUST=1 ;;
     --skip-node) SKIP_NODE=1 ;;
-    -h|--help)   sed -n '2,17p' "$0"; exit 0 ;;
+    --check)     CHECK=1 ;;
+    -h|--help)   sed -n '2,16p' "$0"; exit 0 ;;
     *)           echo "unknown flag: $arg" >&2; exit 1 ;;
   esac
 done
@@ -42,6 +44,39 @@ die()  { warn "$*"; exit 1; }
 rc_add() { # rc_add <grep-pattern> <line>
   grep -qF -- "$1" "$RC" 2>/dev/null || printf '\n# devkit\n%s\n' "$2" >> "$RC"
 }
+
+# ── --check: what is in place, nothing changed ────────────────────────────────
+if [[ "$CHECK" -eq 1 ]]; then
+  OK=0; MISSING=0
+  row() { # row <test-expr> <label> <detail-when-missing>
+    if eval "$1" >/dev/null 2>&1; then printf '  \033[32m done \033[0m %s\n' "$2"; OK=$((OK+1));
+    else printf '  \033[31m todo \033[0m %s — %s\n' "$2" "$3"; MISSING=$((MISSING+1)); fi
+  }
+  COMPOSER_BIN="$(composer global config bin-dir --absolute 2>/dev/null || echo "$HOME/.composer/vendor/bin")"
+  BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
+  echo "devkit install --check ($DEVKIT_HOME)"
+  row 'command -v brew'                                            'homebrew'                    'https://brew.sh'
+  row '[[ "$(brew --version | head -1 | sed -E "s/^Homebrew ([0-9]+).*/\1/")" -ge 6 ]]' 'homebrew 6+' 'brew update'
+  row 'brew bundle check --no-upgrade --file="$DEVKIT_HOME/install/Brewfile"' 'Brewfile satisfied' 'brew bundle --no-upgrade --file=install/Brewfile'
+  row 'grep -qF -- "$COMPOSER_BIN" "$RC"'                           'composer bin in PATH (rc)'  "add: export PATH=\"\$PATH:$COMPOSER_BIN\""
+  row 'command -v valet'                                           'valet installed'             'composer global require laravel/valet'
+  row 'test -f "$HOME/.config/valet/config.json"'                  'valet install done'          'valet install'
+  row 'test -f /etc/sudoers.d/valet'                               'valet trusted'               'valet trust'
+  row 'brew list --versions "php@$PHP_DEFAULT"'                    "php@$PHP_DEFAULT"            "brew install shivammathur/php/php@$PHP_DEFAULT"
+  row 'grep -q "\"$CODE_DIR\"" "$HOME/.config/valet/config.json"' "parked $CODE_DIR"          "cd $CODE_DIR && valet park"
+  row 'test -s "$BREW_PREFIX/opt/nvm/nvm.sh"'                       'nvm'                         'brew install nvm'
+  row 'test -f "$CONFIG_DIR/config.json"'                          '~/.devkit/config.json'       'install.sh writes it'
+  row 'test -f "$DEVKIT_HOME/vendor/autoload.php"'                 'composer deps'               'composer install'
+  row 'test -f "$DEVKIT_HOME/.env"'                                '.env'                        'cp .env.example .env && php artisan key:generate'
+  row 'test -f "$DEVKIT_HOME/public/build/manifest.json"'          'dashboard build'             'npm install && npm run build'
+  row 'test -L "$HOME/.config/valet/Sites/devkit"'                 'devkit.test linked'          'valet link devkit'
+  row 'test -f "$HOME/.config/valet/Certificates/devkit.test.crt"' 'devkit.test secured'         'devkit secure devkit'
+  row 'test -L "$BREW_PREFIX/bin/devkit"'                          'devkit shim'                 "ln -sf $DEVKIT_HOME/bin/devkit $BREW_PREFIX/bin/devkit"
+  row 'test -f "$CONFIG_DIR/php/prepend.php"'                      'dumps prepend'               'devkit dumps:install --restart'
+  echo "  $OK done, $MISSING todo"
+  [[ "$MISSING" -eq 0 ]] && command -v devkit >/dev/null && { echo; devkit doctor; }
+  exit $(( MISSING > 0 ))
+fi
 
 # ── 0. Preconditions ──────────────────────────────────────────────────────────
 [[ "$(uname -s)" == "Darwin" ]] || die "macOS only for now (Linux via Valet Linux is Phase 6)."
@@ -71,13 +106,8 @@ check() { # check <test-expr> <label> <fix-command>
 }
 check 'command -v mailpit'                          'mailpit'      'brew install mailpit'
 check 'test -d "/Applications/PHP Monitor.app"'     'PHP Monitor'  'brew tap nicoverbruggen/homebrew-cask && brew install --cask nicoverbruggen/cask/phpmon'
-check 'test -d "/Applications/LaraDumps.app"'       'LaraDumps'    'brew tap laradumps/app && brew install --cask laradumps/app/laradumps'
 check 'test -d "/Applications/TablePlus.app"'       'TablePlus'    'brew install --cask tableplus'
 check 'brew list --versions "php@$PHP_DEFAULT"'     "php@$PHP_DEFAULT" "brew install shivammathur/php/php@$PHP_DEFAULT"
-if [[ -d "/Applications/LaraDumps.app" ]] && xattr -p com.apple.quarantine "/Applications/LaraDumps.app" >/dev/null 2>&1; then
-  warn "LaraDumps.app is quarantined (unnotarized build). If macOS reports it as damaged on launch, run:"
-  printf '           xattr -dr com.apple.quarantine "/Applications/LaraDumps.app"\n' >&2
-fi
 [[ "$MISSING" -eq 0 ]] || warn "run the fix commands above, then re-run this script (it is idempotent)"
 
 # ── 2. Composer global bin on PATH ────────────────────────────────────────────
@@ -224,12 +254,15 @@ if [[ -f "$DEVKIT_HOME/artisan" ]]; then
   "$DEVKIT_HOME/bin/devkit" dumps:install || warn "dumps:install failed — run it later: devkit dumps:install --restart"
 fi
 
-# ── 8. Summary ────────────────────────────────────────────────────────────────
+# ── 8. Summary + doctor ───────────────────────────────────────────────────────
 echo
-log "done. Open a new shell (or: source $RC), then verify:"
+log "done. Open a new shell (or: source $RC)."
 printf '  %-10s %s\n' "php"     "$(php -v 2>/dev/null | head -1 || echo '?')"
 printf '  %-10s %s\n' "valet"   "$(valet --version 2>/dev/null || echo '?')"
-printf '  %-10s %s\n' "mailpit" "$(mailpit version 2>/dev/null || echo '?')"
 printf '  %-10s %s\n' "parked"  "$CODE_DIR  →  http://<dir>.test"
 echo
-[[ -f "$DEVKIT_HOME/artisan" ]] && log "then: devkit status   ·   open http://devkit.test" || true
+if [[ -f "$DEVKIT_HOME/artisan" ]]; then
+  log "devkit doctor"
+  "$DEVKIT_HOME/bin/devkit" doctor || warn "doctor reports failures — each row names its fix"
+  log "next: open https://devkit.test   ·   devkit mail --create   ·   devkit services:create dumps"
+fi

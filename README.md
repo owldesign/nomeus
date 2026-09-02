@@ -1,70 +1,58 @@
 # devkit
 
-Self-built Laravel dev environment for macOS. Laravel Valet underneath, native Homebrew binaries for
-services, one Laravel app that is both the `devkit` CLI (artisan commands behind a shim) and a
-React dashboard served by Valet at `devkit.test`.
+A self-hosted replacement for Laravel Herd Pro, built on Laravel Valet and Homebrew. One Laravel app
+at `~/Code/devkit` is both the CLI (`devkit …`) and the dashboard (`https://devkit.test`).
 
-Companion apps, all free: PHP Monitor (menubar), Mailpit (mail),
-TablePlus (`devkit db`).
+Everything Herd Pro sells, from free parts you already run:
 
-## Install
+| Herd Pro | devkit |
+|---|---|
+| Sites, PHP versions, isolation, TLS | Valet, driven through `devkit sites` / `php:*` and the Sites and PHP pages |
+| Services (Postgres, MySQL, Redis, …) | native Homebrew binaries under devkit-owned launchd agents — multiple instances, clone, adopt from `brew services`, doctor |
+| Mail | a Mailpit instance; one inbox per app via `X-Tags` from `zhuk/devkit-client` |
+| `herd init` / `herd.yml` | `devkit init` / `dev.yml` — link, tls, php, node, services, databases, mail, `.env`, scripts; idempotent |
+| Log viewer | every site's `storage/logs`, nginx and php-fpm logs; offset-based tail; file:line into the IDE |
+| Dumps (dump(), queries, jobs, views, requests, logs) | devkit's own dump server (VarDumper's server protocol through an `auto_prepend_file`); the request tabs via the client package |
+| Xdebug | per PHP version: off / on / trigger, from the CLI or the Debug page |
+
+Menubar: PHP Monitor (free). Databases: TablePlus (free tier) through `devkit db`.
+
+## Quickstart
 
 ```bash
-git clone <repo> ~/Code/devkit
-cd ~/Code/devkit
-./install/install.sh            # add --trust to skip future sudo prompts, --skip-node to skip nvm install --lts
+git clone <your remote> ~/Code/devkit
+~/Code/devkit/install/install.sh --trust      # brew bundle, valet, ~/.devkit, deps, build, link, ini; ends with `devkit doctor`
+devkit doctor                                  # every layer, with the fix for anything wrong
+devkit mail --create && devkit services:create dumps
+open https://devkit.test
 ```
 
-The installer bootstraps Homebrew/Valet, then (once the Laravel app is present) runs `composer install`,
-builds the SPA, `valet link`s the dashboard at `http://devkit.test`, and symlinks `bin/devkit` into brew's bin.
-`config/devkit.php` carries a version bumped per slice; `devkit status` and the dashboard rail show it,
-so "which cut is running" is never a guess. Runbooks for each slice live in `docs/`. Slices arrive as zips — apply them with
-`unzip -o <slice>.zip -d ~/Code/` (overlay only); never replace directories, which drops
-skeleton files that sit next to devkit's own.
+Then, per site, a `dev.yml` (see [docs/dev-yml.md](docs/dev-yml.md)) and `devkit init`.
 
-Requires Homebrew. Set `DEVKIT_CODE_DIR` to park a directory other than `~/Code`;
-`DEVKIT_PHP_DEFAULT` to pick a global PHP other than 8.4.
+## How it works, in ten lines
 
-`valet trust` (or `install.sh --trust`) is required for the dashboard: Valet escalates through
-sudo for almost every command, php-fpm can't answer a prompt, and the NOPASSWD rule Valet writes
-matches only `<brew>/bin/valet` — which is the path devkit always uses.
+- **Valet** serves sites; devkit reads its config and runs its CLI (`ValetBridge`). `valet trust` is required so the dashboard can act.
+- **Services** are launchd user agents (`dev.zhuk.devkit.svc.<name>`) running Homebrew binaries with data under `~/.devkit/services/<name>/`. Drivers describe each type (`app/Services/Services/*Driver.php`).
+- **Every dashboard mutation is a task** (`~/.devkit/tasks/`): a detached process running the same CLI command, because Valet restarts nginx/php-fpm mid-command.
+- **php-fpm's environment is empty**; `Shell::env()` supplies PATH/HOME/locale for everything devkit runs.
+- **One ini per PHP version**, `99-devkit.ini`, regenerated from two inputs: the dumps prepend and the Xdebug state. Nothing else touches php.ini.
+- **Dumps**: the prepend file sets `VAR_DUMPER_FORMAT=server` when `~/.devkit/dumps/capture` exists; `dumps:serve` stores what arrives in SQLite; the Debug page polls it.
+- **The client package** (`packages/devkit-client`, installed by `init` via a path repository) adds the mail tag and the queries/jobs/views/requests/logs recorders.
+- **The API is the product**: `routes/api.php` is what the dashboard, the CLI-as-task pattern and any future MCP server all use. Loopback only; mutations need `X-Devkit: 1`.
 
-Dashboard mutations are detached tasks (`~/.devkit/tasks/`): Valet restarts nginx and fpm as
-part of `secure`/`isolate`/`use`, which would sever an inline response and kill a child in the
-service's process group — `task:run` detaches with `posix_setsid()` first. `devkit tasks` and
-`devkit task:log <id>` are the audit trail.
+## Reference
 
-`packages/devkit-client` is a Composer package sites require via a path repository; it tags outgoing
-mail with the app's slug so the Mail page shows one inbox per app.
+- [docs/commands.md](docs/commands.md) — every command (generated: `devkit docs:commands`)
+- [docs/dev-yml.md](docs/dev-yml.md) — the manifest
+- [docs/layout.md](docs/layout.md) — where things live: `~/.devkit`, ports, launchd labels, ini files, sudoers
+- [docs/runbooks.md](docs/runbooks.md) — the build history, slice by slice, with every trap met on a real machine
 
-## Layout
+## Development
 
-```
-bin/devkit          shim: Valet commands pass straight through, everything else → artisan
-install/            Brewfile, install.sh, config template
-app/Services/       ValetBridge, BrewBridge, PhpManager, TaskRunner, service drivers
-app/Console/        devkit commands
-app/Http/Api/       JSON API (loopback only)
-resources/js/       React SPA
-~/.devkit/          config.json, tasks/, services/<instance>/{service.json,data,conf,run,logs}, logs/, xdebug/
-~/Library/LaunchAgents/dev.zhuk.devkit.svc.<instance>.plist   one launchd agent per service instance
+```bash
+vendor/bin/pest          # 190+ tests; Process/Http are faked, nothing touches the machine
+npm run build            # dashboard (React, Tailwind v4, TanStack Query)
+devkit self-update       # pull, deps, build, ini, doctor — also a button on the Status page
 ```
 
-## Phases
-
-| Phase | Scope | Status |
-|---|---|---|
-| 0 | Brewfile, install.sh, config | done |
-| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | done |
-| 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | done — postgresql, mysql, mariadb, redis, meilisearch, typesense, seaweedfs (s3), reverb |
-| 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | done — `devkit init` from `dev.yml` (see docs/dev.yml.example) |
-| 4 | log watcher; Logs page | done — `devkit logs [site] [--follow]`, Logs page (offset-based tail, IDE links) |
-| 5 | Dumps (5a), Xdebug (5b) | done — dump server + Debug page; xdebug off/on/trigger per PHP version (`devkit xdebug:*`) |
-| 6 | MCP server, Linux via Valet Linux | optional |
-
-## CLI parity with Herd
-
-Site management, PHP isolation, TLS, proxies, sharing, loopback, and start/stop/restart are
-Valet commands and pass through unchanged. devkit adds `php:list|install|update`,
-`isolate-node`, `db`, `edit`, `ini`, `site-information`, `init`, `services:*`, `debug:*`,
-`logs`, `mail`, `dumps`.
+Vertical slices, each with a runbook: see `docs/runbooks.md`. Linux is not supported yet (launchd, Valet).
