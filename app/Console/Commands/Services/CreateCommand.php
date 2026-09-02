@@ -14,6 +14,7 @@ class CreateCommand extends Command
         {version? : e.g. 17 or postgresql@17; defaults to the newest the driver knows}
         {--name= : instance name; defaults to the type, then type-2, …}
         {--port= : defaults to the standard port when free, else the next free one}
+        {--site= : for site-bound types (reverb): the parked/linked site it runs inside}
         {--no-start : create without starting}';
 
     protected $description = 'Create a service instance: install the formula if needed, initialize data, register with launchd, start';
@@ -28,6 +29,7 @@ class CreateCommand extends Command
                 port: $this->option('port') !== null ? (int) $this->option('port') : null,
                 start: ! $this->option('no-start'),
                 log: fn (string $line) => $this->line("<fg=gray>{$line}</>"),
+                site: $this->option('site') ?: null,
             );
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());

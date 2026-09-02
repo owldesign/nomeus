@@ -2,6 +2,11 @@
 
 use App\Services\Services\DriverRegistry;
 use App\Services\Services\MariaDbDriver;
+use App\Services\Services\MeilisearchDriver;
+use App\Services\Services\ReverbDriver;
+use App\Services\Services\SeaweedFsDriver;
+use App\Services\Services\SiteBound;
+use App\Services\Services\TypesenseDriver;
 use App\Services\Services\MySqlDriver;
 use App\Services\Services\PostgresDriver;
 use App\Services\Services\RedisDriver;
@@ -54,7 +59,7 @@ it('describes redis with no init step', function () use ($instance) {
 
 it('registers the drivers, rejects unknown types, and maps formulae back to drivers', function () {
     $r = new DriverRegistry;
-    expect(array_keys($r->all()))->toBe(['postgresql', 'mysql', 'mariadb', 'redis'])
+    expect(array_keys($r->all()))->toBe(['postgresql', 'mysql', 'mariadb', 'redis', 'meilisearch', 'typesense', 'seaweedfs', 'reverb'])
         ->and(fn () => $r->get('mongo'))->toThrow(RuntimeException::class, 'Unknown service type')
         ->and($r->driverForFormula('postgresql@14')?->type())->toBe('postgresql')
         ->and($r->driverForFormula('mysql')?->type())->toBe('mysql')
@@ -93,4 +98,51 @@ it('names the lock and identity files a clone must not inherit', function () use
     expect((new PostgresDriver)->staleFiles($instance('postgresql', 'postgresql@17', 1)))->toBe(['/svc/x/data/postmaster.pid', '/svc/x/data/postmaster.opts'])
         ->and((new MySqlDriver)->staleFiles($instance('mysql', 'mysql@8.4', 1)))->toContain('/svc/x/run/mysql.pid', '/svc/x/data/auto.cnf')
         ->and((new RedisDriver)->staleFiles($instance('redis', 'redis', 1)))->toBe([]);
+});
+
+it('describes meilisearch in development mode', function () use ($instance) {
+    $i = $instance('meilisearch', 'meilisearch', 7701);
+    $d = new MeilisearchDriver;
+
+    expect($d->programArguments($i, '/b'))->toBe(['/b/meilisearch', '--http-addr', '127.0.0.1:7701', '--db-path', '/svc/x/data/data.ms', '--dump-dir', '/svc/x/data/dumps', '--env', 'development', '--no-analytics'])
+        ->and($d->env($i))->toBe(['SCOUT_DRIVER' => 'meilisearch', 'MEILISEARCH_HOST' => 'http://127.0.0.1:7701', 'MEILISEARCH_KEY' => ''])
+        ->and($d->auxPorts())->toBe([]);
+});
+
+it('describes typesense with a generated key and a peering port', function () {
+    $d = new TypesenseDriver;
+    $opts = $d->defaultOptions();
+    $i = new ServiceInstance(name: 'x', type: 'typesense', formula: 'typesense/tap/typesense-server', version: '29', port: 8108, dir: '/svc/x', createdAt: 'now',
+        options: $opts + ['peering_port' => 8107]);
+
+    expect(strlen($opts['api_key']))->toBe(40)
+        ->and($d->auxPorts())->toBe(['peering' => 8107])
+        ->and($d->programArguments($i, '/b'))->toContain('--api-key='.$opts['api_key'], '--api-port=8108', '--peering-port=8107', '--data-dir=/svc/x/data')
+        ->and($d->env($i))->toMatchArray(['SCOUT_DRIVER' => 'typesense', 'TYPESENSE_PORT' => '8108', 'TYPESENSE_API_KEY' => $opts['api_key']])
+        ->and($d->formulae())->toBe(['typesense/tap/typesense-server']);
+});
+
+it('describes seaweedfs with the s3 port as the main port and three aux listeners', function () {
+    $d = new SeaweedFsDriver;
+    $i = new ServiceInstance(name: 'x', type: 'seaweedfs', formula: 'seaweedfs', version: '3', port: 8333, dir: '/svc/x', createdAt: 'now',
+        options: ['master_port' => 9333, 'volume_port' => 8080, 'filer_port' => 8888]);
+
+    expect($d->versionArgs())->toBe(['version'])
+        ->and($d->auxPorts())->toBe(['master' => 9333, 'volume' => 8080, 'filer' => 8888])
+        ->and($d->programArguments($i, '/b'))->toContain('/b/weed', 'server', '-dir=/svc/x/data', '-master.port=9333', '-volume.port=8080', '-filer.port=8888', '-s3', '-s3.port=8333')
+        ->and($d->env($i))->toMatchArray(['FILESYSTEM_DISK' => 's3', 'AWS_ENDPOINT' => 'http://127.0.0.1:8333', 'AWS_USE_PATH_STYLE_ENDPOINT' => 'true', 'AWS_ACCESS_KEY_ID' => 'devkit']);
+});
+
+it('describes reverb as site-bound: runs the site\'s php from the site dir', function () {
+    $d = new ReverbDriver;
+    $opts = $d->defaultOptions();
+    $i = new ServiceInstance(name: 'reverb-alpha', type: 'reverb', formula: 'laravel/reverb', version: '1.5.0', port: 8080, dir: '/svc/x', createdAt: 'now',
+        options: $opts + ['site' => 'alpha', 'site_path' => '/Users/me/Sites/alpha', 'php_bin_dir' => '/b']);
+
+    expect($d)->toBeInstanceOf(SiteBound::class)
+        ->and($d->siteRequirement())->toBe('vendor/laravel/reverb')
+        ->and(array_keys($opts))->toBe(['app_id', 'app_key', 'app_secret'])
+        ->and($d->workingDirectory($i))->toBe('/Users/me/Sites/alpha')
+        ->and($d->programArguments($i, '/b'))->toBe(['/b/php', 'artisan', 'reverb:start', '--host=127.0.0.1', '--port=8080', '--no-interaction'])
+        ->and($d->env($i))->toMatchArray(['BROADCAST_CONNECTION' => 'reverb', 'REVERB_APP_KEY' => $opts['app_key'], 'REVERB_PORT' => '8080', 'VITE_REVERB_APP_KEY' => '"${REVERB_APP_KEY}"']);
 });

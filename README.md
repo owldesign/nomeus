@@ -53,7 +53,7 @@ resources/js/       React SPA
 |---|---|---|
 | 0 | Brewfile, install.sh, config | done |
 | 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | done |
-| 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | 2a–2c done (adopt, doctor, mariadb); 2d drivers next |
+| 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | done — postgresql, mysql, mariadb, redis, meilisearch, typesense, seaweedfs (s3), reverb |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | — |
 | 4 | log watcher; Logs page | — |
 | 5 | Xdebug toggle, then auto-detect | — |

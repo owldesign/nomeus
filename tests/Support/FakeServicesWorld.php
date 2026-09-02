@@ -7,6 +7,7 @@ use App\Services\BrewServices;
 use App\Services\LaunchdManager;
 use App\Services\ServiceManager;
 use App\Services\Services\DriverRegistry;
+use App\Services\ValetBridge;
 use App\Support\DevkitConfig;
 use App\Support\Probe;
 use App\Support\Shell;
@@ -38,6 +39,8 @@ final class FakeServicesWorld
     public LaunchdManager $launchd;
     public BrewServices $brewServices;
     public ServiceManager $manager;
+    public FakeValet $valetFs;
+    public ValetBridge $valet;
 
     public function __construct()
     {
@@ -46,8 +49,14 @@ final class FakeServicesWorld
         mkdir("{$this->root}/agents", 0755, true);
         $this->brewFs = (new FakeBrew)
             ->formula('postgresql@17', '17.6', ['initdb', 'postgres', 'psql'])
-            ->formula('redis', '8.2.1', ['redis-server']);
+            ->formula('redis', '8.2.1', ['redis-server'])
+            ->formula('meilisearch', '1.15.2', ['meilisearch'])
+            ->formula('typesense/tap/typesense-server', '29.0', ['typesense-server'])
+            ->formula('seaweedfs', '3.97', ['weed'])
+            ->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4');
         file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
+        $this->valetFs = new FakeValet;
+        config()->set('devkit.valet_bin', $this->valetFs->valetBin());
 
         $this->config = new DevkitConfig("{$this->root}/devkit/config.json");
         $this->shell = new Shell($this->config);
@@ -58,14 +67,17 @@ final class FakeServicesWorld
         $this->launchd = new LaunchdManager($this->shell, "{$this->root}/agents", 501);
         $registry = new DriverRegistry;
         $this->brewServices = new BrewServices($this->shell, $this->brew, $registry, $this->probe, "{$this->root}/agents");
-        $this->manager = new ServiceManager($this->config, $this->brew, $registry, $this->launchd, $this->shell, $this->probe, $this->brewServices);
+        $this->valet = new ValetBridge($this->shell, $this->valetFs->configDir);
+        $this->manager = new ServiceManager($this->config, $this->brew, $registry, $this->launchd, $this->shell, $this->probe, $this->brewServices, $this->valet);
         $this->manager->shutdownTimeout = 0;
 
         $labelOf = fn (string $t): string => substr($t, strrpos($t, '/') + 1);
+        // The instance is saved before its agent is bootstrapped, so its record is the source of truth
+        // for which port "starts answering" — drivers spell their port flag differently (-p, --port=, --api-port=, -s3.port=).
         $portOf = function (string $plist): int {
-            preg_match('/<string>(?:-p|--port)<\/string>\s*<string>(\d+)<\/string>|<string>--port=(\d+)<\/string>/', file_get_contents($plist), $m);
+            $name = substr(basename($plist, '.plist'), strlen(LaunchdManager::PREFIX));
 
-            return (int) (($m[1] ?? '') !== '' ? $m[1] : ($m[2] ?? 0));
+            return $this->manager->find($name)?->port ?? 0;
         };
 
         Process::fake([
@@ -115,6 +127,7 @@ final class FakeServicesWorld
                 return Process::result('');
             },
             '*--version*' => Process::result("stub 1.0\n"),   // driver binary pre-flight
+            "*weed' 'version*" => Process::result("weed version 30GB 4.45\n"),
             '*initdb*' => Process::result("Success. You can now start the database server\n"),
             '*psql*' => Process::result("DO\n"),
             '*brew*install*' => Process::result("==> Installing\n"),
@@ -141,9 +154,24 @@ final class FakeServicesWorld
         return $dir;
     }
 
+    /** A parked Laravel site that has laravel/reverb installed (vendor dir + installed.json). */
+    public function reverbSite(string $name, string $version = '1.5.0'): string
+    {
+        $dir = $this->valetFs->parked($name, laravel: true);
+        foreach (["$dir/vendor/laravel/reverb", "$dir/vendor/composer"] as $d) {
+            if (! is_dir($d)) {
+                mkdir($d, 0755, true);
+            }
+        }
+        file_put_contents("$dir/vendor/composer/installed.json", json_encode(['packages' => [['name' => 'laravel/reverb', 'version' => "v{$version}"]]]));
+
+        return realpath($dir);
+    }
+
     public function destroy(): void
     {
         File::deleteDirectory($this->root);
         $this->brewFs->destroy();
+        $this->valetFs->destroy();
     }
 }

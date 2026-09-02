@@ -23,8 +23,11 @@ interface Driver
 
     public function defaultPort(): int;
 
-    /** The server binary inside the formula's bin dir (postgres, mysqld, …) — pre-flighted with --version. */
+    /** The server binary inside the formula's bin dir (postgres, mysqld, …) — pre-flighted with versionArgs(). */
     public function binary(): string;
+
+    /** Arguments that make binary() print its version and exit (weed: `version`, most: `--version`). @return list<string> */
+    public function versionArgs(): array;
 
     /**
      * One-time setup commands, run in order after the instance dirs exist.
@@ -32,6 +35,20 @@ interface Driver
      * @return list<array{label:string, argv:list<string>, cwd:?string, timeout:int}>
      */
     public function initialize(ServiceInstance $instance, string $binDir): array;
+
+    /** Per-instance settings generated once at create (API keys, app secrets) — stored in service.json options. */
+    public function defaultOptions(): array;
+
+    /**
+     * Listeners besides ->port that the server opens, name => default port. create() allocates
+     * each per instance (same standard-if-free rule) into options["<name>_port"].
+     *
+     * @return array<string, int>
+     */
+    public function auxPorts(): array;
+
+    /** Directory launchd starts the process in. Instance dir by default; site-bound drivers use the site. */
+    public function workingDirectory(ServiceInstance $instance): string;
 
     /** @return list<string> the foreground process launchd keeps alive */
     public function programArguments(ServiceInstance $instance, string $binDir): array;

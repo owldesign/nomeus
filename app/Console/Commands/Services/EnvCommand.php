@@ -15,7 +15,8 @@ class EnvCommand extends Command
     {
         $i = $services->find((string) $this->argument('name'));
         if ($i === null) {
-            $this->error("No service [{$this->argument('name')}].");
+            // stderr on purpose: this command's stdout gets redirected into .env files.
+            $this->output->getErrorStyle()->writeln("<error>No service [{$this->argument('name')}].</error>");
 
             return self::FAILURE;
         }

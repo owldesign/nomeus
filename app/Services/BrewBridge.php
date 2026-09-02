@@ -164,19 +164,64 @@ final class BrewBridge
      * hides it because it loaded the old library before the upgrade. Returns null when fine,
      * otherwise the first useful lines of the failure.
      */
-    public function binaryCheck(string $formula, string $binary): ?string
+    public function binaryCheck(string $formula, string $binary, array $versionArgs = ['--version']): ?string
     {
-        $bin = ($this->formulaBinDir($formula) ?? '').'/'.$binary;
+        return $this->binaryRuns(($this->formulaBinDir($formula) ?? '').'/'.$binary, $versionArgs);
+    }
+
+    /**
+     * Same check for an absolute path (a site's php, for instance).
+     *
+     * "Runs" means the process loaded and executed — not that it liked `--version`. Some servers
+     * have no such flag (typesense-server prints its version, then a usage error, exit 1). What we
+     * are screening for is the loader failing: a signal exit (dyld aborts with 134) or its telltale
+     * messages. A non-zero exit that still printed a version number counts as running.
+     */
+    public function binaryRuns(string $bin, array $versionArgs = ['--version']): ?string
+    {
         if (! is_executable($bin)) {
             return "{$bin} is missing or not executable";
         }
-        $result = $this->shell->run([$bin, '--version'], timeout: 20);
+        $result = $this->shell->run([$bin, ...$versionArgs], timeout: 20);
+        $out = $result->errorOutput().$result->output();
         if ($result->successful()) {
             return null;
         }
-        $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $result->errorOutput().$result->output()))));
+        $crashed = $result->exitCode() >= 128
+            || preg_match('/dyld|Library not loaded|Symbol not found|cannot execute binary|Bad CPU type|no such file/i', $out) === 1;
+        // Printed a version, or parsed its arguments far enough to reject them: the binary loaded and ran.
+        $ran = preg_match('/\d+\.\d+/', $out) === 1
+            || preg_match('/flag provided but not defined|unknown (flag|option)|unrecognized|invalid option|^usage:/im', $out) === 1;
+        if (! $crashed && $ran) {
+            return null;
+        }
+        $lines = array_values(array_filter(array_map('trim', preg_split('/\R/', $out))));
 
         return implode("\n", array_slice($lines, 0, 3)) ?: "exit {$result->exitCode()} with no output";
+    }
+
+    /** "typesense/tap/typesense-server" → "typesense/tap"; null for homebrew-core names. */
+    public function tapOf(string $formula): ?string
+    {
+        return substr_count($formula, '/') === 2 ? substr($formula, 0, strrpos($formula, '/')) : null;
+    }
+
+    /**
+     * Homebrew 6 refuses formulae from untrusted taps. A fully-qualified install trusts only the
+     * named item, which is not enough when the tap resolves the name to a versioned formula
+     * (typesense-server → typesense-server@30.2). Drivers choose their taps, so trusting the
+     * whole tap is the intended grant. Idempotent.
+     *
+     * @return array{label:string, argv:list<string>, cwd:null, timeout:int}|null null for core formulae
+     */
+    public function trustTapPlan(string $formula): ?array
+    {
+        $tap = $this->tapOf($formula);
+        if ($tap === null) {
+            return null;
+        }
+
+        return ['label' => "brew trust {$tap}", 'argv' => [$this->bin(), 'trust', $tap], 'cwd' => null, 'timeout' => 60];
     }
 
     public function installFormulaPlan(string $formula): array

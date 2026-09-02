@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 2d · meilisearch, typesense, seaweedfs, reverb</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 2d · meilisearch · typesense · seaweedfs · reverb</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~25 min · phases 0–6</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>the engine from 2a runs four very different processes without changing</b> — two search servers, an S3 store with four listeners, and a per-site PHP process — each answering on its port and printing the <code>.env</code> a site needs.
+  This closes Phase 2. Precondition: 2c committed.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-2d.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; chmod +x bin/devkit &amp;&amp; vendor/bin/pest &amp;&amp; npm run build &amp;&amp; devkit services:available</pre>
+<pre class="out">Tests: 122 passed · devkit 0.2.13 · available now lists eight types; reverb reads "site package laravel/reverb (--site=&lt;name&gt;)"</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>Meilisearch <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Create, health, env</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create meilisearch &amp;&amp; curl -s http://127.0.0.1:7700/health &amp;&amp; echo &amp;&amp; devkit services:env meilisearch</pre>
+<pre class="out">brew install meilisearch (first time) · starting meilisearch on 127.0.0.1:7700 · {"status":"available"}
+SCOUT_DRIVER=meilisearch · MEILISEARCH_HOST=http://127.0.0.1:7700 · MEILISEARCH_KEY=</pre>
+    </div>
+    <div class="callout gold">Development mode, no master key — Scout's meilisearch driver works with an empty key. A site's <code>.env</code> gets these three lines and <code>composer require laravel/scout meilisearch/meilisearch-php</code>.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>Typesense <span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Create — a tapped formula — and check with its generated key</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create typesense &amp;&amp; KEY=$(devkit services:env typesense | sed -n 's/^TYPESENSE_API_KEY=//p') &amp;&amp; curl -s -H "X-TYPESENSE-API-KEY: $KEY" http://127.0.0.1:8108/health &amp;&amp; echo</pre>
+<pre class="out">brew install typesense/tap/typesense-server (first time) · starting typesense on 127.0.0.1:8108 · {"ok":true}</pre>
+<pre class="cmd">devkit services:list --json | python3 -c 'import json,sys; [print(i["name"], i["port"], i["options"].get("peering_port")) for i in json.load(sys.stdin) if i["type"]=="typesense"]'</pre>
+<pre class="out">typesense 8108 8107   ← the peering listener is per instance; a second typesense would get 8109/8110</pre>
+    </div>
+    <div class="callout gold">Tapped formulae: the tap resolves <code>typesense-server</code> to <code>typesense-server@30.2</code>, a different formula name, so a fully-qualified install's item-level trust isn't enough under Homebrew 6. devkit runs <code>brew trust typesense/tap</code> before the install — you'll see it as the first line — and trusts only taps a driver declares.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>SeaweedFS as S3 <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Create — four listeners — and speak S3 to it</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create seaweedfs &amp;&amp; sleep 5 &amp;&amp; curl -s -X PUT http://127.0.0.1:8333/devkit-test -o /dev/null -w '%{http_code}\n' &amp;&amp; curl -s http://127.0.0.1:8333/ | grep -o '&lt;Name&gt;[^&lt;]*&lt;/Name&gt;'</pre>
+<pre class="out">brew install seaweedfs (first time) · starting seaweedfs on 127.0.0.1:8333 · 200 · &lt;Name&gt;devkit-test&lt;/Name&gt;</pre>
+<pre class="cmd">devkit services:env seaweedfs</pre>
+<pre class="out">FILESYSTEM_DISK=s3 · AWS_ACCESS_KEY_ID=devkit · AWS_SECRET_ACCESS_KEY=devkit · AWS_DEFAULT_REGION=us-east-1 · AWS_BUCKET= · AWS_ENDPOINT=http://127.0.0.1:8333 · AWS_URL=… · AWS_USE_PATH_STYLE_ENDPOINT=true</pre>
+    </div>
+    <div class="callout gold">Master 9333, volume 8080 (or the next free — Reverb also wants 8080), filer 8888, S3 8333: all under one agent, all bound to 127.0.0.1. No S3 auth config means any key works, which is why <code>AWS_ACCESS_KEY_ID=devkit</code> is a constant, not a secret. A site sets <code>AWS_BUCKET</code> itself; Phase 3's <code>init</code> will create the bucket.</div>
+    <div class="callout blue">A single <code>PUT /bucket</code> is the whole S3 smoke test. With the AWS CLI installed: <code>aws --endpoint-url http://127.0.0.1:8333 s3 ls</code> (any key configured) lists the same.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Reverb, inside <code>smoke</code> <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">The site needs the package first</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Sites/smoke &amp;&amp; composer require laravel/reverb &amp;&amp; cd -</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="4.2"><label><input type="checkbox"><span class="id">4.2</span><span class="title">Create it for the site, check it answers, wire the .env</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create reverb --site=smoke &amp;&amp; curl -sI http://127.0.0.1:$(devkit services:env reverb-smoke | sed -n 's/^REVERB_PORT=//p')/ | head -1</pre>
+<pre class="out">starting reverb-smoke on 127.0.0.1:8080 (or the next free port if seaweedfs's volume listener took 8080) · HTTP/1.1 404 Not Found — Reverb answering; 404 is its response to a plain GET</pre>
+<pre class="cmd">devkit services:env reverb-smoke &amp;&amp; devkit services:env reverb-smoke &gt;&gt; ~/Sites/smoke/.env &amp;&amp; tail -12 ~/Sites/smoke/.env</pre>
+<pre class="out">BROADCAST_CONNECTION=reverb · REVERB_APP_ID/KEY/SECRET (generated once, kept in service.json) · REVERB_HOST/PORT/SCHEME · VITE_REVERB_*</pre>
+    </div>
+    <div class="callout gold">The instance runs <code>php artisan reverb:start</code> with the site's PHP — the isolated one if the site is isolated — from the site's directory. That php path is captured at create; if you later isolate <code>smoke</code> to another version, <code>services:delete reverb-smoke &amp;&amp; services:create reverb --site=smoke</code> picks up the new one (secrets change too — re-append the env).</div>
+    <div class="callout red">"laravel/reverb is not installed in smoke" — 4.1 didn't run, or ran in another directory. It checks <code>vendor/laravel/reverb</code> in the site.</div>
+    <div class="callout red">Reverb crash-loops with "The environment file is invalid! Failed to parse dotenv file" — the site's <code>.env</code> has a non-<code>KEY=VALUE</code> line, typically an error message captured by a redirect (running the append before the instance existed). <code>grep -nvE '^\s*(#|$|[A-Za-z_][A-Za-z0-9_]*=)' ~/Sites/smoke/.env</code> shows it; delete it and <code>services:restart</code>. <code>services:env</code> now writes errors to stderr so a redirect can't pick them up.</div>
+    <div class="callout red">Reverb won't install: "laravel/reverb … require guzzlehttp/psr7 ^2.6 … fixed to 3.x" — the site's skeleton is on Guzzle 8 and no Reverb release supports psr7 3 yet. <code>composer require laravel/reverb -W</code> if the rest allows the downgrade; otherwise test on a Laravel 12 app (<code>composer create-project laravel/laravel:^12 ~/Sites/reverb-test</code>) until Reverb catches up.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 5 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">5</span>Dashboard and cleanup <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="5.1"><label><input type="checkbox"><span class="id">5.1</span><span class="title">The create form knows which types need a site</span></label>
+    <div class="body">
+<pre class="cmd">open https://devkit.test/services</pre>
+<pre class="out">eight rows or so, all green · create form: pick "Laravel Reverb" → the version menu becomes a site menu · expanding typesense shows its API key in the .env block</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="5.2"><label><input type="checkbox"><span class="id">5.2</span><span class="title">Keep what you'll use, delete the rest</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:delete reverb-smoke --force; devkit services:list</pre>
+<pre class="out">meilisearch / typesense / seaweedfs stay if you want them around (they cost nothing stopped: devkit services:stop &lt;name&gt;)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 6 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">6</span>Commit — Phase 2 complete</h2>
+
+  <div class="step" data-step="6.1"><label><input type="checkbox"><span class="id">6.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-2d: meilisearch, typesense, seaweedfs (s3), reverb drivers; aux ports; site-bound services — phase 2 complete"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="6.2"><label><input type="checkbox"><span class="id">6.2</span><span class="title">Hand-off for Phase 3</span></label>
+    <div class="body"><p>Paste <code>devkit services:list</code>. Phase 3: <code>init</code> + <code>dev.yml</code> (a site declares its services and devkit wires the .env, creates databases and buckets), the client package, Mailpit and the Mail page.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>seaweedfs: "did not start answering on 8333"</b> — the S3 gateway comes up after master, volume and filer; on a slow disk that exceeds nothing, but check <code>services:logs seaweedfs</code> for a port conflict on one of the aux listeners (<code>services:list --json</code> shows which it chose).</div>
+  <div class="callout red"><b>typesense: crash-loop with "peering port"</b> — another process holds the aux port it chose at create; <code>lsof -nP -iTCP:&lt;port&gt; -sTCP:LISTEN</code>, then delete and recreate so a fresh port is allocated.</div>
+  <div class="callout red"><b>reverb: exits immediately, log says "reverb:start" is not defined</b> — the site's PHP found the wrong vendor dir, i.e. WorkingDirectory isn't the site. <code>plutil -p ~/Library/LaunchAgents/dev.zhuk.devkit.svc.reverb-&lt;site&gt;.plist | grep WorkingDirectory</code>.</div>
+  <div class="callout red"><b>meilisearch: "data.ms is locked"</b> — a previous instance is still holding the same db path; <code>services:doctor</code> shows the stale one.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-2d';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

@@ -161,7 +161,7 @@ export function useServiceAction() {
 
 export function useCreateService() {
   return useMutation({
-    mutationFn: (body: { type: string; version?: string; name?: string; port?: number; start?: boolean }) =>
+    mutationFn: (body: { type: string; version?: string; name?: string; port?: number; start?: boolean; site?: string }) =>
       post<Enqueued>('/services', body),
   });
 }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Services\Services\Driver;
 use App\Services\Services\DriverRegistry;
+use App\Services\Services\SiteBound;
 use App\Support\DevkitConfig;
 use App\Support\Probe;
 use App\Support\ServiceInstance;
@@ -26,6 +27,7 @@ final class ServiceManager
         private readonly Shell $shell,
         private readonly Probe $probe,
         private readonly BrewServices $brewServices,
+        private readonly ValetBridge $valet,
     ) {}
 
     public function dir(): string
@@ -63,6 +65,7 @@ final class ServiceManager
     {
         $launchd = $this->launchd->state($i->name);
         $running = $this->probe->tcp('127.0.0.1', $i->port);
+        $driver = $this->driver($i);
 
         return [
             'running' => $running,
@@ -72,7 +75,9 @@ final class ServiceManager
             // loaded, not answering, and its last run ended non-zero: launchd is relaunching a dying process
             'crashing' => $launchd['loaded'] && ! $running && $launchd['pid'] === null && ($launchd['last_exit'] ?? 0) !== 0,
             'disabled' => $launchd['disabled'],
-            'installed' => $this->brew->isFormulaInstalled($i->formula),
+            'installed' => $driver instanceof SiteBound
+                ? is_dir(rtrim((string) ($i->options['site_path'] ?? ''), '/').'/'.$driver->siteRequirement())
+                : $this->brew->isFormulaInstalled($i->formula),
         ];
     }
 
@@ -87,13 +92,40 @@ final class ServiceManager
     /**
      * @param  callable(string):void|null  $log  progress lines (CLI prints them; tasks capture them)
      */
-    public function create(string $type, ?string $version = null, ?string $name = null, ?int $port = null, bool $start = true, ?callable $log = null): ServiceInstance
+    public function create(string $type, ?string $version = null, ?string $name = null, ?int $port = null, bool $start = true, ?callable $log = null, ?string $site = null): ServiceInstance
     {
         $log ??= fn () => null;
         $driver = $this->drivers->get($type);
         $formula = $driver->formulaFor($version) ?? throw new RuntimeException("No {$driver->label()} formula for version [{$version}]. Known: ".implode(', ', $driver->formulae()));
 
-        $name = $name ?? $this->defaultName($type);
+        // ── runtime: a brew formula, or a site's own PHP + vendor dir ──────────────
+        $options = $driver->defaultOptions();
+        if ($driver instanceof SiteBound) {
+            if ($site === null || $site === '') {
+                throw new RuntimeException("{$driver->label()} runs inside a site: devkit services:create {$type} --site=<name>");
+            }
+            $siteObj = $this->valet->find($site) ?? throw new RuntimeException("Site [{$site}] is not parked or linked.");
+            if ($siteObj->type === 'proxy') {
+                throw new RuntimeException("[{$siteObj->name}] is a proxy; {$driver->label()} needs a site with code.");
+            }
+            $requirement = rtrim($siteObj->path, '/').'/'.$driver->siteRequirement();
+            if (! is_dir($requirement)) {
+                throw new RuntimeException("{$driver->sitePackage()} is not installed in {$siteObj->name} ({$requirement} missing): cd {$siteObj->path} && composer require {$driver->sitePackage()}");
+            }
+            $binDir = $siteObj->php !== null
+                ? $this->brew->prefix()."/opt/php@{$siteObj->php}/bin"
+                : $this->brew->prefix().'/bin';
+            $problem = $this->brew->binaryRuns("{$binDir}/php");
+            if ($problem !== null) {
+                throw new RuntimeException("The PHP for {$siteObj->name} ({$binDir}/php) does not run:\n{$problem}");
+            }
+            $version = $this->packageVersion($siteObj->path, $driver->sitePackage()) ?? '';
+            $options += ['site' => $siteObj->name, 'site_path' => $siteObj->path, 'php_bin_dir' => $binDir];
+            $slug = trim(preg_replace('/[^a-z0-9-]+/', '-', strtolower($siteObj->name)), '-');
+            $name ??= $this->defaultName(str_starts_with($slug, $type) ? $slug : "{$type}-{$slug}");   // reverb-test stays reverb-test
+        }
+
+        $name ??= $this->defaultName($type);
         if (! preg_match('/^[a-z0-9][a-z0-9-]*$/', $name)) {
             throw new RuntimeException("Instance name must be lowercase letters, digits and dashes, got [{$name}].");
         }
@@ -102,26 +134,26 @@ final class ServiceManager
         }
 
         $port = $this->allocatePort($port ?? $driver->defaultPort(), explicit: $port !== null);
+        $options += $this->allocateAuxPorts($driver, [$port]);
 
-        if (! $this->brew->isFormulaInstalled($formula)) {
-            $plan = $this->brew->installFormulaPlan($formula);
-            $log("{$plan['label']} (not installed yet)");
-            $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($type, $buf) => $log(rtrim($buf)));
-            if (! $result->successful()) {
-                throw new RuntimeException("brew install {$formula} failed (exit {$result->exitCode()}).");
+        if (! $driver instanceof SiteBound) {
+            if (! $this->brew->isFormulaInstalled($formula)) {
+                $this->installFormula($formula, $log);
             }
+            $binDir = $this->brew->formulaBinDir($formula) ?? throw new RuntimeException("Formula {$formula} has no bin dir under ".$this->brew->prefix().'/opt');
+            $this->preflight($formula, $driver);
+            $version = $this->brew->formulaVersion($formula) ?? '';
         }
-        $binDir = $this->brew->formulaBinDir($formula) ?? throw new RuntimeException("Formula {$formula} has no bin dir under ".$this->brew->prefix().'/opt');
-        $this->preflight($formula, $driver);
 
         $instance = $this->materialize(new ServiceInstance(
             name: $name,
             type: $type,
             formula: $formula,
-            version: $this->brew->formulaVersion($formula) ?? '',
+            version: $version,
             port: $port,
             dir: $this->dir().'/'.$name,
             createdAt: now()->toIso8601String(),
+            options: $options,
         ));
 
         try {
@@ -176,12 +208,7 @@ final class ServiceManager
             throw new RuntimeException("[{$runFormula}] is not a {$driver->label()} formula; adopting {$formula} data needs one of: ".implode(', ', $driver->formulae()));
         }
         if (! $this->brew->isFormulaInstalled($runFormula)) {
-            $plan = $this->brew->installFormulaPlan($runFormula);
-            $log("{$plan['label']} (not installed yet)");
-            $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($type, $buf) => $log(rtrim($buf)));
-            if (! $result->successful()) {
-                throw new RuntimeException("brew install {$runFormula} failed (exit {$result->exitCode()}).");
-            }
+            $this->installFormula($runFormula, $log);
         }
         $binDir = $this->brew->formulaBinDir($runFormula) ?? throw new RuntimeException("Formula {$runFormula} has no bin dir.");
         $this->preflight($runFormula, $driver); // before brew's service is stopped: a broken binary means no takeover at all
@@ -267,12 +294,7 @@ final class ServiceManager
             throw new RuntimeException("{$i->name} already runs {$formula}.");
         }
         if (! $this->brew->isFormulaInstalled($formula)) {
-            $plan = $this->brew->installFormulaPlan($formula);
-            $log("{$plan['label']} (not installed yet)");
-            $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($type, $buf) => $log(rtrim($buf)));
-            if (! $result->successful()) {
-                throw new RuntimeException("brew install {$formula} failed (exit {$result->exitCode()}).");
-            }
+            $this->installFormula($formula, $log);
         }
         $binDir = $this->brew->formulaBinDir($formula) ?? throw new RuntimeException("Formula {$formula} has no bin dir.");
         $this->preflight($formula, $driver);
@@ -346,6 +368,9 @@ final class ServiceManager
             throw new RuntimeException("Service [{$newName}] already exists.");
         }
         $driver = $this->driver($source);
+        if ($driver instanceof SiteBound) {
+            throw new RuntimeException("{$source->name} runs inside a site; create another with --site instead of cloning.");
+        }
         $binDir = $this->brew->formulaBinDir($source->formula) ?? throw new RuntimeException("Formula {$source->formula} is not installed.");
         $port = $this->allocatePort($port ?? $driver->defaultPort(), explicit: $port !== null);
 
@@ -357,7 +382,10 @@ final class ServiceManager
             $this->waitForStaleFilesGone($source);
         }
 
-        $clone = $source->with(['name' => $newName, 'port' => $port, 'dir' => $this->dir().'/'.$newName, 'created_at' => now()->toIso8601String()]);
+        $clone = $source->with([
+            'name' => $newName, 'port' => $port, 'dir' => $this->dir().'/'.$newName, 'created_at' => now()->toIso8601String(),
+            'options' => $this->allocateAuxPorts($driver, [$port]) + $source->options,   // fresh listeners; keys and secrets carry over
+        ]);
         foreach ([$clone->dir, $clone->confDir(), $clone->runDir(), $clone->logDir()] as $d) {
             mkdir($d, 0755, true);
         }
@@ -413,9 +441,17 @@ final class ServiceManager
      * Standard port when free, else the next free one. "Free" = nothing answers on 127.0.0.1
      * and no other instance has claimed it (instances may be stopped). Explicit ports must be free.
      */
-    public function allocatePort(int $preferred, bool $explicit = false): int
+    public function allocatePort(int $preferred, bool $explicit = false, array $reserved = []): int
     {
-        $claimed = array_map(fn ($i) => $i->port, $this->all());
+        $claimed = $reserved;
+        foreach ($this->all() as $i) {
+            $claimed[] = $i->port;
+            foreach ($i->options as $k => $v) {
+                if (str_ends_with((string) $k, '_port') && is_int($v)) {
+                    $claimed[] = $v;   // aux listeners count too
+                }
+            }
+        }
         $free = fn (int $p) => ! in_array($p, $claimed, true) && ! $this->probe->tcp('127.0.0.1', $p);
 
         if ($free($preferred)) {
@@ -433,10 +469,29 @@ final class ServiceManager
         throw new RuntimeException("No free port near {$preferred}.");
     }
 
+    /** brew install, trusting the formula's tap first when it has one. */
+    private function installFormula(string $formula, callable $log): void
+    {
+        $trust = $this->brew->trustTapPlan($formula);
+        if ($trust !== null) {
+            $log($trust['label']);
+            $result = $this->shell->run($trust['argv'], null, $trust['timeout']);
+            if (! $result->successful()) {
+                throw new RuntimeException("{$trust['label']} failed: ".trim($result->errorOutput() ?: $result->output()));
+            }
+        }
+        $plan = $this->brew->installFormulaPlan($formula);
+        $log("{$plan['label']} (not installed yet)");
+        $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($type, $buf) => $log(rtrim($buf)));
+        if (! $result->successful()) {
+            throw new RuntimeException("brew install {$formula} failed (exit {$result->exitCode()}).");
+        }
+    }
+
     /** Fail in a second with the dyld error, not after a 30 s wait for a port that will never answer. */
     private function preflight(string $formula, Driver $driver): void
     {
-        $problem = $this->brew->binaryCheck($formula, $driver->binary());
+        $problem = $this->brew->binaryCheck($formula, $driver->binary(), $driver->versionArgs());
         if ($problem !== null) {
             throw new RuntimeException("{$formula}'s {$driver->binary()} does not run:\n{$problem}\n\nUsually Homebrew dependency drift after an upgrade — fix with: brew reinstall {$formula}");
         }
@@ -461,7 +516,43 @@ final class ServiceManager
      */
     private function writeAgent(ServiceInstance $instance, Driver $driver, string $binDir): void
     {
-        $this->launchd->writePlist($instance->name, $driver->programArguments($instance, $binDir), $instance->dir, $instance->logFile(), $this->shell->env());
+        $this->launchd->writePlist(
+            $instance->name,
+            $driver->programArguments($instance, $binDir),
+            $driver->workingDirectory($instance),
+            $instance->logFile(),
+            $this->shell->env(),
+        );
+    }
+
+    /** @return array<string,int> "<name>_port" => allocated port for each of the driver's aux listeners */
+    private function allocateAuxPorts(Driver $driver, array $reserved): array
+    {
+        $out = [];
+        foreach ($driver->auxPorts() as $key => $default) {
+            $p = $this->allocatePort($default, explicit: false, reserved: $reserved);
+            $out["{$key}_port"] = $p;
+            $reserved[] = $p;
+        }
+
+        return $out;
+    }
+
+    /** Installed version of a composer package inside a site, from vendor/composer/installed.json. */
+    private function packageVersion(string $sitePath, string $package): ?string
+    {
+        $file = rtrim($sitePath, '/').'/vendor/composer/installed.json';
+        if (! is_file($file)) {
+            return null;
+        }
+        $data = json_decode((string) file_get_contents($file), true);
+        foreach ((array) ($data['packages'] ?? $data ?? []) as $pkg) {
+            if (($pkg['name'] ?? null) === $package) {
+                return ltrim((string) ($pkg['version'] ?? ''), 'v') ?: null;
+            }
+        }
+
+        return null;
     }
 
     /** @param  list<array{label:string, argv:list<string>, cwd:?string, timeout:int}>  $steps */

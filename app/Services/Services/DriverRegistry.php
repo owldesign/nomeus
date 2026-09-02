@@ -11,7 +11,10 @@ final class DriverRegistry
 
     public function __construct()
     {
-        foreach ([new PostgresDriver, new MySqlDriver, new MariaDbDriver, new RedisDriver] as $driver) {
+        foreach ([
+            new PostgresDriver, new MySqlDriver, new MariaDbDriver, new RedisDriver,
+            new MeilisearchDriver, new TypesenseDriver, new SeaweedFsDriver, new ReverbDriver,
+        ] as $driver) {
             $this->drivers[$driver->type()] = $driver;
         }
     }

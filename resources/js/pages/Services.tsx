@@ -3,7 +3,7 @@ import type { ServiceInstance, ServiceType } from '@/api/types';
 import { ApiError } from '@/api/client';
 import { copyText } from '@/lib/clipboard';
 import TaskProgress from '@/components/TaskProgress';
-import { useAdopt, useAdoptable, useCreateService, useRefetchAfterTask, useService, useServiceAction, useServiceTypes, useServices } from '@/hooks/useApi';
+import { useAdopt, useAdoptable, useCreateService, useRefetchAfterTask, useService, useServiceAction, useServiceTypes, useServices, useSites } from '@/hooks/useApi';
 
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : String(e));
 
@@ -134,19 +134,22 @@ function Row({ i, open, onToggle }: { i: ServiceInstance; open: boolean; onToggl
 function CreateForm({ types, existing }: { types: ServiceType[]; existing: ServiceInstance[] }) {
   const create = useCreateService();
   const refetch = useRefetchAfterTask();
+  const sites = useSites();
   const [type, setType] = useState(types[0]?.type ?? '');
   const [version, setVersion] = useState('');
   const [name, setName] = useState('');
   const [port, setPort] = useState('');
+  const [site, setSite] = useState('');
   const [start, setStart] = useState(true);
   const [taskId, setTaskId] = useState<string | null>(null);
 
   const t = types.find((x) => x.type === type);
+  const siteSites = (sites.data ?? []).filter((s) => s.type !== 'proxy');
   const usedNames = existing.map((e) => e.name);
   const suggestedName = !usedNames.includes(type) ? type : `${type}-${[2, 3, 4, 5].find((n) => !usedNames.includes(`${type}-${n}`)) ?? '?'}`;
   const submit = () => {
     create.mutate(
-      { type, version: version || undefined, name: name || undefined, port: port ? Number(port) : undefined, start },
+      { type, version: version || undefined, name: name || undefined, port: port ? Number(port) : undefined, start, site: t?.requires_site ? site : undefined },
       { onSuccess: (r) => { setTaskId(r.task.id); setName(''); setPort(''); } },
     );
   };
@@ -158,19 +161,26 @@ function CreateForm({ types, existing }: { types: ServiceType[]; existing: Servi
         <select aria-label="Type" className="border border-line bg-bg px-2 py-1 text-fg" value={type} onChange={(e) => { setType(e.target.value); setVersion(''); }}>
           {types.map((x) => <option key={x.type} value={x.type}>{x.label}</option>)}
         </select>
-        <select aria-label="Version" className="border border-line bg-bg px-2 py-1 text-fg" value={version} onChange={(e) => setVersion(e.target.value)}>
-          <option value="">{t?.formulae[0]?.formula ?? 'version'} (default)</option>
-          {t?.formulae.map((f) => (
-            <option key={f.formula} value={f.formula}>{f.formula}{f.installed ? ` · installed ${f.version ?? ''}` : ' · will install'}</option>
-          ))}
-        </select>
+        {t?.requires_site ? (
+          <select aria-label="Site" className="border border-line bg-bg px-2 py-1 text-fg" value={site} onChange={(e) => setSite(e.target.value)}>
+            <option value="">site… ({t.site_package} must be installed there)</option>
+            {siteSites.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+          </select>
+        ) : (
+          <select aria-label="Version" className="border border-line bg-bg px-2 py-1 text-fg" value={version} onChange={(e) => setVersion(e.target.value)}>
+            <option value="">{t?.formulae[0]?.formula ?? 'version'} (default)</option>
+            {t?.formulae.map((f) => (
+              <option key={f.formula} value={f.formula}>{f.formula}{f.installed ? ` · installed ${f.version ?? ''}` : ' · will install'}</option>
+            ))}
+          </select>
+        )}
         <input aria-label="Name" className="w-36 border border-line bg-bg px-2 py-1" placeholder={suggestedName} value={name} onChange={(e) => setName(e.target.value)} />
         <input aria-label="Port" className="w-24 border border-line bg-bg px-2 py-1" placeholder={String(t?.default_port ?? '')} value={port} onChange={(e) => setPort(e.target.value)} />
         <label className="inline-flex items-center gap-1 text-dim"><input type="checkbox" checked={start} onChange={(e) => setStart(e.target.checked)} /> start now</label>
         <button
           type="button"
           className="border border-line px-3 py-1 hover:border-gold hover:text-gold disabled:text-mute"
-          disabled={!type || create.isPending || taskId !== null}
+          disabled={!type || (t?.requires_site && !site) || create.isPending || taskId !== null}
           onClick={submit}
         >
           {create.isPending ? 'enqueuing…' : 'create'}

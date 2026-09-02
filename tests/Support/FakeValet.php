@@ -43,7 +43,9 @@ final class FakeValet
     public function parked(string $name, bool $laravel = false): string
     {
         $dir = "{$this->sitesRoot}/{$name}";
-        mkdir($dir, 0755, true);
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
         if ($laravel) {
             file_put_contents("$dir/artisan", "#!/usr/bin/env php\n<?php\n");
         }

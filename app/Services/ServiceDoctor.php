@@ -46,7 +46,7 @@ final class ServiceDoctor
             if (! $this->brew->isFormulaInstalled($formula)) {
                 continue; // reported per instance below
             }
-            $problem = $this->brew->binaryCheck($formula, $driver->binary());
+            $problem = $this->brew->binaryCheck($formula, $driver->binary(), $driver->versionArgs());
             $problem === null
                 ? $add('ok', "binary {$formula}", "{$driver->binary()} --version runs")
                 : $add('fail', "binary {$formula}", strtok($problem, "\n").' — brew reinstall '.$formula);
@@ -60,7 +60,10 @@ final class ServiceDoctor
             $name = "instance {$i->name}";
 
             if (! $st['installed']) {
-                $add('fail', $name, "formula {$i->formula} is not installed — brew install {$i->formula}");
+                $driver = $this->services->driver($i);
+                $add('fail', $name, $driver instanceof \App\Services\Services\SiteBound
+                    ? "{$driver->sitePackage()} is no longer installed in site {$i->options['site']} — composer require {$driver->sitePackage()} there"
+                    : "formula {$i->formula} is not installed — brew install {$i->formula}");
                 continue;
             }
             if (! file_exists($this->launchd->plistPath($i->name))) {

@@ -183,3 +183,75 @@ it('retargets an instance to another formula of the same type and restarts it', 
     expect(fn () => $this->m->retarget($u, 'redis'))->toThrow(RuntimeException::class, 'is not a PostgreSQL formula')
         ->and(fn () => $this->m->retarget($u, 'postgresql@16'))->toThrow(RuntimeException::class, 'already runs');
 });
+
+it('allocates aux listeners per instance so two typesenses never share a peering port', function () {
+    $a = $this->m->create('typesense', start: false);
+    $b = $this->m->create('typesense', start: false);
+
+    expect([$a->port, $a->options['peering_port']])->toBe([8108, 8107])
+        ->and([$b->port, $b->options['peering_port']])->toBe([8109, 8110])
+        ->and(strlen($a->options['api_key']))->toBe(40)
+        ->and($a->options['api_key'])->not->toBe($b->options['api_key'])
+        ->and(file_get_contents($this->launchd->plistPath('typesense-2')))->toContain('--peering-port=8110');
+
+    $c = $this->m->clone($a, 'typesense-copy');
+    expect($c->options['api_key'])->toBe($a->options['api_key'])        // secrets carry over …
+        ->and($c->options['peering_port'])->not->toBe(8107);           // … listeners don't
+});
+
+it('creates a site-bound reverb from the site\'s php and vendor dir', function () {
+    $sitePath = $this->w->reverbSite('alpha');
+    $this->w->valetFs->parked('beta', laravel: true);
+    $this->w->valetFs->isolated('beta', '8.3');
+    $this->w->reverbSite('beta');
+
+    $i = $this->m->create('reverb', site: 'alpha');
+    expect($i->name)->toBe('reverb-alpha')
+        ->and($i->formula)->toBe('laravel/reverb')
+        ->and($i->version)->toBe('1.5.0')
+        ->and($i->port)->toBe(8080)
+        ->and($i->options)->toMatchArray(['site' => 'alpha', 'site_path' => $sitePath, 'php_bin_dir' => $this->brewFs->root.'/bin'])
+        ->and($i->options['app_key'])->toHaveLength(20)
+        ->and($this->m->status($i))->toMatchArray(['running' => true, 'installed' => true]);
+    $plist = file_get_contents($this->launchd->plistPath('reverb-alpha'));
+    expect($plist)->toContain("<key>WorkingDirectory</key>\n    <string>{$sitePath}</string>")
+        ->and($plist)->toContain('<string>reverb:start</string>');
+    Process::assertNotRan(fn ($p) => ($p->command[1] ?? '') === 'install');   // no brew involved
+
+    $j = $this->m->create('reverb', site: 'beta');                                   // isolated site → its own php
+    expect($j->options['php_bin_dir'])->toBe($this->brewFs->root.'/opt/php@8.3/bin')->and($j->port)->toBe(8081);
+
+    expect(fn () => $this->m->create('reverb'))->toThrow(RuntimeException::class, '--site=<name>')
+        ->and(fn () => $this->m->create('reverb', site: 'nope'))->toThrow(RuntimeException::class, 'not parked or linked')
+        ->and(fn () => $this->m->clone($i, 'reverb-copy'))->toThrow(RuntimeException::class, 'create another with --site');
+
+    $this->w->valetFs->parked('gamma', laravel: true);
+    expect(fn () => $this->m->create('reverb', site: 'gamma'))->toThrow(RuntimeException::class, 'composer require laravel/reverb');
+
+    $this->w->reverbSite('reverb-test');                                                   // site already named after the type
+    expect($this->m->create('reverb', site: 'reverb-test', start: false)->name)->toBe('reverb-test');
+    $this->w->reverbSite('shop.example.com');
+    expect($this->m->create('reverb', site: 'shop.example.com', start: false)->name)->toBe('reverb-shop-example-com');
+});
+
+it('trusts the tap before installing a tapped formula that is missing', function () {
+    $this->brewFs->uninstall('typesense/tap/typesense-server');
+    Process::fake([
+        '*brew*trust*' => Process::result("Trusted typesense/tap\n"),
+        '*brew*install*' => function () {
+            $this->brewFs->formula('typesense/tap/typesense-server', '30.2', ['typesense-server']);
+
+            return Process::result("==> Pouring typesense-server\n");
+        },
+    ]);
+    $lines = [];
+
+    $i = $this->m->create('typesense', start: false, log: function (string $l) use (&$lines) { $lines[] = $l; });
+
+    expect($i->formula)->toBe('typesense/tap/typesense-server')
+        ->and($lines[0])->toBe('brew trust typesense/tap')
+        ->and($lines[1])->toStartWith('brew install typesense/tap/typesense-server');
+    $bin = $this->brewFs->root.'/bin/brew';
+    Process::assertRan(fn ($p) => $p->command === [$bin, 'trust', 'typesense/tap']);
+    Process::assertRan(fn ($p) => $p->command === [$bin, 'install', 'typesense/tap/typesense-server']);
+});

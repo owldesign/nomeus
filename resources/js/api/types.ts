@@ -117,6 +117,8 @@ export interface ServiceType {
   type: string;
   label: string;
   default_port: number;
+  requires_site: boolean;
+  site_package: string | null;
   formulae: { formula: string; installed: boolean; version: string | null }[];
 }
 

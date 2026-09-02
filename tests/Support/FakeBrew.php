@@ -75,9 +75,23 @@ final class FakeBrew
             file_put_contents("$keg/bin/$bin", "#!/bin/sh\necho stub-$bin\n");
             chmod("$keg/bin/$bin", 0755);
         }
-        if (! is_link("{$this->root}/opt/{$short}")) {
-            symlink($keg, "{$this->root}/opt/{$short}");
+        $link = "{$this->root}/opt/{$short}";
+        if (is_link($link) && ! is_dir($link)) {
+            unlink($link);                        // dangling (keg removed): re-point it, as brew would
         }
+        if (! is_link($link)) {
+            symlink($keg, $link);
+        }
+
+        return $this;
+    }
+
+    /** Remove a formula the way `brew uninstall` does: the opt link and the keg. */
+    public function uninstall(string $formula): self
+    {
+        $short = basename($formula);
+        @unlink("{$this->root}/opt/{$short}");
+        File::deleteDirectory("{$this->root}/Cellar/{$short}");
 
         return $this;
     }

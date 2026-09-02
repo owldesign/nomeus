@@ -61,8 +61,12 @@ it('lists instances with status and env, types with formulae, and detail with a 
         ->assertJsonPath('data.0.default_port', 5432)
         ->assertJsonPath('data.0.formulae.0', ['formula' => 'postgresql@17', 'installed' => true, 'version' => '17.6'])
         ->assertJsonPath('data.0.formulae.1.installed', false)
+        ->assertJsonPath('data.0.requires_site', false)
         ->assertJsonPath('data.2.type', 'mariadb')
-        ->assertJsonPath('data.3.type', 'redis');
+        ->assertJsonPath('data.3.type', 'redis')
+        ->assertJsonPath('data.7.type', 'reverb')
+        ->assertJsonPath('data.7.requires_site', true)
+        ->assertJsonPath('data.7.site_package', 'laravel/reverb');
 
     $this->getJson('/api/services/redis?lines=20')
         ->assertOk()
@@ -81,6 +85,9 @@ it('creates through the cli as a task, with validation up front', function () us
 
     $this->postJson('/api/services', ['type' => 'redis'], $h)->assertStatus(202)
         ->assertJsonPath('task.argv', $artisan(['services:create', 'redis']));
+    $this->postJson('/api/services', ['type' => 'reverb', 'site' => 'alpha'], $h)->assertStatus(202)
+        ->assertJsonPath('task.argv', $artisan(['services:create', 'reverb', '--site=alpha']));
+    $this->postJson('/api/services', ['type' => 'reverb'], $h)->assertUnprocessable()->assertJsonPath('message', 'reverb runs inside a site; pick one.');
 
     $this->postJson('/api/services', ['type' => 'mongo'], $h)->assertUnprocessable();
     $this->postJson('/api/services', ['type' => 'redis', 'name' => 'Bad Name'], $h)->assertUnprocessable();
@@ -88,7 +95,7 @@ it('creates through the cli as a task, with validation up front', function () us
     $this->postJson('/api/services', ['type' => 'postgresql', 'version' => '9'], $h)->assertUnprocessable();
     $this->postJson('/api/services', ['type' => 'redis', 'port' => 80], $h)->assertUnprocessable();
 
-    expect($this->spawned)->toHaveCount(2);
+    expect($this->spawned)->toHaveCount(3);
     Process::assertNotRan(fn ($p) => is_array($p->command) && in_array('initdb', array_map('basename', $p->command), true));
 });
 

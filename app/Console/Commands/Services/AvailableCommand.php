@@ -17,7 +17,9 @@ class AvailableCommand extends Command
         $this->table(['type', 'name', 'formulae (● installed)', 'default port'], array_map(fn ($d) => [
             $d->type(),
             $d->label(),
-            implode('  ', array_map(fn ($f) => ($brew->isFormulaInstalled($f) ? '● ' : '○ ').$f, $d->formulae())),
+            $d instanceof \App\Services\Services\SiteBound
+                ? "site package {$d->sitePackage()}   (--site=<name>)"
+                : implode('  ', array_map(fn ($f) => ($brew->isFormulaInstalled($f) ? '● ' : '○ ').$f, $d->formulae())),
             $d->defaultPort(),
         ], array_values($drivers->all())));
         $this->line('<fg=gray>create one: devkit services:create <type> [version] [--name=] [--port=]</>');

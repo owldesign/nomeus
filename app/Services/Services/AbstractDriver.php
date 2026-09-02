@@ -4,6 +4,26 @@ namespace App\Services\Services;
 
 abstract class AbstractDriver implements Driver
 {
+    public function versionArgs(): array
+    {
+        return ['--version'];
+    }
+
+    public function defaultOptions(): array
+    {
+        return [];
+    }
+
+    public function auxPorts(): array
+    {
+        return [];
+    }
+
+    public function workingDirectory(\App\Support\ServiceInstance $instance): string
+    {
+        return $instance->dir;
+    }
+
     public function lockFilesIn(string $dataDir): array
     {
         return [];

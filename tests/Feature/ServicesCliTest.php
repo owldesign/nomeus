@@ -9,9 +9,13 @@ use Tests\Support\FakeBrew;
 beforeEach(function () {
     $this->root = sys_get_temp_dir().'/devkit-svccli-'.uniqid();
     mkdir("{$this->root}/devkit", 0755, true);
-    $this->brewFs = (new FakeBrew)->formula('redis', '8.2.1', ['redis-server'])->formula('postgresql@17', '17.6', ['initdb', 'postgres']);
+    $this->brewFs = (new FakeBrew)->formula('redis', '8.2.1', ['redis-server'])->formula('postgresql@17', '17.6', ['initdb', 'postgres'])
+        ->installed('8.4', '8.4.25')->linked('8.4');
     file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
     config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
+    $this->valetFs = new \Tests\Support\FakeValet;
+    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
+    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
     config()->set('devkit.launch_agents_dir', "{$this->root}/agents");
     config()->set('devkit.uid', 501);
     mkdir("{$this->root}/agents", 0755, true);
@@ -35,9 +39,10 @@ beforeEach(function () {
         '*cp*-a*' => Process::result(''),
         '*psql*' => Process::result(''),
         '*launchctl*bootstrap*' => function ($p) {
-            preg_match('/<string>(?:-p|--port)<\/string>\s*<string>(\d+)<\/string>/', file_get_contents($p->command[3]), $m);
-            $this->answering[] = (int) ($m[1] ?? 0);
-            $this->loaded[] = basename($p->command[3], '.plist');
+            $label = basename($p->command[3], '.plist');
+            $name = substr($label, strlen(LaunchdManager::PREFIX));
+            $this->answering[] = app(\App\Services\ServiceManager::class)->find($name)?->port ?? 0;
+            $this->loaded[] = $label;
 
             return Process::result('');
         },
@@ -56,6 +61,7 @@ beforeEach(function () {
 afterEach(function () {
     File::deleteDirectory($this->root);
     $this->brewFs->destroy();
+    $this->valetFs->destroy();
 });
 
 it('lists what is available and per-type versions', function () {
@@ -106,6 +112,8 @@ it('reports the usual mistakes', function () {
     $this->artisan('services:create mongo')->expectsOutputToContain('Unknown service type')->assertFailed();
     $this->artisan('services:create postgresql 9')->expectsOutputToContain('No PostgreSQL formula for version [9]')->assertFailed();
     $this->artisan('services:start nope')->expectsOutputToContain('No service [nope]')->assertFailed();
+    // services:env writes its error via getErrorStyle() — stderr under ConsoleOutput, so `>> .env` can't capture it.
+    // The test harness has one buffer for both streams, so only the exit code is observable here.
     $this->artisan('services:env nope')->assertFailed();
     $this->artisan('services:logs nope')->assertFailed();
 });
@@ -155,4 +163,16 @@ it('upgrades an instance to another formula from the cli', function () {
         ->assertSuccessful();
     $this->artisan('services:upgrade pg redis --yes')->expectsOutputToContain('is not a PostgreSQL formula')->assertFailed();
     $this->artisan('services:upgrade nope redis --yes')->assertFailed();
+});
+
+it('creates a site-bound reverb with --site and refuses without', function () {
+    $dir = $this->valetFs->parked('alpha', laravel: true);
+    mkdir("$dir/vendor/laravel/reverb", 0755, true);
+
+    $this->artisan('services:create reverb')->expectsOutputToContain('--site=<name>')->assertFailed();
+    $this->artisan('services:create reverb --site=alpha')
+        ->expectsOutputToContain('starting reverb-alpha on 127.0.0.1:8080')
+        ->assertSuccessful();
+    $this->artisan('services:env reverb-alpha')->expectsOutput('BROADCAST_CONNECTION=reverb')->expectsOutput('REVERB_PORT=8080')->assertSuccessful();
+    $this->artisan('services:available')->expectsOutputToContain('site package laravel/reverb')->assertSuccessful();
 });
