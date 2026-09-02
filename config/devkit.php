@@ -3,7 +3,8 @@
 use App\Support\DevkitConfig;
 
 return [
-    'version' => '0.1.0',
+    // Bumped per slice; `devkit status --json | grep version` tells which cut is live.
+    'version' => '0.1.4',
 
     // ~/.devkit/config.json — written by install/install.sh
     'config_path' => env('DEVKIT_CONFIG_PATH') ?: DevkitConfig::defaultPath(),
@@ -13,6 +14,11 @@ return [
 
     // Explicit valet binary (tests / unusual layouts). null = <brew>/bin/valet, then composer's.
     'valet_bin' => env('DEVKIT_VALET_BIN'),
+
+    // `devkit use` refuses anything older than devkit's own requirement. Normally read from
+    // vendor/composer/platform_check.php; these are the override (tests) and the fallback.
+    'platform_check' => env('DEVKIT_PLATFORM_CHECK'),
+    'min_php' => env('DEVKIT_MIN_PHP', '8.2'),
 
     // Site name the dashboard is linked as: http://<site>.<tld>
     'site' => env('DEVKIT_SITE', 'devkit'),

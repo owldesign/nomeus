@@ -69,3 +69,21 @@ export interface Task {
 export interface Enqueued {
   task: Task;
 }
+
+export interface PhpVersion {
+  version: string;       // "8.3"
+  patch: string | null;  // "8.3.14"
+  linked: boolean;       // global
+  fpm: boolean;
+  sites: string[];
+  ini: string;
+  confd: string;
+  outdated: string | null;
+}
+
+export interface PhpState {
+  global: string | null;
+  installed: PhpVersion[];
+  installable: string[];
+  min_php: string;
+}

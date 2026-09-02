@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 1c · php versions</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 1c · php versions</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~20 min · phases 0–5</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>devkit sees every php@X.Y keg, which one is global, which fpms answer, which sites each serves — and can switch, install and update them</b>.
+  Phase 2 is the acid test of the task runner: <code>valet use</code> restarts the very fpm serving the dashboard, and the task has to outlive it.
+  Precondition: 1b committed.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply and test <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay, test, build</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-1c.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; vendor/bin/pest &amp;&amp; npx tsc --noEmit &amp;&amp; npm run build</pre>
+<pre class="out">Tests: 42 passed — +BrewBridge 3 · PhpManager 3 · Api/Php 5, and Api/Status now pins php.installed</pre>
+    </div>
+    <div class="callout blue">BrewBridge is tested against a fake Homebrew prefix (Cellar, opt symlinks, the tap's Formula dir) — nothing in the suite touches <code>/opt/homebrew</code>.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>Read <span class="c">CLI and API agree</span><span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Installed versions, one table</span></label>
+    <div class="body">
+<pre class="cmd">devkit php:list</pre>
+<pre class="out">version  patch    global  fpm  sites                    update  ini
+8.2      8.2.x            -    -                        -       /opt/homebrew/etc/php/8.2/php.ini
+8.3      8.3.x            up   -                        -       …   (up if the 8.3 fpm from 1b's isolate is still running)
+8.4      8.4.25   *       up   devkit, smoke, …         -       …
+8.5      8.5.x            -    -                        -       …
+installable: 5.6, 7.0, … 8.1   (devkit php:install &lt;version&gt;)</pre>
+    </div>
+    <div class="callout gold">"update" reflects brew's last <code>brew update</code> — devkit's env sets <code>HOMEBREW_NO_AUTO_UPDATE</code> so nothing here triggers a tap sync. <code>brew update &amp;&amp; devkit php:list --fresh</code> is the honest check.</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Same over nginx</span></label>
+    <div class="body">
+<pre class="cmd">curl -s http://devkit.test/api/php | python3 -m json.tool | head -40</pre>
+<pre class="out">data.global "8.4" · data.installed[] matching 1.1 · data.installable[] · data.min_php "8.2"</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>Switch the global version from the dashboard <span class="c">the task must survive its own fpm restart</span><span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">PHP page</span></label>
+    <div class="body">
+<pre class="cmd">open http://devkit.test/php</pre>
+<pre class="out">8.4 in gold with "global" · "devkit needs 8.x+" top-right · green dot on rows whose fpm answers · sites column · php.ini paths · "use" only on rows at or above that floor, greyed below it</pre>
+    </div>
+    <div class="callout gold">The floor is read from <code>vendor/composer/platform_check.php</code> — whatever your lock file resolved to. With current Symfony/Pest it is 8.4, so the only other switch target is 8.5. That's the point: switching the global fpm below devkit's own requirement takes the dashboard down (500 from Composer's platform check), which is exactly what happened before this guard read the real number.</div>
+    <div class="body">
+    </div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">use 8.5 (or whichever row still offers "use")</span></label>
+    <div class="body">
+<pre class="out">8.5 row → use → "switch global to 8.5? the dashboard restarts with it." → yes
+→ enqueuing… → running valet use php@8.5… → (nginx restarting) → the poll fails for a few seconds while fpm 8.4 stops and 8.5 starts → valet use php@8.5 done
+→ status strip: php 8.5.x · 8.5 row now gold/global · sites moved to it</pre>
+<pre class="cmd">devkit tasks --limit=1 &amp;&amp; devkit status | grep -E 'php|fpm'</pre>
+<pre class="out">done  valet use php@8.5 · php 8.5.x · php-fpm running 8.5</pre>
+    </div>
+    <div class="callout red">If the task ends <code>failed</code> with no output at the moment fpm restarted, it was killed with the old fpm's process group — <code>posix_setsid()</code> didn't take. <code>/opt/homebrew/bin/php -m | grep posix</code> must print <code>posix</code>. Everything else about the switch happened anyway (Valet did it); only devkit's record is wrong.</div>
+    <div class="callout gold">Your terminal's <code>php</code> changed too — that's what <code>valet use</code> means. Composer's global packages (Valet itself) keep working across 8.2–8.5.</div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">…and back to 8.4</span></label>
+    <div class="body">
+<pre class="out">8.4 row → use → yes → same sequence → 8.4 global again</pre>
+    </div>
+    <div class="callout red">Stuck with a dead dashboard after a switch (red "api unreachable", 500 on the page)? The global fpm is a version devkit can't run on. From a terminal: <code>devkit use php@8.4</code>. The switch task still completed — <code>devkit tasks</code> will show it done.</div>
+    <div class="body">
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>Install a version <span class="c">optional · brew bottle, a minute or two</span><span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">From the CLI, streamed</span></label>
+    <div class="body">
+<pre class="cmd">devkit php:install 8.1</pre>
+<pre class="out">brew install shivammathur/php/php@8.1 … brew's own output … php@8.1 installed. Use it per site: devkit isolate php@8.1 --site=&lt;name&gt; …</pre>
+    </div>
+    <div class="callout blue">Or from the dashboard: the install picker under the table lists the same "installable" set and runs it as a task — check Tasks for the brew log. Either way the new row appears with no fpm until a site isolates to it.</div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">The guard against taking devkit down</span></label>
+    <div class="body">
+<pre class="cmd">curl -s -X POST -H 'X-Devkit: 1' -H 'Accept: application/json' -w '\n' http://devkit.test/api/php/8.3/use</pre>
+<pre class="out">{"message":"devkit's dashboard runs on the global PHP and its dependencies need 8.4+; isolate sites that need php@8.3 instead: devkit isolate php@8.3 --site=&lt;name&gt;"}   ← 422</pre>
+    </div>
+    <div class="callout gold">8.3 rather than 8.1 because the guard order is: installed? → at or above devkit's floor? An uninstalled version answers "not installed" first. <code>-w '\n'</code> instead of <code>; echo</code>: zsh's URL quoting turns a pasted <code>;</code> into <code>\;</code>, which makes curl request <code>/use;</code> and then try to resolve a host named "echo". <code>Accept: application/json</code> keeps Laravel's errors JSON instead of the HTML 404 page.</div>
+    <div class="body">
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Updates <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Refresh what brew considers outdated, then update</span></label>
+    <div class="body">
+<pre class="cmd">brew update &gt;/dev/null &amp;&amp; devkit php:list --fresh</pre>
+<pre class="out">the update column shows a newer patch where one exists, "-" otherwise</pre>
+<pre class="cmd">devkit php:update</pre>
+<pre class="out">brew upgrade php@X.Y for each outdated one, streamed · "Every installed PHP is current" if none · then: devkit restart</pre>
+    </div>
+    <div class="callout gold">Dashboard equivalent: "check updates" top-right re-runs the check; "update → 8.x.y" appears on the row and runs as a task. Restart fpm afterwards (<code>devkit restart</code>) so the updated binary serves.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 5 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">5</span>Commit and hand-off</h2>
+
+  <div class="step" data-step="5.1"><label><input type="checkbox"><span class="id">5.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-1c: brew bridge, php manager, php:list|install|update, /api/php, php page"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="5.2"><label><input type="checkbox"><span class="id">5.2</span><span class="title">Hand-off for 1d</span></label>
+    <div class="body"><p>Paste the pest summary and <code>devkit php:list</code>. 1d closes Phase 1: <code>ini</code>, <code>db</code>, <code>edit</code>, <code>config:get|set</code> — CLI only.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>php:list shows nothing installed</b> — <code>brew_prefix</code> in <code>~/.devkit/config.json</code> is wrong or missing; <code>ls $(brew --prefix)/opt | grep php@</code> is what it reads. Re-run <code>./install/install.sh --skip-node</code> to rewrite it.</div>
+  <div class="callout red"><b>installable list is only the installed versions</b> — the tap isn't checked out locally (Homebrew 6's JSON API mode). <code>brew tap shivammathur/php</code> once; the Formula dir appears and the full list follows.</div>
+  <div class="callout red"><b>brew install / upgrade task fails</b> — <code>devkit task:log &lt;id&gt;</code> has brew's message. "Refusing to load formula … untrusted tap" → <code>brew trust shivammathur/php</code> (runbook 0a).</div>
+  <div class="callout red"><b>After a switch the dashboard stays dead</b> — the new global fpm isn't up. <code>devkit status</code> from the terminal; <code>devkit restart</code> starts it. If <code>curl -sI http://devkit.test</code> is 502, the fpm for the global version is the one missing.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-1c';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

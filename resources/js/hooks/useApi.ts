@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, del, post } from '@/api/client';
-import type { Enqueued, Site, SiteDetail, Status, Task } from '@/api/types';
+import type { Enqueued, PhpState, Site, SiteDetail, Status, Task } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -45,7 +45,7 @@ export function useTask(id: string | null, opts?: { onFinished?: (task: Task) =>
     queryFn: async () => (await api<{ data: Task }>(`/tasks/${id}`)).data,
     enabled: id !== null,
     refetchInterval: (q) => (q.state.data && isFinished(q.state.data) ? false : 800),
-    retry: 30,
+    retry: 15,
     retryDelay: 800,
   });
 
@@ -89,5 +89,31 @@ export function useRefetchAfterTask() {
     qc.invalidateQueries({ queryKey: ['sites'] });
     qc.invalidateQueries({ queryKey: ['status'] });
     qc.invalidateQueries({ queryKey: ['tasks'] });
+    qc.invalidateQueries({ queryKey: ['php'] });
   };
+}
+
+export function usePhp() {
+  return useQuery({
+    queryKey: ['php'],
+    queryFn: async () => (await api<{ data: PhpState }>('/php')).data,
+    refetchInterval: 10000,
+  });
+}
+
+/** One-off: re-run `brew outdated` (server caches it 10 min) and replace the cached PHP state. */
+export function useCheckPhpUpdates() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (await api<{ data: PhpState }>('/php?fresh=1')).data,
+    onSuccess: (data) => qc.setQueryData(['php'], data),
+  });
+}
+
+export type PhpAction = { version: string; action: 'use' | 'install' | 'update' };
+
+export function usePhpAction() {
+  return useMutation({
+    mutationFn: (a: PhpAction) => post<Enqueued>(`/php/${a.version}/${a.action}`),
+  });
 }

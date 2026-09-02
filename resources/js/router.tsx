@@ -3,6 +3,7 @@ import Layout from '@/components/Layout';
 import Status from '@/pages/Status';
 import Sites from '@/pages/Sites';
 import Tasks from '@/pages/Tasks';
+import Php from '@/pages/Php';
 import Placeholder from '@/pages/Placeholder';
 
 export const router = createBrowserRouter([
@@ -12,7 +13,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Status /> },
       { path: 'sites', element: <Sites /> },
-      { path: 'php', element: <Placeholder name="PHP" slice="1c" /> },
+      { path: 'php', element: <Php /> },
       { path: 'tasks', element: <Tasks /> },
       { path: 'services', element: <Placeholder name="Services" slice="phase 2" /> },
       { path: 'mail', element: <Placeholder name="Mail" slice="phase 3" /> },

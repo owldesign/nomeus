@@ -39,6 +39,7 @@ class StatusCommand extends Command
             : '<fg=red>not installed</>';
 
         $this->table([], [
+            ['devkit', $s['devkit']['version']],
             ['home', $s['devkit']['home']],
             ['config', $s['devkit']['config_path'].($s['devkit']['config_exists'] ? '' : '   <fg=yellow>missing — run install/install.sh</>')],
             ['code dir', $s['devkit']['code_dir']],

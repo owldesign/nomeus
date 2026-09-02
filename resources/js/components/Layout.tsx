@@ -25,6 +25,11 @@ function Led({ on, label }: { on: boolean; label: string }) {
   );
 }
 
+function Version() {
+  const { data } = useStatus();
+  return <span className="text-mute">{data ? `v${data.devkit.version}` : ''}</span>;
+}
+
 function StatusStrip() {
   const { data, isError, isLoading } = useStatus();
 
@@ -55,8 +60,9 @@ export default function Layout() {
   return (
     <div className="grid min-h-screen grid-cols-[200px_1fr]">
       <aside className="border-r border-line bg-panel px-4 py-5">
-        <div className="mb-6 text-[15px] font-semibold tracking-wide text-gold">
-          devkit<span className="text-dim font-normal"> /</span>
+        <div className="mb-6 flex items-baseline justify-between text-[15px] font-semibold tracking-wide text-gold">
+          <span>devkit<span className="text-dim font-normal"> /</span></span>
+          <Version />
         </div>
         <nav aria-label="Sections">
           <ul className="space-y-0.5">

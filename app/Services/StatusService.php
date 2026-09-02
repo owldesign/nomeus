@@ -14,6 +14,8 @@ final class StatusService
         private readonly ValetBridge $valet,
         private readonly Shell $shell,
         private readonly Probe $probe,
+        private readonly BrewBridge $brew,
+        private readonly PhpManager $php,
     ) {}
 
     public function snapshot(): array
@@ -43,13 +45,13 @@ final class StatusService
             ],
             'php' => [
                 'global' => $this->globalPhpVersion(),
-                'installed' => $this->installedPhpVersions(),
+                'installed' => $this->brew->installedPhp(),
             ],
             'services' => [
                 // nginx and php-fpm rewrite their argv on macOS; answer-based checks first, pgrep as fallback.
                 'nginx' => $this->probe->tcp($loopback, 80) || $this->shell->running('nginx'),
                 'dnsmasq' => $this->shell->running('dnsmasq'),
-                'php_fpm' => $this->phpFpmVersions(),
+                'php_fpm' => $this->php->runningFpmVersions(),
                 'mailpit' => $this->shell->running('mailpit') || $this->probe->tcp('127.0.0.1', $smtpPort),
             ],
             'dashboard' => [
@@ -93,7 +95,7 @@ final class StatusService
             ];
         }
 
-        foreach ($this->valetSockets() as $path) {
+        foreach ($this->php->valetSockets() as $path) {
             $out['sockets'][basename($path)] = $this->probe->unix($path);
         }
 
@@ -122,75 +124,10 @@ final class StatusService
         return $out;
     }
 
-    /** php@X.Y kegs present under <brew>/opt — filesystem only, so it's safe from fpm. */
-    private function installedPhpVersions(): array
-    {
-        $out = [];
-        foreach (glob($this->shell->brewPrefix().'/opt/php@*') ?: [] as $dir) {
-            if (preg_match('/php@(\d+\.\d+)$/', $dir, $m)) {
-                $out[] = $m[1];
-            }
-        }
-        sort($out);
-
-        return $out;
-    }
-
     private function globalPhpVersion(): ?string
     {
         $result = $this->shell->run(['php', '-r', 'echo PHP_VERSION;'], timeout: 10);
 
         return $result->successful() ? trim($result->output()) : null;
-    }
-
-    /** @return list<string> */
-    private function valetSockets(): array
-    {
-        if (! $this->valet->isInstalled()) {
-            return [];
-        }
-        $found = glob($this->valet->configDir().'/*.sock') ?: [];
-        sort($found);
-
-        return $found;
-    }
-
-    /**
-     * Versions with a live php-fpm. Primary source: Valet's sockets — valet.sock is the global
-     * version, valetXY.sock an isolated one — which are exact and uid-independent. Fallback: the
-     * fpm master's argv, accepting both the launch path (opt/php@X.Y) and macOS's rewritten
-     * title "php-fpm: master process (<brew>/etc/php/X.Y/php-fpm.conf)".
-     */
-    private function phpFpmVersions(): array
-    {
-        $versions = [];
-        foreach ($this->valetSockets() as $path) {
-            if (! $this->probe->unix($path)) {
-                continue;
-            }
-            $name = basename($path, '.sock');
-            if ($name === 'valet') {
-                $global = $this->globalPhpVersion();
-                if ($global !== null && preg_match('/^(\d+\.\d+)/', $global, $m)) {
-                    $versions[] = $m[1];
-                }
-            } elseif (preg_match('/^valet(\d)(\d+)$/', $name, $m)) {
-                $versions[] = "{$m[1]}.{$m[2]}";
-            }
-        }
-
-        if ($versions === []) {
-            $result = $this->shell->run(['pgrep', '-fl', 'php-fpm'], timeout: 10);
-            if (! $result->successful() || trim($result->output()) === '') {
-                return [];
-            }
-            preg_match_all('#(?:php@|/etc/php/)(\d+\.\d+)#', $result->output(), $m);
-            $versions = $m[1] ?: ['unknown'];
-        }
-
-        $versions = array_values(array_unique($versions));
-        sort($versions);
-
-        return $versions;
     }
 }

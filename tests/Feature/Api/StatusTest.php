@@ -3,6 +3,7 @@
 use App\Support\Probe;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Tests\Support\FakeBrew;
 
 beforeEach(function () {
     $this->dir = sys_get_temp_dir().'/devkit-status-'.uniqid();
@@ -14,7 +15,8 @@ beforeEach(function () {
         'paths' => ["{$this->dir}/valet/Sites", '/Users/me/Sites'],
     ]));
     symlink($this->dir, "{$this->dir}/valet/Sites/devkit");
-    file_put_contents("{$this->dir}/config.json", json_encode(['code_dir' => '~/Sites']));
+    $this->brewFs = (new FakeBrew)->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4');
+    file_put_contents("{$this->dir}/config.json", json_encode(['code_dir' => '~/Sites', 'brew_prefix' => $this->brewFs->root]));
 
     // A fake Valet install: bin symlink → package dir with cli/valet.php, as `valet install` lays it out.
     mkdir("{$this->dir}/pkg/cli", 0755, true);
@@ -50,7 +52,10 @@ beforeEach(function () {
     ]);
 });
 
-afterEach(fn () => File::deleteDirectory($this->dir));
+afterEach(function () {
+    File::deleteDirectory($this->dir);
+    $this->brewFs->destroy();
+});
 
 it('returns the status snapshot', function () {
     $this->getJson('/api/status')
@@ -61,6 +66,7 @@ it('returns the status snapshot', function () {
         ->assertJsonPath('valet.tld', 'test')
         ->assertJsonPath('valet.paths', ['/Users/me/Sites'])
         ->assertJsonPath('php.global', '8.4.25')
+        ->assertJsonPath('php.installed', ['8.3', '8.4'])
         ->assertJsonPath('services.nginx', true)
         ->assertJsonPath('services.dnsmasq', true)
         ->assertJsonPath('services.php_fpm', ['8.3', '8.4'])

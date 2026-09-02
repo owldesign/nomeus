@@ -17,7 +17,8 @@ cd ~/Code/devkit
 
 The installer bootstraps Homebrew/Valet, then (once the Laravel app is present) runs `composer install`,
 builds the SPA, `valet link`s the dashboard at `http://devkit.test`, and symlinks `bin/devkit` into brew's bin.
-Runbooks for each slice live in `docs/`. Slices arrive as zips — apply them with
+`config/devkit.php` carries a version bumped per slice; `devkit status` and the dashboard rail show it,
+so "which cut is running" is never a guess. Runbooks for each slice live in `docs/`. Slices arrive as zips — apply them with
 `unzip -o <slice>.zip -d ~/Code/` (overlay only); never replace directories, which drops
 skeleton files that sit next to devkit's own.
 
@@ -50,7 +51,7 @@ resources/js/       React SPA
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Brewfile, install.sh, config | done |
-| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | 1a, 1b done (status, sites, tasks, SPA) |
+| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | 1a–1c done; 1d (ini/db/edit/config) next |
 | 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | — |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | — |
 | 4 | log watcher; Logs page | — |
