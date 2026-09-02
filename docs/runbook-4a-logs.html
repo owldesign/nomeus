@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 4a · logs</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 4a · logs</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~15 min · phases 0–4</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>every site's Laravel log, and Valet's nginx/php-fpm logs, in one page that follows along and links stack frames into your IDE</b> — with nothing new running: the page polls an offset-based tail every 2 s.
+  Precondition: Phase 3 committed.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-4a.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; chmod +x bin/devkit &amp;&amp; vendor/bin/pest &amp;&amp; npm run build &amp;&amp; devkit status | head -2</pre>
+<pre class="out">Tests: 154 passed — +LogParser 4 · LogSources 1 · LogTailer 2 · Api/Logs 2 · devkit 0.4.0</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>CLI <span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Make an entry worth looking at, then read it</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Sites/smoke &amp;&amp; php artisan tinker --execute="Log::info('devkit log test'); report(new RuntimeException('devkit reported exception'));" &amp;&amp; cd - &amp;&amp; devkit logs smoke --lines=5</pre>
+<pre class="out">/Users/owldesign/Sites/smoke/storage/logs/laravel.log
+2026-09-02 … INFO     devkit log test
+2026-09-02 … ERROR    devkit reported exception
+    [stacktrace]
+    #0 /Users/owldesign/Sites/smoke/vendor/laravel/tinker/… : eval()'d code(1): report()
+    …</pre>
+<pre class="cmd">devkit logs smoke --level=error --lines=3 &amp;&amp; devkit logs --nginx --lines=3</pre>
+<pre class="out">only the ERROR entry · valet's nginx error log (or "No nginx log yet" if valet has never written one)</pre>
+    </div>
+    <div class="callout gold"><code>report()</code> is the honest test: it logs an exception with a full trace the same way an uncaught one would in a request, so what you see here is what the page shows for a real 500.</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Follow</span></label>
+    <div class="body">
+<pre class="cmd">devkit logs smoke --follow --lines=1</pre>
+<pre class="out">the last entry, then a prompt that stays put — in another terminal: cd ~/Sites/smoke &amp;&amp; php artisan tinker --execute="Log::warning('while following');" → it appears within a second · Ctrl-C to stop</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>The Logs page <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Sources and the tail</span></label>
+    <div class="body">
+<pre class="cmd">open https://devkit.test/logs</pre>
+<pre class="out">rail: each site with logs → its files (newest first, sizes) · "valet" group with nginx-error.log / fpm-php.www.log if present · the most recently written file is selected
+main: entries newest at the bottom · level chips with counts (click = filter) · search · follow ☑ · reload · clear</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">Into the IDE</span></label>
+    <div class="body">
+<pre class="out">the ERROR entry → "+N" expands the context and trace → every /path/file.php:line and /path/file.php(line) is a link → click one → your IDE (config.json "ide", PhpStorm by default) opens the file at that line</pre>
+    </div>
+    <div class="callout gold">Links use the IDE's URL scheme (phpstorm://, vscode://, cursor://, zed://, subl://). The first click makes the browser ask permission to open the app — allow and remember. <code>devkit config:set ide vscode</code> switches for everything: links here, <code>devkit edit</code>, the Sites page.</div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">Follow, filter, clear</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Sites/smoke &amp;&amp; for i in 1 2 3; do php artisan tinker --execute="Log::warning('live $i');"; done; cd -</pre>
+<pre class="out">three WARNING rows arrive as they're written (follow on, view at the bottom) · click "warning" chip → only those · type "live 2" in search → one row · clear → confirm → file truncated, page empty, next write starts it again</pre>
+    </div>
+    <div class="callout blue">Scroll up while following and the view stays where you are; scroll back near the bottom and it resumes auto-scrolling. Big files show only their last 64 KB ("showing the tail" in the header) — older entries are still in the file, just not loaded.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>A real site <span class="c">optional</span><span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Pick coavaorders.com in the rail</span></label>
+    <div class="body">
+<pre class="out">its daily laravel-*.log files if it logs daily, laravel.log otherwise · anything it has logged lately, filterable the same way</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Commit — Phase 4 complete</h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-4a: log parser/sources/tailer, devkit logs, Logs page with IDE links"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="4.2"><label><input type="checkbox"><span class="id">4.2</span><span class="title">Hand-off for Phase 5</span></label>
+    <div class="body"><p>Paste the pest summary. Phase 5: Xdebug — install per PHP version, toggle on/off (the ini quarantine from runbook 0a), and auto-detect from the IDE's listener.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>Rail is empty</b> — no site has a <code>storage/logs/*.log</code> yet; Laravel creates it on the first write. <code>devkit logs smoke</code> says the same and lists the sites that do have one.</div>
+  <div class="callout red"><b>Clicking a file:line does nothing</b> — the IDE has no URL scheme handler registered (Sublime needs the "URL scheme" package; PhpStorm/VS Code/Cursor/Zed register theirs on first launch). <code>devkit edit &lt;path&gt;</code> uses the same scheme from the terminal and shows the error if there is one.</div>
+  <div class="callout red"><b>An entry shows as one giant line without a trace</b> — that app's logger is configured without inline line breaks (a custom formatter); the message is intact, the trace just isn't split. The parser keys on Laravel's default LineFormatter.</div>
+  <div class="callout red"><b>Entries appear twice / out of order after a clear</b> — a rotation (daily log switching files) is a new source, not a truncation; pick the new file in the rail. Truncation of the same file is detected (offset &gt; size) and the view restarts.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-4a';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

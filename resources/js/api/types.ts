@@ -185,3 +185,40 @@ export interface MailPage {
   start: number;
   messages: MailSummary[];
 }
+
+export interface LogSource {
+  id: string;
+  group: string;
+  label: string;
+  path: string;
+  size: number;
+  mtime: number;
+  kind: 'laravel' | 'nginx' | 'php-fpm';
+}
+
+export interface LogRef {
+  text: string;
+  file: string;
+  line: number;
+  url: string | null;
+}
+
+export interface LogEntry {
+  ts: string | null;
+  env: string | null;
+  level: string;
+  severity: 'error' | 'warning' | 'info' | 'debug';
+  message: string;
+  context: string | null;
+  trace: string;
+  refs: LogRef[];
+}
+
+export interface LogTail {
+  offset: number;
+  size: number;
+  truncated: boolean;
+  reset: boolean;
+  entries: LogEntry[];
+  source: LogSource;
+}

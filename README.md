@@ -58,7 +58,7 @@ resources/js/       React SPA
 | 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | done |
 | 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | done — postgresql, mysql, mariadb, redis, meilisearch, typesense, seaweedfs (s3), reverb |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | done — `devkit init` from `dev.yml` (see docs/dev.yml.example) |
-| 4 | log watcher; Logs page | — |
+| 4 | log watcher; Logs page | done — `devkit logs [site] [--follow]`, Logs page (offset-based tail, IDE links) |
 | 5 | Xdebug toggle, then auto-detect | — |
 | 6 | MCP server, Linux via Valet Linux | optional |
 

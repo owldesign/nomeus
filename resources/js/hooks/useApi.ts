@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, del, post } from '@/api/client';
-import type { BrewService, Enqueued, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
+import { ApiError, api, del, post } from '@/api/client';
+import type { BrewService, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -220,5 +220,66 @@ export function useDeleteMail() {
   return useMutation({
     mutationFn: (tag: string | null) => del<{ deleted: number }>(`/mail/messages${tag ? `?tag=${encodeURIComponent(tag)}` : ''}`),
     onSettled: () => qc.invalidateQueries({ queryKey: ['mail'] }),
+  });
+}
+
+export function useLogSources() {
+  return useQuery({
+    queryKey: ['logs', 'sources'],
+    queryFn: async () => (await api<{ data: LogSource[] }>('/logs/sources')).data,
+    refetchInterval: 10000,
+  });
+}
+
+/**
+ * Incremental tail of one file. First read = the last 64 KB; then every 2 s asks for what was
+ * appended since the last offset. A truncate/rotation (offset > size) comes back as reset=true.
+ */
+export function useLogTail(path: string | null, following: boolean) {
+  const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [meta, setMeta] = useState<{ size: number; truncated: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const offset = useRef<number | null>(null);
+  const inflight = useRef(false);
+
+  const poll = useCallback(async (fresh = false) => {
+    if (!path || inflight.current) return;
+    inflight.current = true;
+    try {
+      const q = new URLSearchParams({ path });
+      if (!fresh && offset.current !== null) q.set('offset', String(offset.current));
+      const { data } = await api<{ data: LogTail }>(`/logs/tail?${q.toString()}`);
+      offset.current = data.offset;
+      setMeta({ size: data.size, truncated: data.truncated });
+      setEntries((prev) => (fresh || data.reset ? data.entries : data.entries.length ? [...prev, ...data.entries].slice(-2000) : prev));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : String(e));
+    } finally {
+      inflight.current = false;
+    }
+  }, [path]);
+
+  useEffect(() => {
+    offset.current = null;
+    setEntries([]);
+    setMeta(null);
+    void poll(true);
+  }, [path, poll]);
+
+  useEffect(() => {
+    if (!path || !following) return;
+    const t = setInterval(() => void poll(), 2000);
+    return () => clearInterval(t);
+  }, [path, following, poll]);
+
+  return { entries, meta, error, refresh: () => poll(true) };
+}
+
+export function useClearLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (path: string) => del<{ cleared: string }>(`/logs?path=${encodeURIComponent(path)}`),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['logs', 'sources'] }),
   });
 }

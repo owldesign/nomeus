@@ -44,6 +44,24 @@ final class Editor
         };
     }
 
+    /**
+     * A URL the browser can open directly (the dashboard's file:line links). Null when the IDE
+     * has no scheme ('open'); Sublime's needs its URL-scheme handler package installed.
+     */
+    public function fileUrl(string $path, ?int $line = null): ?string
+    {
+        $at = $line ? ":{$line}" : '';
+
+        return match ($this->ide()) {
+            'phpstorm' => 'phpstorm://open?file='.rawurlencode($path).($line ? "&line={$line}" : ''),
+            'vscode' => 'vscode://file'.$path.$at,
+            'cursor' => 'cursor://file'.$path.$at,
+            'zed' => 'zed://file'.$path.$at,
+            'sublime' => 'subl://open?url='.rawurlencode('file://'.$path).($line ? "&line={$line}" : ''),
+            default => null,
+        };
+    }
+
     /** @return list<string> argv that opens $dir as a project in the IDE */
     public function dirCommand(string $dir): array
     {

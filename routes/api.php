@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\LogsController;
 use App\Http\Controllers\Api\MailController;
 use App\Http\Controllers\Api\PhpController;
 use App\Http\Controllers\Api\ServicesController;
@@ -45,3 +46,7 @@ Route::get('/mail/tags', [MailController::class, 'tags'])->name('api.mail.tags')
 Route::get('/mail/messages', [MailController::class, 'messages'])->name('api.mail.messages');
 Route::get('/mail/messages/{id}', [MailController::class, 'message'])->name('api.mail.message');
 Route::delete('/mail/messages', [MailController::class, 'destroy'])->name('api.mail.destroy');
+
+Route::get('/logs/sources', [LogsController::class, 'sources'])->name('api.logs.sources');
+Route::get('/logs/tail', [LogsController::class, 'tail'])->name('api.logs.tail');
+Route::delete('/logs', [LogsController::class, 'truncate'])->name('api.logs.truncate');

@@ -6,6 +6,7 @@ import Tasks from '@/pages/Tasks';
 import Php from '@/pages/Php';
 import Services from '@/pages/Services';
 import Mail from '@/pages/Mail';
+import Logs from '@/pages/Logs';
 import Placeholder from '@/pages/Placeholder';
 
 export const router = createBrowserRouter([
@@ -19,7 +20,7 @@ export const router = createBrowserRouter([
       { path: 'tasks', element: <Tasks /> },
       { path: 'services', element: <Services /> },
       { path: 'mail', element: <Mail /> },
-      { path: 'logs', element: <Placeholder name="Logs" slice="phase 4" /> },
+      { path: 'logs', element: <Logs /> },
       { path: 'debug', element: <Placeholder name="Debug" slice="phase 5" /> },
     ],
   },
