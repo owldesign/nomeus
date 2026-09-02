@@ -223,7 +223,7 @@ it('creates a site-bound reverb from the site\'s php and vendor dir', function (
 
     expect(fn () => $this->m->create('reverb'))->toThrow(RuntimeException::class, '--site=<name>')
         ->and(fn () => $this->m->create('reverb', site: 'nope'))->toThrow(RuntimeException::class, 'not parked or linked')
-        ->and(fn () => $this->m->clone($i, 'reverb-copy'))->toThrow(RuntimeException::class, 'create another with --site');
+        ->and(fn () => $this->m->clone($i, 'reverb-copy'))->toThrow(RuntimeException::class, 'not a data service; nothing to clone');
 
     $this->w->valetFs->parked('gamma', laravel: true);
     expect(fn () => $this->m->create('reverb', site: 'gamma'))->toThrow(RuntimeException::class, 'composer require laravel/reverb');

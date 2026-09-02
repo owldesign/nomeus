@@ -45,3 +45,6 @@ a { color: var(--color-blue); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Symfony var-dumper output on the Debug page */
+.sf-dump-host pre.sf-dump { margin: 0; padding: 6px 8px; font-size: 12px; background: #18171b; border-radius: 3px; }

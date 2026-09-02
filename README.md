@@ -4,7 +4,7 @@ Self-built Laravel dev environment for macOS. Laravel Valet underneath, native H
 services, one Laravel app that is both the `devkit` CLI (artisan commands behind a shim) and a
 React dashboard served by Valet at `devkit.test`.
 
-Companion apps, all free: PHP Monitor (menubar), LaraDumps (dumps/queries/jobs/logs), Mailpit (mail),
+Companion apps, all free: PHP Monitor (menubar), Mailpit (mail),
 TablePlus (`devkit db`).
 
 ## Install
@@ -59,7 +59,7 @@ resources/js/       React SPA
 | 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | done — postgresql, mysql, mariadb, redis, meilisearch, typesense, seaweedfs (s3), reverb |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | done — `devkit init` from `dev.yml` (see docs/dev.yml.example) |
 | 4 | log watcher; Logs page | done — `devkit logs [site] [--follow]`, Logs page (offset-based tail, IDE links) |
-| 5 | Xdebug toggle, then auto-detect | — |
+| 5 | Dumps (5a), Xdebug (5b) | 5a done — dump server + Debug page, no app dependency for dump()/dd(); recorders via zhuk/devkit-client |
 | 6 | MCP server, Linux via Valet Linux | optional |
 
 ## CLI parity with Herd

@@ -16,6 +16,7 @@ final class ServiceDoctor
         private readonly BrewServices $brewServices,
         private readonly Shell $shell,
         private readonly Probe $probe,
+        private readonly \App\Services\Dumps\PrependInstaller $prepend,
     ) {}
 
     /** @return list<array{level:'ok'|'warn'|'fail', check:string, detail:string}> */
@@ -88,6 +89,13 @@ final class ServiceDoctor
             if (count($names) > 1) {
                 $add('fail', 'ports', "instances share port {$port}: ".implode(', ', $names));
             }
+        }
+
+        // dumps: prepend ini present in every php version
+        foreach ($this->prepend->status() as $version => $st) {
+            $st['current']
+                ? $add('ok', "dumps ini php {$version}", $this->prepend->iniPath($version))
+                : $add('warn', "dumps ini php {$version}", ($st['ini'] ? 'outdated' : 'missing').' — devkit dumps:install (then valet restart php)');
         }
 
         // brew services overlap

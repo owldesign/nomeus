@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Services\Services\Driver;
 use App\Services\Services\DriverRegistry;
+use App\Services\Services\DevkitBound;
 use App\Services\Services\SiteBound;
 use App\Support\DevkitConfig;
 use App\Support\Probe;
@@ -75,9 +76,11 @@ final class ServiceManager
             // loaded, not answering, and its last run ended non-zero: launchd is relaunching a dying process
             'crashing' => $launchd['loaded'] && ! $running && $launchd['pid'] === null && ($launchd['last_exit'] ?? 0) !== 0,
             'disabled' => $launchd['disabled'],
-            'installed' => $driver instanceof SiteBound
-                ? is_dir(rtrim((string) ($i->options['site_path'] ?? ''), '/').'/'.$driver->siteRequirement())
-                : $this->brew->isFormulaInstalled($i->formula),
+            'installed' => match (true) {
+                $driver instanceof SiteBound => is_dir(rtrim((string) ($i->options['site_path'] ?? ''), '/').'/'.$driver->siteRequirement()),
+                $driver instanceof DevkitBound => true,
+                default => $this->brew->isFormulaInstalled($i->formula),
+            },
         ];
     }
 
@@ -123,6 +126,14 @@ final class ServiceManager
             $options += ['site' => $siteObj->name, 'site_path' => $siteObj->path, 'php_bin_dir' => $binDir];
             $slug = trim(preg_replace('/[^a-z0-9-]+/', '-', strtolower($siteObj->name)), '-');
             $name ??= $this->defaultName(str_starts_with($slug, $type) ? $slug : "{$type}-{$slug}");   // reverb-test stays reverb-test
+        } elseif ($driver instanceof DevkitBound) {
+            $binDir = dirname($this->shell->phpBin());
+            $problem = $this->brew->binaryRuns("{$binDir}/php");
+            if ($problem !== null) {
+                throw new RuntimeException("devkit's PHP ({$binDir}/php) does not run:\n{$problem}");
+            }
+            $version = (string) config('devkit.version');
+            $options += ['site' => 'devkit', 'site_path' => base_path(), 'php_bin_dir' => $binDir];
         }
 
         $name ??= $this->defaultName($type);
@@ -136,7 +147,7 @@ final class ServiceManager
         $port = $this->allocatePort($port ?? $driver->defaultPort(), explicit: $port !== null);
         $options += $this->allocateAuxPorts($driver, [$port]);
 
-        if (! $driver instanceof SiteBound) {
+        if (! $driver instanceof SiteBound && ! $driver instanceof DevkitBound) {
             if (! $this->brew->isFormulaInstalled($formula)) {
                 $this->installFormula($formula, $log);
             }
@@ -368,8 +379,8 @@ final class ServiceManager
             throw new RuntimeException("Service [{$newName}] already exists.");
         }
         $driver = $this->driver($source);
-        if ($driver instanceof SiteBound) {
-            throw new RuntimeException("{$source->name} runs inside a site; create another with --site instead of cloning.");
+        if ($driver instanceof SiteBound || $driver instanceof DevkitBound) {
+            throw new RuntimeException("{$source->name} is a process, not a data service; nothing to clone.");
         }
         $binDir = $this->brew->formulaBinDir($source->formula) ?? throw new RuntimeException("Formula {$source->formula} is not installed.");
         $port = $this->allocatePort($port ?? $driver->defaultPort(), explicit: $port !== null);

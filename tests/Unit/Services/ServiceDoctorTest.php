@@ -6,7 +6,9 @@ use Tests\Support\FakeServicesWorld;
 
 beforeEach(function () {
     $this->w = new FakeServicesWorld;
-    $this->doctor = new ServiceDoctor($this->w->manager, $this->w->launchd, $this->w->brew, $this->w->brewServices, $this->w->shell, $this->w->probe);
+    $flag = new \App\Services\Dumps\CaptureFlag($this->w->config);
+    $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, $flag, $this->w->shell);
+    $this->doctor = new ServiceDoctor($this->w->manager, $this->w->launchd, $this->w->brew, $this->w->brewServices, $this->w->shell, $this->w->probe, $prepend);
 });
 
 afterEach(fn () => $this->w->destroy());
@@ -19,6 +21,7 @@ it('reports a healthy layer', function () use ($byCheck) {
 
     expect($checks->has('launchd|ok'))->toBeTrue()
         ->and($checks->has('agents dir|ok'))->toBeTrue()
+        ->and($checks->get('dumps ini php 8.4|warn'))->toContain('missing — devkit dumps:install')
         ->and($checks->get('binary redis|ok'))->toContain('redis-server --version runs')
         ->and($checks->get('instance redis|ok'))->toContain('running on 127.0.0.1:6379');
 });

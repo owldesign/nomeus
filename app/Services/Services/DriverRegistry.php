@@ -14,7 +14,7 @@ final class DriverRegistry
         foreach ([
             new PostgresDriver, new MySqlDriver, new MariaDbDriver, new RedisDriver,
             new MeilisearchDriver, new TypesenseDriver, new SeaweedFsDriver, new ReverbDriver,
-            new MailpitDriver,
+            new MailpitDriver, new DumpsDriver,
         ] as $driver) {
             $this->drivers[$driver->type()] = $driver;
         }

@@ -222,3 +222,42 @@ export interface LogTail {
   entries: LogEntry[];
   source: LogSource;
 }
+
+export type DumpKind = 'dump' | 'query' | 'job' | 'view' | 'request' | 'log';
+
+export interface DumpEntry {
+  id: number;
+  created_at: string;
+  kind: DumpKind;
+  request_key: string | null;
+  uri: string | null;
+  method: string | null;
+  command: string | null;
+  file: string | null;
+  line: number | null;
+  url: string | null;
+  text: string;
+  html: string | null;
+  payload: Record<string, unknown> | null;
+}
+
+export interface DumpsStatus {
+  capture: boolean;
+  instance: string | null;
+  port: number;
+  running: boolean;
+  prepend: boolean;
+  ini: Record<string, { ini: boolean; current: boolean }>;
+  counts: Partial<Record<DumpKind, number>>;
+  latest_request: string | null;
+}
+
+export interface DumpRequest {
+  request_key: string;
+  uri: string | null;
+  method: string | null;
+  command: string | null;
+  first: string;
+  last_id: number;
+  n: number;
+}

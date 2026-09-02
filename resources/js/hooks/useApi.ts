@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api, del, post } from '@/api/client';
-import type { BrewService, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
+import type { BrewService, DumpEntry, DumpKind, DumpRequest, DumpsStatus, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -281,5 +281,83 @@ export function useClearLog() {
   return useMutation({
     mutationFn: (path: string) => del<{ cleared: string }>(`/logs?path=${encodeURIComponent(path)}`),
     onSettled: () => qc.invalidateQueries({ queryKey: ['logs', 'sources'] }),
+  });
+}
+
+export function useDumpsStatus() {
+  return useQuery({
+    queryKey: ['dumps', 'status'],
+    queryFn: async () => (await api<{ data: DumpsStatus }>('/dumps/status')).data,
+    refetchInterval: 3000,
+  });
+}
+
+export function useDumpsHeader() {
+  return useQuery({
+    queryKey: ['dumps', 'header'],
+    queryFn: async () => (await api<{ header: string }>('/dumps/header')).header,
+    staleTime: Infinity,
+  });
+}
+
+export function useDumpRequests() {
+  return useQuery({
+    queryKey: ['dumps', 'requests'],
+    queryFn: async () => (await api<{ data: DumpRequest[] }>('/dumps/requests')).data,
+    refetchInterval: 3000,
+  });
+}
+
+/** Newest 200 first, then everything with id > last every 1.5 s. Resets when the filters change. */
+export function useDumps(kind: DumpKind | 'all', requestKey: string | null) {
+  const [entries, setEntries] = useState<DumpEntry[]>([]);
+  const [counts, setCounts] = useState<Partial<Record<DumpKind, number>>>({});
+  const last = useRef<number | null>(null);
+  const busy = useRef(false);
+
+  const poll = useCallback(async (fresh = false) => {
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      const q = new URLSearchParams();
+      if (kind !== 'all') q.set('kind', kind);
+      if (requestKey) q.set('request', requestKey);
+      if (!fresh && last.current !== null) q.set('after', String(last.current));
+      const res = await api<{ data: DumpEntry[]; counts: Partial<Record<DumpKind, number>> }>(`/dumps?${q.toString()}`);
+      if (res.data.length) last.current = res.data[res.data.length - 1].id;
+      setCounts(res.counts);
+      setEntries((prev) => (fresh ? res.data : res.data.length ? [...prev, ...res.data].slice(-1000) : prev));
+    } finally {
+      busy.current = false;
+    }
+  }, [kind, requestKey]);
+
+  useEffect(() => {
+    last.current = null;
+    setEntries([]);
+    void poll(true);
+  }, [poll]);
+
+  useEffect(() => {
+    const t = setInterval(() => void poll(), 1500);
+    return () => clearInterval(t);
+  }, [poll]);
+
+  return { entries, counts, refresh: () => poll(true), reset: () => { last.current = null; setEntries([]); } };
+}
+
+export function useSetCapture() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (on: boolean) => post<{ capture: boolean }>('/dumps/capture', { on }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['dumps', 'status'] }),
+  });
+}
+
+export function useClearDumps() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => del<{ cleared: number }>('/dumps'),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['dumps'] }),
   });
 }

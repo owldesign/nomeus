@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 5a · dumps</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 5a · dumps</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~20 min · phases 0–4</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b><code>dump()</code>/<code>dd()</code> from any site land on the Debug page instead of the browser or terminal — with no package in the site — and sites that have <code>zhuk/devkit-client</code> also report their queries, jobs, views, outgoing requests and logs, grouped by request.</b>
+  Precondition: Phase 4 committed.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-5a.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; chmod +x bin/devkit &amp;&amp; vendor/bin/pest &amp;&amp; npm run build &amp;&amp; devkit status | head -2</pre>
+<pre class="out">Tests: 165 passed — +PrependInstaller 2 · DumpStore 1 · DumpIngest 3 · Api/Dumps 3 · Drivers 1 · devkit 0.5.0</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>Wire PHP, start the server, switch capture on <span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">The prepend ini, in every PHP version, and one fpm restart</span></label>
+    <div class="body">
+<pre class="cmd">devkit dumps:install --restart &amp;&amp; php --ini | grep 99-devkit &amp;&amp; php -r 'echo ini_get("auto_prepend_file"), PHP_EOL;'</pre>
+<pre class="out">prepend /Users/owldesign/.devkit/php/prepend.php · php 8.4 …/etc/php/8.4/conf.d/99-devkit.ini written (one line per installed version) · valet restart php
+/opt/homebrew/etc/php/8.4/conf.d/99-devkit.ini · /Users/owldesign/.devkit/php/prepend.php</pre>
+    </div>
+    <div class="callout gold">The prepend runs on every PHP process — composer, artisan, fpm — and costs one <code>file_exists()</code> when capture is off. php-fpm reads ini files at start, which is the only reason for the restart; the CLI saw it immediately. A new PHP version later needs <code>dumps:install</code> again (the doctor says so).</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">The dump server is a service instance</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create dumps &amp;&amp; devkit services:list | grep dumps</pre>
+<pre class="out">starting dumps on 127.0.0.1:9912 · dumps: devkit/dumps 0.5.0 on 127.0.0.1:9912 · running, with a pid — devkit's own php running `artisan dumps:serve`</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">Capture on</span></label>
+    <div class="body">
+<pre class="cmd">devkit dumps:capture on &amp;&amp; cd ~/Sites/smoke &amp;&amp; php artisan tinker --execute="dump(['hello' =&gt; 'devkit']);" ; cd - &amp;&amp; devkit dumps --lines=3</pre>
+<pre class="out">capture on — dumps go to the Debug page · tinker prints nothing · devkit dumps shows:  dump  artisan tinker …  "hello" => "devkit"</pre>
+    </div>
+    <div class="callout blue">That dump never touched a package: VarDumper saw <code>VAR_DUMPER_FORMAT=server</code> in <code>$_SERVER</code> and sent it over TCP. Turn capture off and the same command prints to the terminal again.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>A request, and the page <span class="t">~8 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">A route that dumps, queries and logs</span></label>
+    <div class="body">
+<pre class="cmd">cat &gt;&gt; ~/Sites/smoke/routes/web.php &lt;&lt;'EOF'
+
+Route::get('/devkit-dump', function () {
+    dump(config('app.name'));
+    dump(\Illuminate\Support\Facades\DB::select('select 1 as one'));
+    \Illuminate\Support\Facades\Log::info('devkit dump test');
+    return 'ok';
+});
+EOF
+curl -sk https://smoke.test/devkit-dump; echo</pre>
+<pre class="out">ok   ← the two dumps did not print into the response</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">The Debug page</span></label>
+    <div class="body">
+<pre class="cmd">open https://devkit.test/debug</pre>
+<pre class="out">header: "capturing" (pulsing) · server on 9912 · "latest request only" ☑ · request picker shows "GET /devkit-dump · N"
+tabs: All · Dumps 2 · Queries 1 · Jobs 0 · Views 0 · Requests 0 · Logs 1
+rows, newest first: the DB result dump (foldable, Symfony's own renderer) · "smoke" · select 1 as one — 0.3 ms · INFO devkit dump test
+each row's web.php:NN is a link → your IDE at that line</pre>
+    </div>
+    <div class="callout gold">Dumps came through the prepend; queries and the log line came through <code>zhuk/devkit-client</code> (smoke has it since 3a). A site without the package shows only its Dumps tab filled — that's the exact line between what needs nothing and what needs the package.</div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">Requests, dd(), search, clear</span></label>
+    <div class="body">
+<pre class="cmd">curl -sk https://smoke.test/devkit-dump &gt;/dev/null; curl -sk https://smoke.test/ &gt;/dev/null; cd ~/Sites/smoke &amp;&amp; php artisan tinker --execute="dd('bye');"; cd -</pre>
+<pre class="out">page follows the latest request each time (the second curl brought its rendered views under Views) · dd('bye') prints nothing in the terminal and appears as "$ artisan tinker" on the page
+untick "latest request only" → everything · pick a request in the menu → just that one · search "bye" → one row · clear → empty</pre>
+    </div>
+    <div class="callout blue">Herd's default is the same: latest request only, older ones behind a setting. Rows are kept to the last 5,000 in <code>~/.devkit/dumps/dumps.sqlite</code>.</div>
+  </div>
+
+  <div class="step" data-step="2.4"><label><input type="checkbox"><span class="id">2.4</span><span class="title">Capture off, and clean up the route</span></label>
+    <div class="body">
+<pre class="cmd">devkit dumps:capture off &amp;&amp; curl -sk https://smoke.test/devkit-dump | head -c 200; echo</pre>
+<pre class="out">the dumps are back in the response (Symfony's HTML) — nothing restarted, the flag file is simply gone</pre>
+<pre class="cmd">sed -i '' '/devkit-dump/,/^});/d' ~/Sites/smoke/routes/web.php</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>A real site <span class="c">optional</span><span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">coavaorders.com — it has the package since 3b's init</span></label>
+    <div class="body">
+<pre class="out">capture on → load any page of the site → Queries tab fills with what that page ran, Views with its templates, Logs with anything it logged — a `dump()` anywhere in its code goes to the page instead of the layout</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Commit and hand-off</h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-5a: dump server (VarDumper protocol), prepend ini, client recorders, Debug page"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="4.2"><label><input type="checkbox"><span class="id">4.2</span><span class="title">Hand-off for 5b</span></label>
+    <div class="body"><p>Paste the pest summary and the tab counts after 2.2. 5b: Xdebug — off / on / trigger, and detect if you want the watcher.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>Dumps still print in the browser with capture on</b> — php-fpm hasn't loaded the ini: <code>valet restart php</code>. Check from a request: a route with <code>return ini_get('auto_prepend_file');</code> must show the prepend path. The CLI (<code>php --ini</code>) is not proof for fpm.</div>
+  <div class="callout red"><b>Dumps print in the terminal with capture on</b> — the server isn't running (VarDumper falls back to printing when nothing listens): <code>devkit services:list</code>, <code>services:logs dumps</code>.</div>
+  <div class="callout red"><b>Debug page says "prepend ini missing for a PHP version"</b> — a PHP was installed after <code>dumps:install</code>: run it again (and restart fpm).</div>
+  <div class="callout red"><b>Queries/Logs tabs stay at 0 for a site</b> — it doesn't have <code>zhuk/devkit-client</code> (see 3a 2.1 or <code>init</code>), or its <code>APP_ENV</code> isn't local/development/testing, or <code>DEVKIT_DUMPS=false</code> in its .env.</div>
+  <div class="callout red"><b>Everything from one site groups as one request</b> — Laravel Octane keeps the process alive between requests, so VarDumper's per-request identifier doesn't reset. Octane is out of scope for now; the client package's request id would need an Octane request-started hook.</div>
+  <div class="callout red"><b>Composer complains about the prepend</b> — it doesn't; but any PHP tool that forbids <code>auto_prepend_file</code> (none common) can be run with <code>php -d auto_prepend_file= …</code>.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-5a';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

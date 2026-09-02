@@ -7,7 +7,7 @@ import Php from '@/pages/Php';
 import Services from '@/pages/Services';
 import Mail from '@/pages/Mail';
 import Logs from '@/pages/Logs';
-import Placeholder from '@/pages/Placeholder';
+import Debug from '@/pages/Debug';
 
 export const router = createBrowserRouter([
   {
@@ -21,7 +21,7 @@ export const router = createBrowserRouter([
       { path: 'services', element: <Services /> },
       { path: 'mail', element: <Mail /> },
       { path: 'logs', element: <Logs /> },
-      { path: 'debug', element: <Placeholder name="Debug" slice="phase 5" /> },
+      { path: 'debug', element: <Debug /> },
     ],
   },
 ]);

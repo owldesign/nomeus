@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DumpsController;
 use App\Http\Controllers\Api\LogsController;
 use App\Http\Controllers\Api\MailController;
 use App\Http\Controllers\Api\PhpController;
@@ -50,3 +51,10 @@ Route::delete('/mail/messages', [MailController::class, 'destroy'])->name('api.m
 Route::get('/logs/sources', [LogsController::class, 'sources'])->name('api.logs.sources');
 Route::get('/logs/tail', [LogsController::class, 'tail'])->name('api.logs.tail');
 Route::delete('/logs', [LogsController::class, 'truncate'])->name('api.logs.truncate');
+
+Route::get('/dumps/status', [DumpsController::class, 'status'])->name('api.dumps.status');
+Route::get('/dumps/requests', [DumpsController::class, 'requests'])->name('api.dumps.requests');
+Route::get('/dumps/header', [DumpsController::class, 'header'])->name('api.dumps.header');
+Route::get('/dumps', [DumpsController::class, 'index'])->name('api.dumps.index');
+Route::post('/dumps/capture', [DumpsController::class, 'capture'])->name('api.dumps.capture');
+Route::delete('/dumps', [DumpsController::class, 'destroy'])->name('api.dumps.destroy');

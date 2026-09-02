@@ -217,6 +217,13 @@ if [[ ! -f /etc/sudoers.d/valet ]]; then
   warn "no /etc/sudoers.d/valet — the dashboard cannot run Valet actions until you run: devkit trust   (or re-run with --trust)"
 fi
 
+# ── 7b. auto_prepend_file ini for every php version (dumps capture) ────────────
+# php-fpm reads ini files at start; `valet restart php` once after this (dumps:install --restart does it).
+if [[ -f "$DEVKIT_HOME/artisan" ]]; then
+  log "devkit dumps:install"
+  "$DEVKIT_HOME/bin/devkit" dumps:install || warn "dumps:install failed — run it later: devkit dumps:install --restart"
+fi
+
 # ── 8. Summary ────────────────────────────────────────────────────────────────
 echo
 log "done. Open a new shell (or: source $RC), then verify:"

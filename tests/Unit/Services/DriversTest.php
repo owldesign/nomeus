@@ -1,6 +1,8 @@
 <?php
 
 use App\Services\Services\DriverRegistry;
+use App\Services\Services\DevkitBound;
+use App\Services\Services\DumpsDriver;
 use App\Services\Services\MailpitDriver;
 use App\Services\Services\MariaDbDriver;
 use App\Services\Services\MeilisearchDriver;
@@ -60,7 +62,7 @@ it('describes redis with no init step', function () use ($instance) {
 
 it('registers the drivers, rejects unknown types, and maps formulae back to drivers', function () {
     $r = new DriverRegistry;
-    expect(array_keys($r->all()))->toBe(['postgresql', 'mysql', 'mariadb', 'redis', 'meilisearch', 'typesense', 'seaweedfs', 'reverb', 'mailpit'])
+    expect(array_keys($r->all()))->toBe(['postgresql', 'mysql', 'mariadb', 'redis', 'meilisearch', 'typesense', 'seaweedfs', 'reverb', 'mailpit', 'dumps'])
         ->and(fn () => $r->get('mongo'))->toThrow(RuntimeException::class, 'Unknown service type')
         ->and($r->driverForFormula('postgresql@14')?->type())->toBe('postgresql')
         ->and($r->driverForFormula('mysql')?->type())->toBe('mysql')
@@ -156,4 +158,14 @@ it('describes mailpit: smtp main port, http aux port, laravel mail env', functio
         ->and($d->versionArgs())->toBe(['version'])
         ->and($d->programArguments($i, '/b'))->toBe(['/b/mailpit', '--smtp', '127.0.0.1:1025', '--listen', '127.0.0.1:8025', '--database', '/svc/m/data/mailpit.db'])
         ->and($d->env($i))->toMatchArray(['MAIL_MAILER' => 'smtp', 'MAIL_HOST' => '127.0.0.1', 'MAIL_PORT' => '1025', 'MAIL_USERNAME' => 'null', 'MAIL_ENCRYPTION' => 'null']);
+});
+
+it('describes the dump server as devkit\'s own artisan process', function () {
+    $d = new DumpsDriver;
+    $i = new ServiceInstance(name: 'dumps', type: 'dumps', formula: 'devkit/dumps', version: '0.5.0', port: 9912, dir: '/svc/d', createdAt: 'now', options: ['site_path' => '/Users/me/Code/devkit']);
+
+    expect($d)->toBeInstanceOf(DevkitBound::class)
+        ->and($d->programArguments($i, '/b'))->toBe(['/b/php', base_path('artisan'), 'dumps:serve', '--port=9912', '--no-interaction'])
+        ->and($d->workingDirectory($i))->toBe('/Users/me/Code/devkit')
+        ->and($d->env($i))->toBe([]);
 });
