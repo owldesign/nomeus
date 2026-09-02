@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/*
+  devkit dashboard — console instrument panel.
+  One monospace family everywhere; dark field; gold is the only warm accent,
+  red and blue carry state. Same palette as the runbooks so the two read as one tool.
+*/
+@theme {
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-bg: #0b0f14;
+  --color-panel: #121820;
+  --color-line: #1f2a36;
+  --color-fg: #cfd6de;
+  --color-dim: #7a8794;
+  --color-mute: #3b4652;
+  --color-gold: #ffc83d;
+  --color-red: #ff5c5c;
+  --color-blue: #5aa9ff;
+  --color-green: #4ade80;
+}
+
+html {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+body { margin: 0; }
+a { color: var(--color-blue); }
+*:focus-visible { outline: 2px solid var(--color-blue); outline-offset: 2px; }
+
+/* Faint scanline texture: enough to read as a panel, not enough to fight the type. */
+#root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom, transparent 0 3px, rgba(255, 255, 255, 0.012) 3px 4px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

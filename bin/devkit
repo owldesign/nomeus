@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# devkit — CLI shim.
+# Valet commands exec `valet` directly (no PHP boot, same speed as Valet).
+# Everything else runs `php <repo>/artisan`, where devkit's own commands live.
+set -euo pipefail
+
+# Resolve the repo root through the Homebrew bin symlink (bash 3.2-safe; no realpath).
+SELF="${BASH_SOURCE[0]}"
+while [[ -L "$SELF" ]]; do
+  DIR="$(cd -P "$(dirname "$SELF")" && pwd)"
+  SELF="$(readlink "$SELF")"
+  [[ "$SELF" != /* ]] && SELF="$DIR/$SELF"
+done
+DEVKIT_HOME="$(cd -P "$(dirname "$SELF")/.." && pwd)"
+
+VALET_PASSTHROUGH=(
+  park parked forget paths
+  link links unlink open
+  isolate unisolate isolated
+  php composer which-php which
+  secure unsecure secured
+  proxy unproxy proxies
+  share fetch-share-url share-tool set-ngrok-token
+  loopback directory-listing tld
+  start stop restart log
+  trust install uninstall on-latest-version diagnose
+)
+
+cmd="${1:-}"
+if [[ -n "$cmd" ]]; then
+  for v in "${VALET_PASSTHROUGH[@]}"; do
+    if [[ "$cmd" == "$v" ]]; then
+      command -v valet >/dev/null 2>&1 || { echo "devkit: valet not found on PATH (composer global bin dir?)" >&2; exit 127; }
+      exec valet "$@"
+    fi
+  done
+fi
+
+[[ -f "$DEVKIT_HOME/artisan" ]] || { echo "devkit: $DEVKIT_HOME/artisan not found — run install/install.sh" >&2; exit 1; }
+exec php "$DEVKIT_HOME/artisan" "$@"

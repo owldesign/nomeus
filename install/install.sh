@@ -107,12 +107,14 @@ log "valet park $CODE_DIR"
 mkdir -p "$HOME/.nvm"
 NVM_SH="$BREW_PREFIX/opt/nvm/nvm.sh"
 rc_add "opt/nvm/nvm.sh" "export NVM_DIR=\"\$HOME/.nvm\"; [ -s \"$NVM_SH\" ] && . \"$NVM_SH\""
-if [[ "$SKIP_NODE" -eq 0 && -s "$NVM_SH" ]]; then
-  log "nvm install --lts"
+if [[ -s "$NVM_SH" ]]; then
   export NVM_DIR="$HOME/.nvm"
   # shellcheck disable=SC1090
-  . "$NVM_SH"
-  nvm install --lts >/dev/null
+  . "$NVM_SH"                       # sourced regardless, so section 6 can find npm
+  if [[ "$SKIP_NODE" -eq 0 ]]; then
+    log "nvm install --lts"
+    nvm install --lts >/dev/null
+  fi
 fi
 
 # ── 5. ~/.devkit ──────────────────────────────────────────────────────────────
@@ -121,22 +123,61 @@ if [[ ! -f "$CONFIG_DIR/config.json" ]]; then
   log "writing $CONFIG_DIR/config.json"
   sed -e "s|__DEVKIT_HOME__|$DEVKIT_HOME|" \
       -e "s|__CODE_DIR__|$CODE_DIR|" \
+      -e "s|__COMPOSER_BIN__|$COMPOSER_BIN|" \
+      -e "s|__BREW_PREFIX__|$BREW_PREFIX|" \
       -e "s|__PHP_DEFAULT__|$PHP_DEFAULT|" \
       "$DEVKIT_HOME/install/config.default.json" > "$CONFIG_DIR/config.json"
 else
-  log "$CONFIG_DIR/config.json exists — left untouched"
+  # Machine facts the app can't discover reliably from php-fpm's stripped env are kept current;
+  # user choices (code_dir, ide, db_client, ports) are never touched.
+  python3 - "$CONFIG_DIR/config.json" "$DEVKIT_HOME" "$COMPOSER_BIN" "$BREW_PREFIX" <<'PY'
+import json, sys
+path, home, composer_bin, brew_prefix = sys.argv[1:5]
+with open(path) as f:
+    cfg = json.load(f)
+wanted = {'home': home, 'composer_bin': composer_bin, 'brew_prefix': brew_prefix}
+changed = [k for k, v in wanted.items() if cfg.get(k) != v]
+for k in changed:
+    cfg[k] = wanted[k]
+if changed:
+    with open(path, 'w') as f:
+        json.dump(cfg, f, indent=2)
+        f.write('\n')
+print('[devkit] config.json: updated ' + ', '.join(changed) if changed else '[devkit] config.json: unchanged')
+PY
   STORED_CODE_DIR="$(sed -n 's/.*"code_dir": *"\([^"]*\)".*/\1/p' "$CONFIG_DIR/config.json")"
   if [[ -n "$STORED_CODE_DIR" && "$STORED_CODE_DIR" != "$CODE_DIR" ]]; then
     warn "config.json code_dir is $STORED_CODE_DIR but this run parked $CODE_DIR — edit config.json or run: cd $STORED_CODE_DIR && valet forget"
   fi
 fi
 
-# ── 6. CLI shim (bin/devkit lands in Phase 1a) ────────────────────────────────
+# ── 6. devkit app: deps, build, Valet link, CLI shim ─────────────────────────
+# Each step is skipped when its output already exists, so re-runs are cheap.
+if [[ -f "$DEVKIT_HOME/artisan" ]]; then
+  (
+    cd "$DEVKIT_HOME"
+    [[ -d vendor ]]       || { log "composer install"; composer install --no-interaction --prefer-dist; }
+    [[ -f .env ]]         || { log "creating .env"; cp .env.example .env; php artisan key:generate --no-interaction --quiet; }
+    if command -v npm >/dev/null 2>&1; then
+      [[ -d node_modules ]] || { log "npm install"; npm install --no-audit --no-fund; }
+      [[ -d public/build ]] || { log "npm run build"; npm run build; }
+    else
+      warn "npm not found (nvm not loaded?) — run: npm install && npm run build"
+    fi
+    if [[ ! -L "$HOME/.config/valet/Sites/devkit" ]]; then
+      log "valet link devkit"
+      valet link devkit
+    fi
+  )
+else
+  warn "no artisan in $DEVKIT_HOME — Laravel skeleton not scaffolded yet (see docs/runbook-1a-scaffold.html)"
+fi
+
 if [[ -x "$DEVKIT_HOME/bin/devkit" ]]; then
   ln -sf "$DEVKIT_HOME/bin/devkit" "$BREW_PREFIX/bin/devkit"
   log "linked $BREW_PREFIX/bin/devkit"
 else
-  warn "bin/devkit not present yet (Phase 1a) — shim symlink skipped; re-run install.sh after 1a lands"
+  warn "bin/devkit missing — shim symlink skipped"
 fi
 
 # ── 7. Summary ────────────────────────────────────────────────────────────────
@@ -147,4 +188,4 @@ printf '  %-10s %s\n' "valet"   "$(valet --version 2>/dev/null || echo '?')"
 printf '  %-10s %s\n' "mailpit" "$(mailpit version 2>/dev/null || echo '?')"
 printf '  %-10s %s\n' "parked"  "$CODE_DIR  →  http://<dir>.test"
 echo
-log "next: drop a Laravel app into $CODE_DIR and hit it. Phase 1a adds the devkit CLI + dashboard."
+[[ -f "$DEVKIT_HOME/artisan" ]] && log "then: devkit status   ·   open http://devkit.test" || true

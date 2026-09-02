@@ -15,6 +15,10 @@ cd ~/Code/devkit
 ./install/install.sh            # add --trust to skip future sudo prompts, --skip-node to skip nvm install --lts
 ```
 
+The installer bootstraps Homebrew/Valet, then (once the Laravel app is present) runs `composer install`,
+builds the SPA, `valet link`s the dashboard at `http://devkit.test`, and symlinks `bin/devkit` into brew's bin.
+Runbooks for each slice live in `docs/`.
+
 Requires Homebrew. Set `DEVKIT_CODE_DIR` to park a directory other than `~/Code`;
 `DEVKIT_PHP_DEFAULT` to pick a global PHP other than 8.4.
 
@@ -34,8 +38,8 @@ resources/js/       React SPA
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Brewfile, install.sh, config | 0a done |
-| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | — |
+| 0 | Brewfile, install.sh, config | done |
+| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | 1a done (shim, status, SPA shell) |
 | 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | — |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | — |
 | 4 | log watcher; Logs page | — |

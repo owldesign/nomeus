@@ -1,0 +1,162 @@
+<?php
+
+namespace App\Services;
+
+use App\Support\DevkitConfig;
+use App\Support\Probe;
+use App\Support\Shell;
+
+/** One snapshot, rendered by both `devkit status` and GET /api/status. */
+final class StatusService
+{
+    public function __construct(
+        private readonly DevkitConfig $config,
+        private readonly ValetBridge $valet,
+        private readonly Shell $shell,
+        private readonly Probe $probe,
+    ) {}
+
+    public function snapshot(): array
+    {
+        $site = (string) config('devkit.site');
+        $installed = $this->valet->isInstalled();
+        $tld = $installed ? $this->valet->tld() : 'test';
+        $loopback = $installed ? $this->valet->loopback() : '127.0.0.1';
+        $smtpPort = (int) $this->config->get('mail.smtp_port', 1025);
+
+        return [
+            'devkit' => [
+                'version' => config('devkit.version'),
+                'home' => base_path(),
+                'config_path' => $this->config->path(),
+                'config_exists' => $this->config->exists(),
+                'code_dir' => $this->config->codeDir(),
+            ],
+            'valet' => [
+                'installed' => $installed,
+                'version' => $installed ? $this->valet->version() : null,
+                'tld' => $tld,
+                'loopback' => $installed ? $this->valet->loopback() : null,
+                'paths' => $installed ? $this->valet->paths() : [],
+            ],
+            'php' => [
+                'global' => $this->globalPhpVersion(),
+            ],
+            'services' => [
+                // nginx and php-fpm rewrite their argv on macOS; answer-based checks first, pgrep as fallback.
+                'nginx' => $this->probe->tcp($loopback, 80) || $this->shell->running('nginx'),
+                'dnsmasq' => $this->shell->running('dnsmasq'),
+                'php_fpm' => $this->phpFpmVersions(),
+                'mailpit' => $this->shell->running('mailpit') || $this->probe->tcp('127.0.0.1', $smtpPort),
+            ],
+            'dashboard' => [
+                'url' => "http://{$site}.{$tld}",
+                'linked' => $installed && $this->valet->isLinked($site),
+            ],
+        ];
+    }
+
+    /** Raw material for `devkit status --diagnose` / ?diagnose=1: what fpm actually sees and gets back. */
+    public function diagnostics(): array
+    {
+        $commands = [
+            'which' => ['which', 'valet', 'php', 'composer', 'pgrep', 'brew'],
+            'valet --version' => ['valet', '--version'],
+            'php -r PHP_VERSION' => ['php', '-r', 'echo PHP_VERSION;'],
+            'pgrep -x nginx' => ['pgrep', '-x', 'nginx'],
+            'pgrep -x dnsmasq' => ['pgrep', '-x', 'dnsmasq'],
+            'pgrep -x mailpit' => ['pgrep', '-x', 'mailpit'],
+            'pgrep -fl php-fpm' => ['pgrep', '-fl', 'php-fpm'],
+        ];
+
+        $out = [
+            'sapi' => PHP_SAPI,
+            'uid' => function_exists('posix_geteuid') ? posix_geteuid() : null,
+            'user' => Shell::currentUser(),
+            'env' => $this->shell->env(),
+            'commands' => [],
+            'sockets' => [],
+            'ports' => [],
+        ];
+
+        foreach ($commands as $label => $command) {
+            $result = $this->shell->run($command, timeout: 30);
+            $out['commands'][$label] = [
+                'exit' => $result->exitCode(),
+                'stdout' => trim($result->output()),
+                'stderr' => trim($result->errorOutput()),
+            ];
+        }
+
+        foreach ($this->valetSockets() as $path) {
+            $out['sockets'][basename($path)] = $this->probe->unix($path);
+        }
+
+        $loopback = $this->valet->isInstalled() ? $this->valet->loopback() : '127.0.0.1';
+        $out['ports'] = [
+            "{$loopback}:80" => $this->probe->tcp($loopback, 80),
+            "{$loopback}:443" => $this->probe->tcp($loopback, 443),
+            '127.0.0.1:'.$this->config->get('mail.smtp_port', 1025) => $this->probe->tcp('127.0.0.1', (int) $this->config->get('mail.smtp_port', 1025)),
+        ];
+
+        return $out;
+    }
+
+    private function globalPhpVersion(): ?string
+    {
+        $result = $this->shell->run(['php', '-r', 'echo PHP_VERSION;'], timeout: 10);
+
+        return $result->successful() ? trim($result->output()) : null;
+    }
+
+    /** @return list<string> */
+    private function valetSockets(): array
+    {
+        if (! $this->valet->isInstalled()) {
+            return [];
+        }
+        $found = glob($this->valet->configDir().'/*.sock') ?: [];
+        sort($found);
+
+        return $found;
+    }
+
+    /**
+     * Versions with a live php-fpm. Primary source: Valet's sockets — valet.sock is the global
+     * version, valetXY.sock an isolated one — which are exact and uid-independent. Fallback: the
+     * fpm master's argv, accepting both the launch path (opt/php@X.Y) and macOS's rewritten
+     * title "php-fpm: master process (<brew>/etc/php/X.Y/php-fpm.conf)".
+     */
+    private function phpFpmVersions(): array
+    {
+        $versions = [];
+        foreach ($this->valetSockets() as $path) {
+            if (! $this->probe->unix($path)) {
+                continue;
+            }
+            $name = basename($path, '.sock');
+            if ($name === 'valet') {
+                $global = $this->globalPhpVersion();
+                if ($global !== null && preg_match('/^(\d+\.\d+)/', $global, $m)) {
+                    $versions[] = $m[1];
+                }
+            } elseif (preg_match('/^valet(\d)(\d+)$/', $name, $m)) {
+                $versions[] = "{$m[1]}.{$m[2]}";
+            }
+        }
+
+        if ($versions === []) {
+            $result = $this->shell->run(['pgrep', '-fl', 'php-fpm'], timeout: 10);
+            if (! $result->successful() || trim($result->output()) === '') {
+                return [];
+            }
+            preg_match_all('#(?:php@|/etc/php/)(\d+\.\d+)#', $result->output(), $m);
+            $versions = $m[1] ?: ['unknown'];
+        }
+
+        $versions = array_values(array_unique($versions));
+        sort($versions);
+
+        return $versions;
+    }
+}

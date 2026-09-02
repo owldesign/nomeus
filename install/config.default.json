@@ -1,6 +1,8 @@
 {
   "home": "__DEVKIT_HOME__",
   "code_dir": "__CODE_DIR__",
+  "composer_bin": "__COMPOSER_BIN__",
+  "brew_prefix": "__BREW_PREFIX__",
   "tld": "test",
   "php_default": "__PHP_DEFAULT__",
   "node_default": "lts",

@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 1a · scaffold, shim, status</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 1a · scaffold, shim, status</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~25 min · phases 0–6</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>one Laravel app is both the <code>devkit</code> CLI and a React dashboard Valet serves at <code>devkit.test</code></b>.
+  Valet commands pass through the shim untouched; <code>devkit status</code> and <code>GET /api/status</code> render the same snapshot; nothing off-loopback can reach either.
+  Precondition: runbook 0a complete — Valet up, <code>~/Sites</code> parked, <code>~/.devkit/config.json</code> in place.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Drop in the 1a files <span class="c">before the skeleton, so ours win</span><span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Copy the slice into the repo, exactly these paths</span></label>
+    <div class="body">
+<pre class="out">bin/devkit
+config/devkit.php
+app/Support/DevkitConfig.php          app/Support/Shell.php
+app/Services/ValetBridge.php          app/Services/StatusService.php
+app/Console/Commands/StatusCommand.php
+app/Http/Middleware/LoopbackOnly.php  app/Http/Controllers/Api/StatusController.php
+app/Providers/AppServiceProvider.php  bootstrap/app.php
+routes/web.php                        routes/api.php
+resources/views/app.blade.php         resources/css/app.css
+resources/js/{app.tsx, router.tsx, api/client.ts, api/types.ts, hooks/useApi.ts,
+              components/Layout.tsx, pages/Status.tsx, pages/Placeholder.tsx}
+vite.config.ts   tsconfig.json   .env.example
+tests/Pest.php   tests/Unit/DevkitConfigTest.php   tests/Feature/Api/StatusTest.php
+install/install.sh (updated)   docs/runbook-1a-scaffold.html</pre>
+<pre class="cmd">cd ~/Code/devkit &amp;&amp; chmod +x bin/devkit install/install.sh &amp;&amp; bash -n bin/devkit &amp;&amp; echo shim-ok</pre>
+    </div>
+    <div class="callout gold">Order matters in this phase: our files go in first, then the Laravel skeleton is merged <em>around</em> them with <code>--ignore-existing</code>. That is what lets us ship a full <code>bootstrap/app.php</code>, <code>routes/web.php</code> and <code>.env.example</code> without hand-editing the skeleton's copies.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>Merge the Laravel skeleton <span class="c">create-project into /tmp, rsync in</span><span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Scaffold to a scratch directory</span></label>
+    <div class="body">
+<pre class="cmd">rm -rf /tmp/devkit-skel &amp;&amp; composer create-project laravel/laravel /tmp/devkit-skel --no-interaction --prefer-dist</pre>
+<pre class="out">ends with "Application ready! Build something amazing." — the sqlite migrate it runs is irrelevant to us</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Merge without overwriting anything already in the repo</span></label>
+    <div class="body">
+<pre class="cmd">rsync -a --ignore-existing --exclude .env --exclude .git /tmp/devkit-skel/ ~/Code/devkit/ &amp;&amp; cd ~/Code/devkit</pre>
+    </div>
+    <div class="callout blue"><code>git status --short</code> should show the skeleton as untracked additions and none of the 0.1 files as modified. If any 0.1 file shows <code>M</code>, rsync overwrote it — you skipped <code>--ignore-existing</code>. Restore from your copy of the slice.</div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">Remove the skeleton pieces we replace</span></label>
+    <div class="body">
+<pre class="cmd">rm -f vite.config.js resources/js/app.js resources/js/bootstrap.js resources/views/welcome.blade.php tests/Feature/ExampleTest.php tests/Unit/ExampleTest.php</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>PHP side <span class="c">Pest, .env, sanity boot</span><span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Pest</span></label>
+    <div class="body">
+<pre class="cmd">composer require pestphp/pest pestphp/pest-plugin-laravel --dev --with-all-dependencies</pre>
+    </div>
+    <div class="callout gold">The skeleton ships PHPUnit; Pest may need a newer PHPUnit than it pinned — <code>--with-all-dependencies</code> lets Composer move it. If it still refuses, <code>composer remove phpunit/phpunit --dev</code> first and re-run.</div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">Environment file from our template</span></label>
+    <div class="body">
+<pre class="cmd">cp .env.example .env &amp;&amp; php artisan key:generate &amp;&amp; php artisan about | head -20</pre>
+<pre class="out">Application Name … devkit · Environment local · URL devkit.test · Cache file · Session file · no database errors</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">Unit + feature tests are green before touching the browser</span></label>
+    <div class="body">
+<pre class="cmd">vendor/bin/pest</pre>
+<pre class="out">Tests: 8 passed · DevkitConfig (4) · Api/Status (4)</pre>
+    </div>
+    <div class="callout blue">These fake every subprocess and point config at a temp dir, so they pass on any machine — including one with no Valet. A red run here is a code problem, not an environment problem.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>JS side <span class="c">React, router, query, TypeScript</span><span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Add the SPA dependencies on top of the skeleton's Vite + Tailwind</span></label>
+    <div class="body">
+<pre class="cmd">npm install react react-dom react-router-dom @tanstack/react-query &amp;&amp; npm install -D typescript @types/react @types/react-dom @vitejs/plugin-react</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">Type-check and build</span></label>
+    <div class="body">
+<pre class="cmd">npx tsc --noEmit &amp;&amp; npm run build &amp;&amp; ls public/build/manifest.json</pre>
+<pre class="out">tsc: silent · vite: ✓ built · manifest present</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Wire it up <span class="c">Valet link + CLI shim via the installer</span><span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Re-run the installer — it now links the site and the shim</span></label>
+    <div class="body">
+<pre class="cmd">./install/install.sh --skip-node</pre>
+<pre class="out">… [devkit] valet link devkit
+[devkit] linked /opt/homebrew/bin/devkit
+[devkit] then: devkit status   ·   open http://devkit.test</pre>
+    </div>
+    <div class="callout gold">The repo lives in <code>~/Code</code> while sites are parked from <code>~/Sites</code>, so the dashboard is reached by <code>valet link</code>, not by parking. The installer only links when <code>~/.config/valet/Sites/devkit</code> is absent.</div>
+  </div>
+
+  <div class="step" data-step="4.2"><label><input type="checkbox"><span class="id">4.2</span><span class="title">The shim resolves through the brew symlink</span></label>
+    <div class="body">
+<pre class="cmd">which devkit &amp;&amp; devkit --version</pre>
+<pre class="out">/opt/homebrew/bin/devkit · Laravel Framework 12.x (artisan booted from ~/Code/devkit)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 5 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">5</span>Verify <span class="c">CLI, passthrough, API, dashboard, loopback</span><span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="5.1"><label><input type="checkbox"><span class="id">5.1</span><span class="title">Status command, both renderings</span></label>
+    <div class="body">
+<pre class="cmd">devkit status &amp;&amp; devkit status --json | head -20</pre>
+<pre class="out">table: valet 4.12.0 · php 8.4.25 · nginx/dnsmasq running · php-fpm running 8.4 · dashboard http://devkit.test linked
+json: same data, keys devkit / valet / php / services / dashboard</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="5.2"><label><input type="checkbox"><span class="id">5.2</span><span class="title">Valet passthrough never boots PHP</span></label>
+    <div class="body">
+<pre class="cmd">devkit paths &amp;&amp; devkit links &amp;&amp; time devkit parked &gt;/dev/null</pre>
+<pre class="out">same output as valet paths / valet links · wall time ≈ valet's own (no artisan in the chain)</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="5.3"><label><input type="checkbox"><span class="id">5.3</span><span class="title">API over nginx</span></label>
+    <div class="body">
+<pre class="cmd">curl -s http://devkit.test/api/status | python3 -m json.tool | head -30</pre>
+<pre class="out">HTTP 200 · identical snapshot to 5.1 — proves php-fpm can find brew, valet and composer with its stripped env</pre>
+    </div>
+    <div class="callout red">Any field that differs from 5.1 is php-fpm's stripped environment. Don't guess — diff the two diagnostics dumps:
+<pre class="cmd">devkit status --diagnose &gt; /tmp/cli.json; curl -s 'http://devkit.test/api/status?diagnose=1' &gt; /tmp/fpm.json; diff &lt;(python3 -m json.tool /tmp/cli.json) &lt;(python3 -m json.tool /tmp/fpm.json)</pre>
+<code>env.PATH</code> and <code>commands.*.stderr</code> in the fpm dump name the cause. <code>composer_bin</code> and <code>brew_prefix</code> in <code>~/.devkit/config.json</code> are what fpm uses to build PATH — the installer writes them; if they're missing, re-run <code>./install/install.sh --skip-node</code>.</div>
+  </div>
+
+  <div class="step" data-step="5.4"><label><input type="checkbox"><span class="id">5.4</span><span class="title">Dashboard</span></label>
+    <div class="body">
+<pre class="cmd">open http://devkit.test</pre>
+<pre class="out">left rail: Status · Sites · PHP · Tasks lit, Services/Mail/Logs/Debug dimmed with their phase numbers
+top strip: php 8.4.25 · valet 4.12.0 · four LEDs · "polled HH:MM:SS" ticks every 5 s
+/sites, /php, /tasks: placeholder pages; browser refresh on them still loads (SPA catch-all)</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="5.5"><label><input type="checkbox"><span class="id">5.5</span><span class="title">Loopback guard, from the outside</span></label>
+    <div class="body">
+<pre class="cmd">curl -s --max-time 3 -H 'Host: devkit.test' "http://$(ipconfig getifaddr en0)/api/status"; echo "exit $?"</pre>
+<pre class="out">exit 7 or 28 — Valet's nginx only listens on 127.0.0.1, so the connection never lands; the middleware's 403 is covered by the test in 2.3</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 6 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">6</span>Dev loop and hand-off <span class="c">HMR, commit, next slice</span><span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="6.1"><label><input type="checkbox"><span class="id">6.1</span><span class="title">Live editing</span></label>
+    <div class="body">
+<pre class="cmd">npm run dev</pre>
+<pre class="out">Vite dev server; devkit.test picks it up via public/hot. Stop it and run <code>npm run build</code> to go back to the built assets.</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="6.2"><label><input type="checkbox"><span class="id">6.2</span><span class="title">Commit the slice</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-1a: laravel skeleton, shim, valet passthrough, status command + api, spa shell"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="6.3"><label><input type="checkbox"><span class="id">6.3</span><span class="title">Hand-off for 1b</span></label>
+    <div class="body">
+      <p>Paste <code>devkit status</code> and the <code>pest</code> summary. 1b is ValetBridge sites/links/proxies + <code>sites</code> / <code>site-information</code> + <code>/api/sites</code> + the Sites page.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>devkit.test → 502 Bad Gateway</b> — php-fpm for the global version isn't up.<pre class="cmd">devkit restart &amp;&amp; tail -20 ~/.config/valet/Log/nginx-error.log</pre></div>
+  <div class="callout red"><b>devkit.test → Laravel error "Vite manifest not found"</b> — assets never built.<pre class="cmd">npm run build</pre></div>
+  <div class="callout red"><b>CLI and /api/status disagree</b> (version null, fpm "unknown", a service "stopped" that curl proves is up) — always the fpm environment. <code>devkit status --diagnose</code> vs <code>/api/status?diagnose=1</code>, see 5.3. Valet's sockets in <code>~/.config/valet/*.sock</code> are the fpm source of truth; pgrep is only the fallback.</div>
+  <div class="callout red"><b>Dashboard strip says "api unreachable"</b> — open <code>/api/status</code> directly; a 500 there is a PHP exception, read <code>storage/logs/laravel-*.log</code>. A 403 means you're not on loopback (VPN with a non-loopback route to yourself?).</div>
+  <div class="callout red"><b>devkit: command not found</b> — brew's bin dir isn't on PATH in this shell, or the symlink was skipped.<pre class="cmd">ls -l "$(brew --prefix)/bin/devkit" || ./install/install.sh --skip-node</pre></div>
+  <div class="callout red"><b>tsc errors in Layout.tsx / Status.tsx</b> — React types missing.<pre class="cmd">npm install -D @types/react @types/react-dom</pre></div>
+  <div class="callout red"><b>pest: "Class Tests\TestCase not found"</b> — 1.2 skipped <code>tests/TestCase.php</code>. Copy it from <code>/tmp/devkit-skel/tests/TestCase.php</code>.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-1a';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
