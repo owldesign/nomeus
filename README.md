@@ -1,0 +1,50 @@
+# devkit
+
+Self-built Laravel dev environment for macOS. Laravel Valet underneath, native Homebrew binaries for
+services, one Laravel app that is both the `devkit` CLI (artisan commands behind a shim) and a
+React dashboard served by Valet at `devkit.test`.
+
+Companion apps, all free: PHP Monitor (menubar), LaraDumps (dumps/queries/jobs/logs), Mailpit (mail),
+TablePlus (`devkit db`).
+
+## Install
+
+```bash
+git clone <repo> ~/Code/devkit
+cd ~/Code/devkit
+./install/install.sh            # add --trust to skip future sudo prompts, --skip-node to skip nvm install --lts
+```
+
+Requires Homebrew. Set `DEVKIT_CODE_DIR` to park a directory other than `~/Code`;
+`DEVKIT_PHP_DEFAULT` to pick a global PHP other than 8.4.
+
+## Layout
+
+```
+bin/devkit          shim: Valet commands pass straight through, everything else → artisan
+install/            Brewfile, install.sh, config template
+app/Services/       ValetBridge, BrewBridge, PhpManager, TaskRunner, service drivers
+app/Console/        devkit commands
+app/Http/Api/       JSON API (loopback only)
+resources/js/       React SPA
+~/.devkit/          config.json, tasks/, services/<instance>/, logs/, xdebug/
+```
+
+## Phases
+
+| Phase | Scope | Status |
+|---|---|---|
+| 0 | Brewfile, install.sh, config | 0a done |
+| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | — |
+| 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | — |
+| 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | — |
+| 4 | log watcher; Logs page | — |
+| 5 | Xdebug toggle, then auto-detect | — |
+| 6 | MCP server, Linux via Valet Linux | optional |
+
+## CLI parity with Herd
+
+Site management, PHP isolation, TLS, proxies, sharing, loopback, and start/stop/restart are
+Valet commands and pass through unchanged. devkit adds `php:list|install|update`,
+`isolate-node`, `db`, `edit`, `ini`, `site-information`, `init`, `services:*`, `debug:*`,
+`logs`, `mail`, `dumps`.
