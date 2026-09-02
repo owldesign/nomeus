@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 1b · sites</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 1b · sites</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~20 min · phases 0–5</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>devkit reads Valet's site state from disk and changes it through <code>/opt/homebrew/bin/valet</code> under the trust rule</b> — from the CLI and from the dashboard.
+  Precondition: 1a committed, <code>devkit status</code> shows <code>trusted</code>, and <code>~/Sites/smoke</code> exists from runbook 0a.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply and test <span class="c">overlay only</span><span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay the slice, run the suite</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-1b.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; vendor/bin/pest</pre>
+<pre class="out">Tests: 30 passed — DevkitConfig 4 · ValetBridge 7 · Api/Status 8 · Api/Sites 6 · Api/Tasks 5</pre>
+    </div>
+    <div class="callout blue">ValetBridge's tests build a throwaway <code>~/.config/valet</code> look-alike (links, certificates, isolation and proxy stubs exactly as Valet 4.12 writes them) and fake every subprocess — a red run is a code problem, not your Valet.</div>
+  </div>
+
+  <div class="step" data-step="0.2"><label><input type="checkbox"><span class="id">0.2</span><span class="title">Build the SPA</span></label>
+    <div class="body">
+<pre class="cmd">npx tsc --noEmit &amp;&amp; npm run build</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>CLI reads <span class="c">sites, site-information</span><span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Every site Valet serves, one table</span></label>
+    <div class="body">
+<pre class="cmd">devkit sites</pre>
+<pre class="out">devkit   http://devkit.test   linked   8.4 global   no    /Users/owldesign/Code/devkit
+smoke    https://smoke.test   parked   8.4 global   yes   /Users/owldesign/Sites/smoke</pre>
+    </div>
+    <div class="callout blue">Compare with <code>devkit parked</code> and <code>devkit links</code> (Valet's own output, via passthrough). Same sites, same TLS state; devkit adds the PHP column and merges proxies.</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Site information by name, and by current directory</span></label>
+    <div class="body">
+<pre class="cmd">devkit site-information smoke &amp;&amp; cd ~/Sites/smoke &amp;&amp; devkit site-information; cd -</pre>
+<pre class="out">site/url/type/path/php/tls/nginx conf, then laravel 12.x · env local · drivers … — identical both ways</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>API <span class="c">header guard, then real mutations</span><span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">List, and the header guard</span></label>
+    <div class="body">
+<pre class="cmd">curl -s http://devkit.test/api/sites | python3 -m json.tool | head -20; curl -s -o /dev/null -w '%{http_code}\n' -X POST http://devkit.test/api/sites/smoke/secure</pre>
+<pre class="out">JSON list matching 1.1 · then 403 — no X-Devkit header, no mutation</pre>
+    </div>
+    <div class="callout gold"><code>dk</code> (defined in 2.2) is just curl with the two headers; zsh doesn't word-split variables, so a function beats a <code>$FLAGS</code> string. The header is the whole cross-origin defence: any page that isn't devkit.test would have to preflight to send it, and <code>config/cors.php</code> answers no preflight. A plain form post can't carry it at all.</div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">Unsecure and re-secure smoke through the API</span></label>
+    <div class="body">
+<pre class="cmd">dk() { curl -s -H 'X-Devkit: 1' -H 'Content-Type: application/json' "$@"; echo; }
+dk -X POST http://devkit.test/api/sites/smoke/unsecure; sleep 4; devkit tasks --limit=1; devkit secured</pre>
+<pre class="out">{"task":{"id":"20260901-…","label":"valet unsecure smoke","status":"queued",…}}   ← 202, immediately
+tasks: … done  valet unsecure smoke   ·   secured list without smoke</pre>
+<pre class="cmd">dk -X POST http://devkit.test/api/sites/smoke/secure; sleep 4; devkit tasks --limit=1; devkit secured</pre>
+<pre class="out">202 again · done · smoke back in the secured list</pre>
+    </div>
+    <div class="callout gold">Mutations answer 202 with a task and finish in the background: <code>valet secure</code> restarts nginx, which would cut off any inline response — the "Failed to fetch" you saw in the browser before this change. <code>devkit tasks</code> and <code>devkit task:log &lt;id&gt;</code> are the audit trail; the dashboard's Tasks page shows the same.</div>
+    <div class="callout red">A task that ends <code>failed</code> with <code>sudo: a password is required</code> in its log means the trust rule isn't in effect for php-fpm — <code>devkit status</code> must say <code>trusted</code>. If it does and this still fails, paste the message: that would be the group-membership case from 1a's diagnostics.</div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">Isolate to 8.3, verify what actually serves, unisolate</span></label>
+    <div class="body">
+<pre class="cmd">dk -X POST -d '{"php":"8.3"}' http://devkit.test/api/sites/smoke/isolate; sleep 10; devkit tasks --limit=1; echo '&lt;?php echo PHP_VERSION;' &gt; ~/Sites/smoke/public/v.php; curl -s https://smoke.test/v.php; echo; devkit status | grep php-fpm</pre>
+<pre class="out">202 · done  valet isolate php@8.3 --site=smoke · 8.3.x from the site · php-fpm running 8.3, 8.4 (both sockets answering)</pre>
+<pre class="cmd">dk -X POST http://devkit.test/api/sites/smoke/unisolate; sleep 5; curl -s https://smoke.test/v.php; echo; rm ~/Sites/smoke/public/v.php</pre>
+<pre class="out">202 · 8.4.x again</pre>
+    </div>
+    <div class="callout gold">First isolation to a version installs its fpm config and starts it — expect a few seconds. Valet 4.12 leaves the 8.3 fpm running after unisolate; that's Valet's behaviour, not devkit's.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>Dashboard <span class="c">the same actions, from the browser</span><span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Sites page renders</span></label>
+    <div class="body">
+<pre class="cmd">open http://devkit.test/sites</pre>
+<pre class="out">rows for devkit and smoke · λ marks Laravel apps · type coloured (linked blue, proxy gold) · php column shows the global version dim, isolated in gold</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">Row actions</span></label>
+    <div class="body">
+<pre class="out">smoke → unsecure → inline "unsecure smoke? yes / no" → yes → "enqueuing…" → "running valet unsecure smoke… (nginx restarting)" → "valet unsecure smoke done" → tls column flips to http
+smoke → secure → https again
+smoke → php… select 8.3 → isolate → column shows 8.3 in gold → unisolate → back to dim 8.4
+Tasks (left rail) → every one of those, newest first, with a log link</pre>
+    </div>
+    <div class="callout blue">While nginx restarts the poll briefly fails and the row says so — that is expected, not an error. A task that actually fails prints the last lines of Valet's output in red under the row; the list refetches either way, so the table never shows a state Valet doesn't have.</div>
+  </div>
+
+  <div class="step" data-step="3.3"><label><input type="checkbox"><span class="id">3.3</span><span class="title">Link and unlink</span></label>
+    <div class="body">
+<pre class="out">form at the bottom: name smoke2 · path /Users/owldesign/Sites/smoke → link → "valet link smoke2 done"
+→ new row smoke2.test, type linked, same path → unlink → yes → row gone</pre>
+<pre class="cmd">devkit links</pre>
+<pre class="out">devkit only</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Proxy visibility <span class="c">optional, if you run anything on a port</span><span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">A Valet proxy shows up as a proxy row</span></label>
+    <div class="body">
+<pre class="cmd">devkit proxy mailpit http://127.0.0.1:8025 &amp;&amp; devkit sites &amp;&amp; devkit unproxy mailpit</pre>
+<pre class="out">mailpit  http://mailpit.test  proxy  —  no  http://127.0.0.1:8025 — then gone. (Phase 3 sets this proxy up for real.)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 5 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">5</span>Commit and hand-off</h2>
+
+  <div class="step" data-step="5.1"><label><input type="checkbox"><span class="id">5.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-1b: valet sites read/write, sites + site-information, /api/sites, sites page, devkit header guard, task runner"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="5.2"><label><input type="checkbox"><span class="id">5.2</span><span class="title">Hand-off for 1c</span></label>
+    <div class="body"><p>Paste the pest summary and <code>devkit sites</code>. 1c is BrewBridge + PhpManager + TaskRunner, <code>php:list|install|update</code>, <code>/api/php</code>, and the PHP + Tasks pages.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>422: "The [x] site could not be found in Valet's site list"</b> — Valet's <code>secure</code>/<code>isolate</code> only accept parked or linked sites; proxies are managed with <code>devkit proxy --secure</code>. The dashboard hides actions on proxy rows for this reason.</div>
+  <div class="callout red"><b>Isolate succeeded but the site still serves the old version</b> — browser cache or an fpm that hadn't finished starting. <code>curl -s https://site.test/v.php</code> with a phpinfo file is the honest check; <code>devkit status</code> must list the new version under php-fpm.</div>
+  <div class="callout red"><b>Task stays "running" for minutes</b> — Valet is waiting on something interactive (keychain or sudo). <code>devkit tasks</code> shows it running; <code>ps -ef | grep 'valet'</code> shows what it's stuck on. Tasks time out (180 s secure/unsecure, 600 s isolate) and are then marked failed with whatever output exists.</div>
+  <div class="callout red"><b>Task dies as "failed" with no output right as nginx/fpm restarts</b> — it was killed with the service's process group, meaning <code>posix_setsid()</code> didn't take. <code>php -m | grep posix</code> must list posix for the CLI php Valet linked.</div>
+  <div class="callout red"><b>Sites page is empty but <code>devkit sites</code> isn't</b> — php-fpm reads a different <code>~/.config/valet</code>: <code>curl -s 'http://devkit.test/api/status?diagnose=1'</code> and check <code>env.HOME</code>.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-1b';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

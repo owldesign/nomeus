@@ -43,6 +43,7 @@ final class StatusService
             ],
             'php' => [
                 'global' => $this->globalPhpVersion(),
+                'installed' => $this->installedPhpVersions(),
             ],
             'services' => [
                 // nginx and php-fpm rewrite their argv on macOS; answer-based checks first, pgrep as fallback.
@@ -117,6 +118,20 @@ final class StatusService
             $gr = posix_getgrgid($gid);
             $out[] = ($gr['name'] ?? '?').":{$gid}";
         }
+
+        return $out;
+    }
+
+    /** php@X.Y kegs present under <brew>/opt — filesystem only, so it's safe from fpm. */
+    private function installedPhpVersions(): array
+    {
+        $out = [];
+        foreach (glob($this->shell->brewPrefix().'/opt/php@*') ?: [] as $dir) {
+            if (preg_match('/php@(\d+\.\d+)$/', $dir, $m)) {
+                $out[] = $m[1];
+            }
+        }
+        sort($out);
 
         return $out;
     }

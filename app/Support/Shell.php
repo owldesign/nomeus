@@ -67,6 +67,17 @@ final class Shell
         return is_executable($composer) ? $composer : 'valet';
     }
 
+    /** The CLI php Valet linked (<brew>/bin/php). PHP_BINARY under fpm is php-fpm itself, so never that. */
+    public function phpBin(): string
+    {
+        $brew = $this->brewPrefix().'/bin/php';
+        if (is_executable($brew)) {
+            return $brew;
+        }
+
+        return PHP_SAPI === 'cli' ? PHP_BINARY : 'php';
+    }
+
     public static function currentUser(): string
     {
         if (function_exists('posix_getpwuid')) {
@@ -102,14 +113,14 @@ final class Shell
     }
 
     /** @param  array<int, string>|string  $command */
-    public function run(array|string $command, ?string $cwd = null, int $timeout = 120): ProcessResult
+    public function run(array|string $command, ?string $cwd = null, int $timeout = 120, ?callable $output = null): ProcessResult
     {
         $process = Process::env($this->env())->timeout($timeout);
         if ($cwd !== null) {
             $process = $process->path($cwd);
         }
 
-        return $process->run($command);
+        return $process->run($command, $output);
     }
 
     /** True when a process with exactly this name is running. */

@@ -28,6 +28,11 @@ Requires Homebrew. Set `DEVKIT_CODE_DIR` to park a directory other than `~/Code`
 sudo for almost every command, php-fpm can't answer a prompt, and the NOPASSWD rule Valet writes
 matches only `<brew>/bin/valet` — which is the path devkit always uses.
 
+Dashboard mutations are detached tasks (`~/.devkit/tasks/`): Valet restarts nginx and fpm as
+part of `secure`/`isolate`/`use`, which would sever an inline response and kill a child in the
+service's process group — `task:run` detaches with `posix_setsid()` first. `devkit tasks` and
+`devkit task:log <id>` are the audit trail.
+
 ## Layout
 
 ```
@@ -45,7 +50,7 @@ resources/js/       React SPA
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Brewfile, install.sh, config | done |
-| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | 1a done (shim, status, SPA shell) |
+| 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | 1a, 1b done (status, sites, tasks, SPA) |
 | 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | — |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | — |
 | 4 | log watcher; Logs page | — |

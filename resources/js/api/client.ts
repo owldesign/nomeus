@@ -11,6 +11,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      // Required on every unsafe request; forces a CORS preflight for anyone who isn't us.
+      'X-Devkit': '1',
       ...(init?.headers ?? {}),
     },
   });
@@ -28,3 +30,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
   return (await res.json()) as T;
 }
+
+export const post = <T>(path: string, body?: unknown) =>
+  api<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) });
+
+export const del = <T>(path: string) => api<T>(path, { method: 'DELETE' });
