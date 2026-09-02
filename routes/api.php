@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ServicesController;
 use App\Http\Controllers\Api\SitesController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\TasksController;
+use App\Http\Controllers\Api\XdebugController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/status', [StatusController::class, 'show'])->name('api.status');
@@ -58,3 +59,7 @@ Route::get('/dumps/header', [DumpsController::class, 'header'])->name('api.dumps
 Route::get('/dumps', [DumpsController::class, 'index'])->name('api.dumps.index');
 Route::post('/dumps/capture', [DumpsController::class, 'capture'])->name('api.dumps.capture');
 Route::delete('/dumps', [DumpsController::class, 'destroy'])->name('api.dumps.destroy');
+
+Route::get('/xdebug', [XdebugController::class, 'index'])->name('api.xdebug.index');
+Route::post('/xdebug/install', [XdebugController::class, 'install'])->name('api.xdebug.install');
+Route::post('/xdebug/mode', [XdebugController::class, 'mode'])->name('api.xdebug.mode');

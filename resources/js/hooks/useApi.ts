@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api, del, post } from '@/api/client';
-import type { BrewService, DumpEntry, DumpKind, DumpRequest, DumpsStatus, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
+import type { BrewService, DumpEntry, DumpKind, DumpRequest, DumpsStatus, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task, XdebugMode, XdebugStatus } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -91,6 +91,8 @@ export function useRefetchAfterTask() {
     qc.invalidateQueries({ queryKey: ['tasks'] });
     qc.invalidateQueries({ queryKey: ['php'] });
     qc.invalidateQueries({ queryKey: ['services'] });
+    qc.invalidateQueries({ queryKey: ['xdebug'] });
+    qc.invalidateQueries({ queryKey: ['dumps', 'status'] });
   };
 }
 
@@ -359,5 +361,22 @@ export function useClearDumps() {
   return useMutation({
     mutationFn: () => del<{ cleared: number }>('/dumps'),
     onSettled: () => qc.invalidateQueries({ queryKey: ['dumps'] }),
+  });
+}
+
+export function useXdebug() {
+  return useQuery({
+    queryKey: ['xdebug'],
+    queryFn: async () => (await api<{ data: XdebugStatus }>('/xdebug')).data,
+    refetchInterval: 3000,
+  });
+}
+
+export function useXdebugAction() {
+  return useMutation({
+    mutationFn: (a: { action: 'install'; version: string } | { action: 'mode'; version: string; mode: XdebugMode }) =>
+      a.action === 'install'
+        ? post<Enqueued>('/xdebug/install', { version: a.version })
+        : post<Enqueued>('/xdebug/mode', { version: a.version, mode: a.mode }),
   });
 }

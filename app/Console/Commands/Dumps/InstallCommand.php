@@ -35,11 +35,10 @@ class InstallCommand extends Command
 
         if ($r['written'] !== []) {
             if ($this->option('restart')) {
-                $plan = $installer->restartPlan();
-                $this->line("<fg=gray>{$plan['label']}</>");
-                $result = $shell->run($plan['argv'], null, $plan['timeout'], fn ($t, $b) => $this->line('<fg=gray>'.rtrim($b).'</>'));
-                if (! $result->successful()) {
-                    $this->error('valet restart php failed: '.trim($result->errorOutput() ?: $result->output()));
+                try {
+                    $installer->restartAndWait(fn (string $l) => $this->line("<fg=gray>{$l}</>"));
+                } catch (RuntimeException $e) {
+                    $this->error($e->getMessage());
 
                     return self::FAILURE;
                 }

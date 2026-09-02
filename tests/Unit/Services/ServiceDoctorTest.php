@@ -7,8 +7,10 @@ use Tests\Support\FakeServicesWorld;
 beforeEach(function () {
     $this->w = new FakeServicesWorld;
     $flag = new \App\Services\Dumps\CaptureFlag($this->w->config);
-    $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, $flag, $this->w->shell);
-    $this->doctor = new ServiceDoctor($this->w->manager, $this->w->launchd, $this->w->brew, $this->w->brewServices, $this->w->shell, $this->w->probe, $prepend);
+    $state = new \App\Services\Php\XdebugState($this->w->config);
+    $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, $flag, $this->w->shell, $state);
+    $xdebug = new \App\Services\Php\XdebugManager($this->w->config, $this->w->brew, $this->w->shell, $this->w->probe, $state, $prepend);
+    $this->doctor = new ServiceDoctor($this->w->manager, $this->w->launchd, $this->w->brew, $this->w->brewServices, $this->w->shell, $this->w->probe, $prepend, $xdebug);
 });
 
 afterEach(fn () => $this->w->destroy());

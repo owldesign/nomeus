@@ -261,3 +261,12 @@ export interface DumpRequest {
   last_id: number;
   n: number;
 }
+
+export type XdebugMode = 'off' | 'on' | 'trigger';
+
+export interface XdebugStatus {
+  versions: Record<string, { installed: boolean; so: string | null; mode: XdebugMode; tap_ini: boolean; ini_current: boolean }>;
+  linked: string | null;
+  port: number;
+  ide_listening: boolean;
+}

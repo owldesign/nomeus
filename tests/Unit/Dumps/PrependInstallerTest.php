@@ -16,7 +16,7 @@ beforeEach(function () {
     $config = new DevkitConfig("{$this->root}/devkit/config.json");
     $shell = new Shell($config);
     $this->flag = new CaptureFlag($config);
-    $this->installer = new PrependInstaller($config, new BrewBridge($shell), $this->flag, $shell);
+    $this->installer = new PrependInstaller($config, new BrewBridge($shell), $this->flag, $shell, new \App\Services\Php\XdebugState($config));
 });
 
 afterEach(function () {

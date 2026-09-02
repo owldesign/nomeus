@@ -17,6 +17,7 @@ final class ServiceDoctor
         private readonly Shell $shell,
         private readonly Probe $probe,
         private readonly \App\Services\Dumps\PrependInstaller $prepend,
+        private readonly ?\App\Services\Php\XdebugManager $xdebug = null,
     ) {}
 
     /** @return list<array{level:'ok'|'warn'|'fail', check:string, detail:string}> */
@@ -96,6 +97,23 @@ final class ServiceDoctor
             $st['current']
                 ? $add('ok', "dumps ini php {$version}", $this->prepend->iniPath($version))
                 : $add('warn', "dumps ini php {$version}", ($st['ini'] ? 'outdated' : 'missing').' — devkit dumps:install (then valet restart php)');
+        }
+
+        // xdebug: the formula's own ini must stay quarantined; "on" without a listener costs every request
+        if ($this->xdebug !== null) {
+            $ide = $this->xdebug->ideListening();
+            foreach ($this->xdebug->status() as $version => $x) {
+                if (! $x['installed']) {
+                    continue;
+                }
+                if ($x['tap_ini']) {
+                    $add('warn', "xdebug php {$version}", "the formula's 20-xdebug.ini is back (brew upgrade?) and loads xdebug unconditionally — devkit xdebug:mode {$x['mode']} --php={$version} re-quarantines it");
+                } elseif ($x['mode'] === 'on' && ! $ide) {
+                    $add('warn', "xdebug php {$version}", "mode on but nothing listens on 127.0.0.1:{$this->xdebug->port()} — ~200 ms per request; devkit xdebug:mode trigger --php={$version}");
+                } else {
+                    $add('ok', "xdebug php {$version}", "mode {$x['mode']}");
+                }
+            }
         }
 
         // brew services overlap

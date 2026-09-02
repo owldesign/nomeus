@@ -59,7 +59,7 @@ resources/js/       React SPA
 | 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | done — postgresql, mysql, mariadb, redis, meilisearch, typesense, seaweedfs (s3), reverb |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | done — `devkit init` from `dev.yml` (see docs/dev.yml.example) |
 | 4 | log watcher; Logs page | done — `devkit logs [site] [--follow]`, Logs page (offset-based tail, IDE links) |
-| 5 | Dumps (5a), Xdebug (5b) | 5a done — dump server + Debug page, no app dependency for dump()/dd(); recorders via zhuk/devkit-client |
+| 5 | Dumps (5a), Xdebug (5b) | done — dump server + Debug page; xdebug off/on/trigger per PHP version (`devkit xdebug:*`) |
 | 6 | MCP server, Linux via Valet Linux | optional |
 
 ## CLI parity with Herd

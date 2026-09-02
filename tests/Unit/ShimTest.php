@@ -27,7 +27,7 @@ it('passes every valet command through the shim', function () {
 });
 
 it('never lists a devkit command as valet passthrough', function () {
-    $devkit = ['status', 'sites', 'site-information', 'tasks', 'php:list', 'php:install', 'php:update', 'ini', 'db', 'edit', 'config:get', 'config:set', 'services:create', 'services:list', 'services:upgrade', 'services:adopt', 'mail', 'init', 'logs', 'dumps', 'dumps:install'];
+    $devkit = ['status', 'sites', 'site-information', 'tasks', 'php:list', 'php:install', 'php:update', 'ini', 'db', 'edit', 'config:get', 'config:set', 'services:create', 'services:list', 'services:upgrade', 'services:adopt', 'mail', 'init', 'logs', 'dumps', 'dumps:install', 'xdebug', 'xdebug:mode'];
 
     expect(array_values(array_intersect($devkit, shimPassthrough())))->toBe([]);
 });

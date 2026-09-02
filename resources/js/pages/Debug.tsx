@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DumpEntry, DumpKind } from '@/api/types';
-import { useClearDumps, useDumpRequests, useDumps, useDumpsHeader, useDumpsStatus, useSetCapture } from '@/hooks/useApi';
+import type { XdebugMode } from '@/api/types';
+import TaskProgress from '@/components/TaskProgress';
+import { useClearDumps, useDumpRequests, useDumps, useDumpsHeader, useDumpsStatus, useRefetchAfterTask, useSetCapture, useXdebug, useXdebugAction } from '@/hooks/useApi';
 
 const KINDS: (DumpKind | 'all')[] = ['all', 'dump', 'query', 'job', 'view', 'request', 'log'];
 const label: Record<DumpKind | 'all', string> = { all: 'All', dump: 'Dumps', query: 'Queries', job: 'Jobs', view: 'Views', request: 'Requests', log: 'Logs' };
@@ -77,6 +79,77 @@ function Row({ e, showRequest }: { e: DumpEntry; showRequest: boolean }) {
   );
 }
 
+const MODES: { mode: XdebugMode; hint: string }[] = [
+  { mode: 'off', hint: 'not loaded — zero cost' },
+  { mode: 'on', hint: 'every request connects to the IDE — use while stepping' },
+  { mode: 'trigger', hint: 'loaded; starts with the browser helper / ?XDEBUG_TRIGGER=1 / XDEBUG_TRIGGER=1 for CLI' },
+];
+
+/** Xdebug per PHP version; mode changes and installs run as tasks (brew, fpm restart). */
+function XdebugPanel() {
+  const { data } = useXdebug();
+  const act = useXdebugAction();
+  const refetch = useRefetchAfterTask();
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [open, setOpen] = useState(true);
+  if (!data) return null;
+  const versions = Object.entries(data.versions);
+  const run = (a: Parameters<typeof act.mutate>[0]) => act.mutate(a, { onSuccess: (r) => setTaskId(r.task.id) });
+
+  return (
+    <div className="border-b border-line px-3 py-2">
+      <div className="flex items-baseline gap-4">
+        <button type="button" className="text-dim hover:text-gold" onClick={() => setOpen(!open)}>{open ? '▾' : '▸'} xdebug</button>
+        <span className="inline-flex items-center gap-1 text-dim">
+          <span className={`inline-block h-2 w-2 rounded-full ${data.ide_listening ? 'bg-green' : 'bg-mute'}`} /> IDE {data.ide_listening ? `listening on ${data.port}` : `not listening on ${data.port}`}
+        </span>
+        {!open && versions.filter(([, v]) => v.installed).map(([php, v]) => <span key={php} className="text-dim">php {php}: <span className={v.mode === 'on' ? 'text-gold' : v.mode === 'trigger' ? 'text-blue' : ''}>{v.mode}</span></span>)}
+        {taskId && <TaskProgress id={taskId} onFinished={() => { refetch(); setTimeout(() => setTaskId(null), 3000); }} />}
+      </div>
+      {open && (
+        <table className="mt-2 w-full border-collapse">
+          <tbody>
+            {versions.map(([php, v]) => (
+              <tr key={php} className="border-t border-dashed border-line">
+                <td className="py-1 pr-4 whitespace-nowrap">php {php}{data.linked === php ? <span className="text-dim"> (linked)</span> : null}</td>
+                <td className="py-1 pr-4">
+                  {v.installed ? (
+                    <span className="inline-flex gap-1">
+                      {MODES.map((m) => (
+                        <button
+                          key={m.mode}
+                          type="button"
+                          title={m.hint}
+                          disabled={act.isPending || taskId !== null}
+                          onClick={() => run({ action: 'mode', version: php, mode: m.mode })}
+                          className={`rounded-sm border px-2 py-0.5 ${v.mode === m.mode ? (m.mode === 'on' ? 'border-gold text-gold' : m.mode === 'trigger' ? 'border-blue text-blue' : 'border-fg text-fg') : 'border-line text-dim hover:text-fg'}`}
+                        >
+                          {m.mode}
+                        </button>
+                      ))}
+                    </span>
+                  ) : (
+                    <button type="button" className="border border-line px-2 py-0.5 text-dim hover:border-gold hover:text-gold" disabled={act.isPending || taskId !== null} onClick={() => run({ action: 'install', version: php })}>
+                      install xdebug
+                    </button>
+                  )}
+                </td>
+                <td className="py-1 text-dim">
+                  {v.installed ? MODES.find((m) => m.mode === v.mode)?.hint : 'shivammathur/extensions/xdebug@' + php}
+                  {v.tap_ini && <span className="text-red"> · formula ini is back — set the mode again to re-quarantine</span>}
+                  {v.installed && v.mode === 'on' && !data.ide_listening && <span className="text-gold"> · nothing listening: ~200 ms per request</span>}
+                </td>
+              </tr>
+            ))}
+            {versions.length === 0 && <tr><td className="py-1 text-dim">no brew php versions</td></tr>}
+          </tbody>
+        </table>
+      )}
+      {act.isError && <div className="mt-1 text-red">{String(act.error)}</div>}
+    </div>
+  );
+}
+
 export default function Debug() {
   useSfDumpAssets();
   const status = useDumpsStatus();
@@ -101,6 +174,7 @@ export default function Debug() {
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col border border-line bg-panel">
+      <XdebugPanel />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line px-3 py-2">
         <button
           type="button"

@@ -1,0 +1,125 @@
+<?php
+
+use App\Services\BrewBridge;
+use App\Services\Dumps\CaptureFlag;
+use App\Services\Dumps\PrependInstaller;
+use App\Services\Php\IniManager;
+use App\Services\Php\XdebugManager;
+use App\Services\Php\XdebugState;
+use App\Support\DevkitConfig;
+use App\Support\Probe;
+use App\Support\Shell;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Process;
+use Tests\Support\FakeBrew;
+
+beforeEach(function () {
+    $this->root = sys_get_temp_dir().'/devkit-xdebug-'.uniqid();
+    mkdir("{$this->root}/devkit", 0755, true);
+    $this->brewFs = (new FakeBrew)->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4');
+    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'xdebug' => ['port' => 9003]]));
+    $config = new DevkitConfig("{$this->root}/devkit/config.json");
+    $shell = new Shell($config);
+    $brew = new BrewBridge($shell);
+    $this->state = new XdebugState($config);
+    $this->listening = false;
+    $probe = Mockery::mock(Probe::class);
+    $probe->shouldReceive('tcp')->andReturnUsing(fn ($h, $p) => $p === 9003 && $this->listening);
+    $this->prepend = new PrependInstaller($config, $brew, new CaptureFlag($config), $shell, $this->state);
+    $this->xdebug = new XdebugManager($config, $brew, $shell, $probe, $this->state, $this->prepend);
+    $this->ini = fn (string $v) => file_get_contents($this->brewFs->root."/etc/php/{$v}/conf.d/99-devkit.ini");
+
+    // what the tap leaves behind after `brew install shivammathur/extensions/xdebug@8.4`
+    $this->so = $this->brewFs->root.'/opt/xdebug@8.4/xdebug.so';
+    $this->tapIni = $this->brewFs->root.'/etc/php/8.4/conf.d/20-xdebug.ini';
+    $this->installTap = function () {
+        if (! is_dir(dirname($this->so))) {
+            mkdir(dirname($this->so), 0755, true);
+        }
+        file_put_contents($this->so, 'ELF');
+        file_put_contents($this->tapIni, "[xdebug]\nzend_extension=\"{$this->so}\"\n");
+    };
+    Process::fake([
+        '*brew*trust*' => Process::result(''),
+        '*brew*install*' => function () {
+            ($this->installTap)();
+
+            return Process::result("==> Pouring xdebug@8.4\n");
+        },
+    ]);
+});
+
+afterEach(function () {
+    File::deleteDirectory($this->root);
+    $this->brewFs->destroy();
+});
+
+it('installs from the tap, reads the .so path, quarantines the tap ini and writes ours with mode off', function () {
+    expect($this->xdebug->status()['8.4']['installed'])->toBeFalse();
+    $lines = [];
+
+    $r = $this->xdebug->install('8.4', function (string $l) use (&$lines) { $lines[] = $l; });
+
+    $bin = $this->brewFs->root.'/bin/brew';
+    Process::assertRan(fn ($p) => $p->command === [$bin, 'trust', 'shivammathur/extensions']);
+    Process::assertRan(fn ($p) => $p->command === [$bin, 'install', 'shivammathur/extensions/xdebug@8.4']);
+    expect($r)->toBe(['so' => $this->so, 'mode' => 'off'])
+        ->and(is_file($this->tapIni))->toBeFalse()
+        ->and(is_file($this->tapIni.'.devkit-off'))->toBeTrue()
+        ->and($this->state->get('8.4'))->toBe(['so' => $this->so, 'mode' => 'off'])
+        ->and(($this->ini)('8.4'))->toContain('; mode: off')
+        ->and(($this->ini)('8.4'))->not->toContain('zend_extension')
+        ->and(($this->ini)('8.4'))->toContain('auto_prepend_file=')        // the dumps section survives
+        ->and(($this->ini)('8.3'))->toContain('; (not installed)')         // other versions untouched
+        ->and(implode("\n", $lines))->toContain('moved the formula\'s 20-xdebug.ini aside');
+    $status = $this->xdebug->status();
+    expect($status['8.4'])->toMatchArray(['installed' => true, 'so' => $this->so, 'mode' => 'off', 'tap_ini' => false, 'ini_current' => true])
+        ->and($status['8.3']['installed'])->toBeFalse();
+
+    expect(fn () => $this->xdebug->install('7.4', fn () => null))->toThrow(RuntimeException::class, 'php@7.4 is not installed');
+});
+
+it('writes each mode into the ini and reports whether fpm needs a restart', function () {
+    ($this->installTap)();
+    $this->xdebug->adopt('8.4', fn () => null);
+
+    expect($this->xdebug->setMode('8.4', 'on'))->toBeTrue();
+    $on = ($this->ini)('8.4');
+    expect($on)->toContain("zend_extension={$this->so}")
+        ->and($on)->toContain('xdebug.mode=debug,develop')
+        ->and($on)->toContain('xdebug.start_with_request=yes')
+        ->and($on)->toContain('xdebug.client_port=9003')
+        ->and(IniManager::modeIn($on))->toBe('on');
+
+    expect($this->xdebug->setMode('8.4', 'on'))->toBeFalse();                          // unchanged → no restart
+    expect($this->xdebug->setMode('8.4', 'trigger'))->toBeTrue()
+        ->and(($this->ini)('8.4'))->toContain('xdebug.start_with_request=trigger');
+    expect($this->xdebug->setMode('8.4', 'off'))->toBeTrue()
+        ->and(($this->ini)('8.4'))->not->toContain('zend_extension');
+
+    expect(fn () => $this->xdebug->setMode('8.4', 'loud'))->toThrow(RuntimeException::class, 'off, on or trigger')
+        ->and(fn () => $this->xdebug->setMode('8.3', 'on'))->toThrow(RuntimeException::class, 'not installed for php 8.3');
+});
+
+it('re-quarantines a tap ini that came back after a brew upgrade, and knows whether the ide listens', function () {
+    ($this->installTap)();
+    $this->xdebug->adopt('8.4', fn () => null);
+    file_put_contents($this->tapIni, "[xdebug]\nzend_extension=\"{$this->so}\"\n");   // brew upgrade restored it
+
+    expect($this->xdebug->status()['8.4']['tap_ini'])->toBeTrue();
+    $this->xdebug->setMode('8.4', 'trigger');
+    expect(is_file($this->tapIni))->toBeFalse()->and($this->xdebug->status()['8.4']['tap_ini'])->toBeFalse();
+
+    expect($this->xdebug->ideListening())->toBeFalse();
+    $this->listening = true;
+    expect($this->xdebug->ideListening())->toBeTrue();
+});
+
+it('keeps dumps and xdebug sections independent through dumps:install', function () {
+    ($this->installTap)();
+    $this->xdebug->adopt('8.4', fn () => null);
+    $this->xdebug->setMode('8.4', 'on');
+
+    $this->prepend->install();                       // the dumps side regenerating must not lose the xdebug block
+    expect(($this->ini)('8.4'))->toContain('xdebug.start_with_request=yes')->and(($this->ini)('8.4'))->toContain('auto_prepend_file=');
+});
