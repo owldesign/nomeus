@@ -126,6 +126,54 @@ final class BrewBridge
         });
     }
 
+    // ── any formula (services) ───────────────────────────────────────────────
+
+    /** "typesense/tap/typesense-server" → "typesense-server"; opt/ is keyed by the short name. */
+    public function shortName(string $formula): string
+    {
+        return basename($formula);
+    }
+
+    public function isFormulaInstalled(string $formula): bool
+    {
+        return is_dir($this->prefix().'/opt/'.$this->shortName($formula));
+    }
+
+    public function formulaBinDir(string $formula): ?string
+    {
+        $dir = $this->prefix().'/opt/'.$this->shortName($formula).'/bin';
+
+        return is_dir($dir) ? $dir : null;
+    }
+
+    /** Keg version the opt/ symlink points at, e.g. "17.6" or "8.4.6". */
+    public function formulaVersion(string $formula): ?string
+    {
+        $link = $this->prefix().'/opt/'.$this->shortName($formula);
+        if (! is_link($link)) {
+            return null;
+        }
+        $keg = basename((string) readlink($link));
+
+        return preg_match('/^\d/', $keg) ? $keg : null;
+    }
+
+    public function installFormulaPlan(string $formula): array
+    {
+        if (! preg_match('#^[A-Za-z0-9._@/-]+$#', $formula)) {
+            throw new RuntimeException("Invalid formula name [{$formula}].");
+        }
+
+        return [
+            'label' => "brew install {$formula}",
+            'argv' => [$this->bin(), 'install', $formula],
+            'cwd' => null,
+            'timeout' => 1800,
+        ];
+    }
+
+    // ── php ──────────────────────────────────────────────────────────────────
+
     /** @return array{label:string, argv:list<string>, cwd:null, timeout:int} */
     public function installPlan(string $version): array
     {

@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 2a · services engine</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 2a · services engine</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~25 min · phases 0–6</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>a brew binary, a devkit-owned data dir and a devkit-owned launchd agent make one service instance — and you can run several of the same type side by side</b>.
+  Phase 0 retires the one open question from the design review before anything else: whether launchd accepts our agents from a task spawned by php-fpm.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, and settle the launchd question <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay and test</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-2a.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; chmod +x bin/devkit &amp;&amp; vendor/bin/pest &amp;&amp; devkit status | head -2</pre>
+<pre class="out">Tests: 80 passed — +Drivers 5 · LaunchdManager 4 · ServiceManager 6 · ServicesCli 4 · devkit 0.2.0</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="0.2"><label><input type="checkbox"><span class="id">0.2</span><span class="title">launchctl from a php-fpm-spawned task</span></label>
+    <div class="body">
+      <p>Enqueue a throwaway task through the API whose command is <code>launchctl print gui/$UID</code>. If its log contains the domain listing, the task context can talk to your login session's launchd and 2b's dashboard actions will work unchanged.</p>
+<pre class="cmd">devkit tinker --execute='dump(app(App\Services\TaskRunner::class)->spawn(["label"=>"launchctl probe","argv"=>["launchctl","print","gui/".posix_getuid()]])->id);'</pre>
+<pre class="out">"20260902-…"</pre>
+<pre class="cmd">sleep 3; devkit task:log "$(devkit tasks --limit=1 | awk -F'|' 'NR==4{gsub(/ /,"",$2);print $2}')" | head -8</pre>
+<pre class="out">launchctl probe · done · exit 0
+gui/501 = {
+	type = user login
+	…</pre>
+    </div>
+    <div class="callout gold">That task was spawned by the CLI, not by fpm — same session as your terminal, so it will pass. The real check is the same thing spawned by the dashboard; 2b's first runbook step does exactly that with <code>services:list</code>. If it fails there, the fallback is <code>launchctl asuser &lt;uid&gt; launchctl …</code> inside <code>LaunchdManager</code> — one line, already anticipated.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>What's available <span class="t">~1 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Types, formulae, ports</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:available &amp;&amp; devkit services:versions postgresql</pre>
+<pre class="out">postgresql  PostgreSQL  ○ postgresql@17  ○ postgresql@16 …   5432
+mysql       MySQL       ○ mysql@8.4  ○ mysql@8.0  ○ mysql   3306
+redis       Redis       ○ redis                               6379
+versions: formula / installed / version — nothing installed yet unless you already brew'd them</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>Redis: the two-minute one <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Create, observe, connect</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create redis</pre>
+<pre class="out">brew install redis (not installed yet)   ← only the first time
+… brew output …
+starting redis on 127.0.0.1:6379
+redis: redis 8.x on 127.0.0.1:6379</pre>
+<pre class="cmd">devkit services:list &amp;&amp; redis-cli -p 6379 ping &amp;&amp; devkit services:env redis</pre>
+<pre class="out">redis  redis  redis  8.x  6379  running  &lt;pid&gt;  ~/.devkit/services/redis/data · PONG · REDIS_HOST=127.0.0.1 REDIS_PORT=6379 REDIS_PASSWORD=null</pre>
+    </div>
+    <div class="callout red">"Port 6379 is already in use on this machine" — you already run redis via <code>brew services</code>. Either <code>brew services stop redis</code> (devkit takes the standard port) or let devkit pick the next one; both are fine, but two redises on one box is the situation multi-instance exists to make explicit, not to hide.</div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">What launchd sees</span></label>
+    <div class="body">
+<pre class="cmd">launchctl print gui/$(id -u)/dev.zhuk.devkit.svc.redis | grep -E 'state|pid' &amp;&amp; cat ~/Library/LaunchAgents/dev.zhuk.devkit.svc.redis.plist | grep -A3 ProgramArguments</pre>
+<pre class="out">state = running · pid = … · &lt;string&gt;/opt/homebrew/opt/redis/bin/redis-server&lt;/string&gt; …</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">Stop sticks across login; start brings it back</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:stop redis &amp;&amp; devkit services:list &amp;&amp; launchctl print-disabled gui/$(id -u) | grep devkit; devkit services:start redis &amp;&amp; redis-cli ping</pre>
+<pre class="out">redis stopped · list: stopped · "dev.zhuk.devkit.svc.redis" => disabled · redis running · PONG</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>PostgreSQL, twice <span class="t">~6 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Create 17 on the standard port</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create postgresql</pre>
+<pre class="out">brew install postgresql@17 (first time) · initdb · starting postgresql on 127.0.0.1:5432 · postgresql: postgresql@17 17.x on 127.0.0.1:5432</pre>
+<pre class="cmd">/opt/homebrew/opt/postgresql@17/bin/psql -h 127.0.0.1 -p 5432 -U postgres -c 'select version();'</pre>
+<pre class="out">PostgreSQL 17.x … — no password asked (initdb --auth=trust, loopback only)</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">A second instance, named, on its own port</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create postgresql 17 --name=fsv-pg --port=5433 &amp;&amp; devkit services:list</pre>
+<pre class="out">two postgresql rows, ports 5432 and 5433, both running, two pids</pre>
+    </div>
+    <div class="callout gold">Same binary, two data dirs, two agents. This is the Herd Pro feature, and it's just two plists.</div>
+  </div>
+
+  <div class="step" data-step="3.3"><label><input type="checkbox"><span class="id">3.3</span><span class="title">Clone carries the data</span></label>
+    <div class="body">
+<pre class="cmd">/opt/homebrew/opt/postgresql@17/bin/createdb -h 127.0.0.1 -p 5433 -U postgres marker &amp;&amp; devkit services:clone fsv-pg fsv-pg-copy &amp;&amp; /opt/homebrew/opt/postgresql@17/bin/psql -h 127.0.0.1 -p 5434 -U postgres -lqt | cut -d'|' -f1 | grep marker</pre>
+<pre class="out">stopping fsv-pg for a consistent copy · copying data · starting fsv-pg · starting fsv-pg-copy on 127.0.0.1:5434 · … · marker</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>MySQL <span class="c">optional now, needed for your real sites</span><span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">8.4 LTS on 3306</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:create mysql &amp;&amp; /opt/homebrew/opt/mysql@8.4/bin/mysql -h 127.0.0.1 -P 3306 -u root -e 'select version();'</pre>
+<pre class="out">mysqld --initialize-insecure · starting mysql on 127.0.0.1:3306 · 8.4.x — root, no password</pre>
+    </div>
+    <div class="callout red">"Port 3306 is already in use" — the same brew-services story as redis. <code>brew services list</code> shows it; stop it there or accept devkit's next-port choice and put <code>DB_PORT</code> in the site's .env (<code>devkit services:env mysql</code> prints the exact lines).</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 5 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">5</span>Clean up the experiments <span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="5.1"><label><input type="checkbox"><span class="id">5.1</span><span class="title">Delete the clone, keep the rest</span></label>
+    <div class="body">
+<pre class="cmd">devkit services:delete fsv-pg-copy &amp;&amp; devkit services:list &amp;&amp; ls ~/Library/LaunchAgents | grep devkit</pre>
+<pre class="out">prompt → y · fsv-pg-copy deleted · three rows (redis, postgresql, fsv-pg, + mysql if 4.1) · three/four plists</pre>
+    </div>
+    <div class="callout gold">A create whose start fails now leaves the instance stopped (not crash-looping) with a pointer to <code>services:logs</code> and <code>services:delete</code>; it also keeps the name, so the next attempt after a fix must delete it first or use <code>--name</code>.</div>
+    <div class="body">
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 6 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">6</span>Commit and hand-off</h2>
+
+  <div class="step" data-step="6.1"><label><input type="checkbox"><span class="id">6.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-2a: services engine — launchd agents, drivers (postgresql, mysql, redis), services:* cli"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="6.2"><label><input type="checkbox"><span class="id">6.2</span><span class="title">Hand-off for 2b</span></label>
+    <div class="body"><p>Paste the pest summary and <code>devkit services:list</code>. 2b is <code>/api/services</code> + the Services page, with every action running the CLI as a task.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>postgres: "postmaster became multithreaded during startup … Set the LC_ALL environment variable"</b> — the agent's environment had no locale; macOS's <code>setlocale</code> fallback spawns a thread and Postgres bails. devkit's agents now carry <code>LC_ALL</code>/<code>LANG</code>. An instance created before that fix is a crash loop: <code>devkit services:delete &lt;name&gt; --force</code> and recreate.</div>
+  <div class="callout red"><b>"did not start answering on 127.0.0.1:PORT after 30s"</b> — the agent loaded but the process died. The last log lines are in the message; <code>devkit services:logs &lt;name&gt;</code> for more. Postgres: usually data-dir permissions or a stale <code>postmaster.pid</code>; MySQL: <code>logs/mysql-error.log</code>.</div>
+  <div class="callout red"><b>launchctl bootstrap: "Input/output error" (5)</b> — the plist is malformed or an agent with that label is already loaded under a different plist. <code>plutil -lint ~/Library/LaunchAgents/dev.zhuk.devkit.svc.&lt;name&gt;.plist</code> and <code>launchctl print gui/$(id -u)/dev.zhuk.devkit.svc.&lt;name&gt;</code>.</div>
+  <div class="callout red"><b>launchctl enable/disable: "Domain does not support specified action" (125)</b> — the command ran outside your login session (SSH, or a task context that can't see gui/UID). Run the same <code>devkit services:…</code> from a local terminal; if it only ever fails from the dashboard, that's the 2b fallback.</div>
+  <div class="callout red"><b>initdb: "could not change permissions of directory"</b> — the data dir isn't owned by you. <code>ls -ld ~/.devkit/services/&lt;name&gt;/data</code>; devkit creates it as you, so this means the directory pre-existed.</div>
+  <div class="callout red"><b>Formula installed but "has no bin dir"</b> — keg-only or a formula that puts binaries elsewhere. <code>ls $(brew --prefix)/opt/&lt;formula&gt;</code>. Not the case for postgresql@*, mysql@*, redis.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-2a';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

@@ -106,7 +106,10 @@ final class Shell
                 '/usr/bin', '/bin', '/usr/sbin', '/sbin',
                 $this->composerBinDir(),
             ]),
+            // A valid locale is not optional: PostgreSQL on macOS refuses to start without one
+            // ("postmaster became multithreaded during startup").
             'LC_ALL' => 'en_US.UTF-8',
+            'LANG' => 'en_US.UTF-8',
             'HOMEBREW_NO_AUTO_UPDATE' => '1',
             'HOMEBREW_NO_ENV_HINTS' => '1',
         ];

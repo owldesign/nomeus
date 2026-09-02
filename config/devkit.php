@@ -4,7 +4,7 @@ use App\Support\DevkitConfig;
 
 return [
     // Bumped per slice; `devkit status --json | grep version` tells which cut is live.
-    'version' => '0.1.5',
+    'version' => '0.2.1',
 
     // ~/.devkit/config.json — written by install/install.sh
     'config_path' => env('DEVKIT_CONFIG_PATH') ?: DevkitConfig::defaultPath(),
@@ -19,6 +19,10 @@ return [
     // vendor/composer/platform_check.php; these are the override (tests) and the fallback.
     'platform_check' => env('DEVKIT_PLATFORM_CHECK'),
     'min_php' => env('DEVKIT_MIN_PHP', '8.2'),
+
+    // Services: launchd agents dir and domain uid (overrides for tests; null = ~/Library/LaunchAgents, your uid)
+    'launch_agents_dir' => env('DEVKIT_LAUNCH_AGENTS_DIR'),
+    'uid' => env('DEVKIT_UID'),
 
     // Site name the dashboard is linked as: http://<site>.<tld>
     'site' => env('DEVKIT_SITE', 'devkit'),

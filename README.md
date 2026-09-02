@@ -43,7 +43,8 @@ app/Services/       ValetBridge, BrewBridge, PhpManager, TaskRunner, service dri
 app/Console/        devkit commands
 app/Http/Api/       JSON API (loopback only)
 resources/js/       React SPA
-~/.devkit/          config.json, tasks/, services/<instance>/, logs/, xdebug/
+~/.devkit/          config.json, tasks/, services/<instance>/{service.json,data,conf,run,logs}, logs/, xdebug/
+~/Library/LaunchAgents/dev.zhuk.devkit.svc.<instance>.plist   one launchd agent per service instance
 ```
 
 ## Phases
@@ -52,7 +53,7 @@ resources/js/       React SPA
 |---|---|---|
 | 0 | Brewfile, install.sh, config | done |
 | 1 | shim, Valet passthrough, `php:*`, `db`, `edit`, `ini`; Sites + PHP pages | done |
-| 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | — |
+| 2 | services engine (brew + launchd, multi-instance), `services:*`; Services page | 2a done (engine + CLI: postgresql, mysql, redis) |
 | 3 | `init` / `dev.yml`, client package, Mailpit; Mail page | — |
 | 4 | log watcher; Logs page | — |
 | 5 | Xdebug toggle, then auto-detect | — |

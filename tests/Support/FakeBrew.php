@@ -63,6 +63,25 @@ final class FakeBrew
         return $this;
     }
 
+    /** Any formula with executable stubs, e.g. formula('postgresql@17', '17.6', ['initdb', 'postgres']). */
+    public function formula(string $formula, string $version, array $bins): self
+    {
+        $short = basename($formula);
+        $keg = "{$this->root}/Cellar/{$short}/{$version}";
+        if (! is_dir("$keg/bin")) {
+            mkdir("$keg/bin", 0755, true);
+        }
+        foreach ($bins as $bin) {
+            file_put_contents("$keg/bin/$bin", "#!/bin/sh\necho stub-$bin\n");
+            chmod("$keg/bin/$bin", 0755);
+        }
+        if (! is_link("{$this->root}/opt/{$short}")) {
+            symlink($keg, "{$this->root}/opt/{$short}");
+        }
+
+        return $this;
+    }
+
     public function destroy(): void
     {
         File::deleteDirectory($this->root);
