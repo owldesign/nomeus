@@ -28,6 +28,11 @@ final class RedisDriver extends AbstractDriver
         ];
     }
 
+    public function staleFiles(ServiceInstance $i): array
+    {
+        return [];
+    }
+
     public function env(ServiceInstance $i): array
     {
         return [

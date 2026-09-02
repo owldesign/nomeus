@@ -30,10 +30,10 @@ it('writes a well-formed, escaped plist', function () {
 it('parses launchctl print into loaded/pid/state and reads the disabled list', function () {
     Process::fake([
         '*launchctl*print-disabled*' => Process::result("disabled services = {\n\t\"dev.zhuk.devkit.svc.pg\" => disabled\n\t\"com.apple.x\" => enabled\n}\n"),
-        '*launchctl*print*' => Process::result("gui/501/dev.zhuk.devkit.svc.pg = {\n\tactive count = 1\n\tpath = /x\n\tstate = running\n\n\tpid = 4242\n}\n"),
+        '*launchctl*print*' => Process::result("gui/501/dev.zhuk.devkit.svc.pg = {\n\tactive count = 1\n\tpath = /x\n\tstate = running\n\n\tpid = 4242\n\tlast exit code = 1\n}\n"),
     ]);
 
-    expect($this->m->state('pg'))->toBe(['loaded' => true, 'pid' => 4242, 'state' => 'running', 'disabled' => true])
+    expect($this->m->state('pg'))->toBe(['loaded' => true, 'pid' => 4242, 'state' => 'running', 'last_exit' => 1, 'disabled' => true])
         ->and($this->m->isDisabled('other'))->toBeFalse();
 });
 

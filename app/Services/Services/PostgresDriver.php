@@ -38,6 +38,12 @@ final class PostgresDriver extends AbstractDriver
         ];
     }
 
+    /** postmaster.pid names the pid that owns the data dir — a copy of it points at the source's live server. */
+    public function staleFiles(ServiceInstance $i): array
+    {
+        return [$i->dataDir().'/postmaster.pid', $i->dataDir().'/postmaster.opts'];
+    }
+
     public function env(ServiceInstance $i): array
     {
         return [

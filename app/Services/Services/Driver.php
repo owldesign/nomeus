@@ -35,4 +35,13 @@ interface Driver
 
     /** @return array<string, string> .env lines for a Laravel app using this instance */
     public function env(ServiceInstance $instance): array;
+
+    /**
+     * Lock/identity files the server writes while running and removes on clean shutdown.
+     * clone waits for them to vanish from the source, then strips them from the copy;
+     * start removes them when launchd isn't holding the instance (so they can't be live).
+     *
+     * @return list<string> absolute paths
+     */
+    public function staleFiles(ServiceInstance $instance): array;
 }

@@ -61,6 +61,23 @@ final class TaskRunner
         return $task;
     }
 
+    /**
+     * A task that runs one of devkit's own commands. The API uses this for every mutation that has
+     * a CLI form, so there is one implementation per action and the task log is its streamed output.
+     *
+     * @param  list<string>  $args  e.g. ['services:start', 'redis']
+     * @return array{label:string, argv:list<string>, cwd:string, timeout:int}
+     */
+    public function artisanPlan(string $label, array $args, int $timeout = 900): array
+    {
+        return [
+            'label' => $label,
+            'argv' => [$this->shell->phpBin(), base_path('artisan'), ...$args, '--no-interaction'],
+            'cwd' => base_path(),
+            'timeout' => $timeout,
+        ];
+    }
+
     /** The shell line that re-enters artisan with an explicit env — fpm's own env has no PATH or HOME. */
     public function runCommand(string $id): string
     {

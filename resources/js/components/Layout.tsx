@@ -7,7 +7,7 @@ const NAV: Array<{ to: string; label: string; phase: string; ready: boolean }> =
   { to: '/sites', label: 'Sites', phase: '1', ready: true },
   { to: '/php', label: 'PHP', phase: '1', ready: true },
   { to: '/tasks', label: 'Tasks', phase: '1', ready: true },
-  { to: '/services', label: 'Services', phase: '2', ready: false },
+  { to: '/services', label: 'Services', phase: '2', ready: true },
   { to: '/mail', label: 'Mail', phase: '3', ready: false },
   { to: '/logs', label: 'Logs', phase: '4', ready: false },
   { to: '/debug', label: 'Debug', phase: '5', ready: false },
@@ -52,6 +52,15 @@ function StatusStrip() {
       <Led on={data.services.dnsmasq} label="dnsmasq" />
       <Led on={fpm.length > 0} label={`fpm${fpm.length ? ' ' + fpm.join(' ') : ''}`} />
       <Led on={data.services.mailpit} label="mailpit" />
+      {data.instances.length > 0 && (
+        <>
+          <span className="h-3 w-px bg-line" aria-hidden />
+          <Led
+            on={data.instances.every((i) => i.running)}
+            label={`svc ${data.instances.filter((i) => i.running).length}/${data.instances.length}`}
+          />
+        </>
+      )}
     </div>
   );
 }

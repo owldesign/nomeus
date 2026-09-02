@@ -54,3 +54,9 @@ it('registers the three drivers and rejects unknown types', function () {
     expect(array_keys($r->all()))->toBe(['postgresql', 'mysql', 'redis'])
         ->and(fn () => $r->get('mongo'))->toThrow(RuntimeException::class, 'Unknown service type');
 });
+
+it('names the lock and identity files a clone must not inherit', function () use ($instance) {
+    expect((new PostgresDriver)->staleFiles($instance('postgresql', 'postgresql@17', 1)))->toBe(['/svc/x/data/postmaster.pid', '/svc/x/data/postmaster.opts'])
+        ->and((new MySqlDriver)->staleFiles($instance('mysql', 'mysql@8.4', 1)))->toContain('/svc/x/run/mysql.pid', '/svc/x/data/auto.cnf')
+        ->and((new RedisDriver)->staleFiles($instance('redis', 'redis', 1)))->toBe([]);
+});

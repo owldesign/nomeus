@@ -29,6 +29,7 @@ export interface Status {
     url: string;
     linked: boolean;
   };
+  instances: { name: string; type: string; port: number; running: boolean }[];
 }
 
 export type SiteType = 'parked' | 'linked' | 'proxy';
@@ -86,4 +87,35 @@ export interface PhpState {
   installed: PhpVersion[];
   installable: string[];
   min_php: string;
+}
+
+export interface ServiceStatus {
+  running: boolean;
+  loaded: boolean;
+  pid: number | null;
+  last_exit: number | null;
+  crashing: boolean;
+  disabled: boolean;
+  installed: boolean;
+}
+
+export interface ServiceInstance {
+  name: string;
+  type: string;
+  formula: string;
+  version: string;
+  port: number;
+  dir: string;
+  created_at: string;
+  options: Record<string, unknown>;
+  status: ServiceStatus;
+  env: Record<string, string>;
+  log?: string;
+}
+
+export interface ServiceType {
+  type: string;
+  label: string;
+  default_port: number;
+  formulae: { formula: string; installed: boolean; version: string | null }[];
 }

@@ -112,6 +112,8 @@ final class Shell
             'LANG' => 'en_US.UTF-8',
             'HOMEBREW_NO_AUTO_UPDATE' => '1',
             'HOMEBREW_NO_ENV_HINTS' => '1',
+            'HOMEBREW_NO_INSTALL_CLEANUP' => '1',
+            'NONINTERACTIVE' => '1',   // brew inside a task has no tty to ask on
         ];
     }
 

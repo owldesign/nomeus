@@ -57,15 +57,19 @@ final class ServiceManager
         return $this->drivers->get($i->type);
     }
 
-    /** @return array{running:bool, loaded:bool, pid:?int, disabled:bool, installed:bool} */
+    /** @return array{running:bool, loaded:bool, pid:?int, last_exit:?int, crashing:bool, disabled:bool, installed:bool} */
     public function status(ServiceInstance $i): array
     {
         $launchd = $this->launchd->state($i->name);
+        $running = $this->probe->tcp('127.0.0.1', $i->port);
 
         return [
-            'running' => $this->probe->tcp('127.0.0.1', $i->port),
+            'running' => $running,
             'loaded' => $launchd['loaded'],
             'pid' => $launchd['pid'],
+            'last_exit' => $launchd['last_exit'],
+            // loaded, not answering, and its last run ended non-zero: launchd is relaunching a dying process
+            'crashing' => $launchd['loaded'] && ! $running && $launchd['pid'] === null && ($launchd['last_exit'] ?? 0) !== 0,
             'disabled' => $launchd['disabled'],
             'installed' => $this->brew->isFormulaInstalled($i->formula),
         ];
@@ -162,6 +166,10 @@ final class ServiceManager
 
     public function start(ServiceInstance $i): void
     {
+        // Not held by launchd → no live process owns the data dir → any lock file is stale.
+        if (! $this->launchd->state($i->name)['loaded']) {
+            $this->removeStaleFiles($i);
+        }
         $this->launchd->enable($i->name);
         $this->launchd->bootstrap($i->name);
         $this->waitFor($i, up: true);
@@ -202,6 +210,8 @@ final class ServiceManager
         if ($wasRunning) {
             $log("stopping {$source->name} for a consistent copy");
             $this->stop($source);
+            // The port closes before the shutdown checkpoint finishes; the lock file goes last.
+            $this->waitForStaleFilesGone($source);
         }
 
         $clone = $source->with(['name' => $newName, 'port' => $port, 'dir' => $this->dir().'/'.$newName, 'created_at' => now()->toIso8601String()]);
@@ -210,9 +220,13 @@ final class ServiceManager
         }
         $log("copying data ({$source->dataDir()} → {$clone->dataDir()})");
         File::copyDirectory($source->dataDir(), $clone->dataDir());
+        // copyDirectory creates directories as 0777 & umask (0755); Postgres refuses anything but 0700/0750.
+        // The source's mode is what initdb (or mysqld) chose, so mirror it.
+        chmod($clone->dataDir(), fileperms($source->dataDir()) & 0777);
         if (is_dir($source->confDir())) {
             File::copyDirectory($source->confDir(), $clone->confDir());
         }
+        $this->removeStaleFiles($clone); // whatever slipped into the copy must not name the source's pid or identity
         $clone->save();
         $this->launchd->writePlist($newName, $driver->programArguments($clone, $binDir), $clone->dir, $clone->logFile(), $this->shell->env());
 
@@ -274,6 +288,32 @@ final class ServiceManager
             }
         }
         throw new RuntimeException("No free port near {$preferred}.");
+    }
+
+    private function removeStaleFiles(ServiceInstance $i): void
+    {
+        foreach ($this->driver($i)->staleFiles($i) as $file) {
+            if (file_exists($file) || is_link($file)) {
+                @unlink($file);
+            }
+        }
+    }
+
+    /** Seconds to wait for a stopped server to finish its shutdown (lock file removed). Tests shorten it. */
+    public int $shutdownTimeout = 15;
+
+    private function waitForStaleFilesGone(ServiceInstance $i, ?int $seconds = null): void
+    {
+        $files = $this->driver($i)->staleFiles($i);
+        $deadline = microtime(true) + ($seconds ?? $this->shutdownTimeout);
+        while (microtime(true) < $deadline) {
+            $present = array_filter($files, fn ($f) => file_exists($f) && ! str_ends_with($f, 'auto.cnf'));
+            if ($present === []) {
+                return;
+            }
+            usleep(250_000);
+        }
+        // Give up waiting; the copy is stripped afterwards anyway.
     }
 
     private function defaultName(string $type): string

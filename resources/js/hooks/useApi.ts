@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, del, post } from '@/api/client';
-import type { Enqueued, PhpState, Site, SiteDetail, Status, Task } from '@/api/types';
+import type { Enqueued, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -90,6 +90,7 @@ export function useRefetchAfterTask() {
     qc.invalidateQueries({ queryKey: ['status'] });
     qc.invalidateQueries({ queryKey: ['tasks'] });
     qc.invalidateQueries({ queryKey: ['php'] });
+    qc.invalidateQueries({ queryKey: ['services'] });
   };
 }
 
@@ -115,5 +116,52 @@ export type PhpAction = { version: string; action: 'use' | 'install' | 'update' 
 export function usePhpAction() {
   return useMutation({
     mutationFn: (a: PhpAction) => post<Enqueued>(`/php/${a.version}/${a.action}`),
+  });
+}
+
+export function useServices() {
+  return useQuery({
+    queryKey: ['services'],
+    queryFn: async () => (await api<{ data: ServiceInstance[] }>('/services')).data,
+    refetchInterval: 5000,
+  });
+}
+
+export function useServiceTypes() {
+  return useQuery({
+    queryKey: ['services', 'types'],
+    queryFn: async () => (await api<{ data: ServiceType[] }>('/services/types')).data,
+    staleTime: 60000,
+  });
+}
+
+export function useService(name: string | null, lines = 80) {
+  return useQuery({
+    queryKey: ['services', name, lines],
+    queryFn: async () => (await api<{ data: ServiceInstance }>(`/services/${name}?lines=${lines}`)).data,
+    enabled: name !== null,
+    refetchInterval: 4000,
+  });
+}
+
+export type ServiceAction =
+  | { name: string; action: 'start' | 'stop' | 'restart' }
+  | { name: string; action: 'clone'; newName: string; port?: number }
+  | { name: string; action: 'delete'; keepData: boolean };
+
+export function useServiceAction() {
+  return useMutation({
+    mutationFn: (a: ServiceAction) => {
+      if (a.action === 'clone') return post<Enqueued>(`/services/${a.name}/clone`, { name: a.newName, port: a.port });
+      if (a.action === 'delete') return del<Enqueued>(`/services/${a.name}${a.keepData ? '?keep_data=1' : ''}`);
+      return post<Enqueued>(`/services/${a.name}/${a.action}`);
+    },
+  });
+}
+
+export function useCreateService() {
+  return useMutation({
+    mutationFn: (body: { type: string; version?: string; name?: string; port?: number; start?: boolean }) =>
+      post<Enqueued>('/services', body),
   });
 }

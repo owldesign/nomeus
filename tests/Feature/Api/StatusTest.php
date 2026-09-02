@@ -73,6 +73,7 @@ it('returns the status snapshot', function () {
         ->assertJsonPath('services.mailpit', false)
         ->assertJsonPath('dashboard.url', 'http://devkit.test')
         ->assertJsonPath('dashboard.linked', true)
+        ->assertJsonPath('instances', [])
         ->assertJsonPath('devkit.code_dir', \App\Support\DevkitConfig::homeDir().'/Sites');
 });
 

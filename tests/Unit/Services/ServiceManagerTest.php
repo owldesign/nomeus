@@ -168,6 +168,34 @@ it('clones with data, a new port and a new agent, restoring the source', functio
         ->and(array_map(fn ($i) => $i->name, $this->m->all()))->toBe(['redis', 'redis-copy']);
 });
 
+it('strips the source\'s lock files from a clone and from a cold start', function () {
+    $src = $this->m->create('postgresql');
+    chmod($src->dataDir(), 0700);                                          // what initdb leaves behind
+    file_put_contents($src->dataDir().'/postmaster.pid', "31337\n");   // as if the source were mid-shutdown when copied
+    file_put_contents($src->dataDir().'/base.dat', 'DATA');
+    // the fake bootout doesn't "finish shutting down", so the file stays on the source; clone must still strip the copy
+    $this->m->shutdownTimeout = 0;
+    $clone = $this->m->clone($src, 'pg-copy');
+
+    clearstatcache();
+    expect(file_exists($clone->dataDir().'/postmaster.pid'))->toBeFalse()
+        ->and(file_get_contents($clone->dataDir().'/base.dat'))->toBe('DATA')
+        ->and(fileperms($clone->dataDir()) & 0777)->toBe(0700);            // postgres would refuse 0755
+
+    // cold start of an instance launchd isn't holding: stale lock removed before bootstrap
+    $this->m->stop($clone);
+    file_put_contents($clone->dataDir().'/postmaster.pid', "1\n");
+    $this->m->start($clone);
+    expect(file_exists($clone->dataDir().'/postmaster.pid'))->toBeFalse();
+});
+
+it('reports a crash loop distinctly from starting', function () {
+    $i = $this->m->create('redis', start: false);
+    Process::fake(['*launchctl*print*' => Process::result("state = waiting\n\tlast exit code = 1\n")]); // loaded, no pid, died
+
+    expect($this->m->status($i))->toMatchArray(['running' => false, 'loaded' => true, 'pid' => null, 'last_exit' => 1, 'crashing' => true]);
+});
+
 it('deletes, optionally keeping data, and prints env', function () {
     $this->brewFs->formula('postgresql@16', '16.10', ['initdb', 'postgres']);
     $i = $this->m->create('postgresql', '16', 'pg16', 5440, start: false);

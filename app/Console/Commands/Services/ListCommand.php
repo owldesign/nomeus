@@ -33,6 +33,7 @@ class ListCommand extends Command
             $s = $r['status'];
             $state = match (true) {
                 $s['running'] => '<fg=green>running</>',
+                $s['crashing'] => "<fg=red>crashing (exit {$s['last_exit']}) — services:logs</>",
                 $s['loaded'] => '<fg=yellow>starting</>',
                 $s['disabled'] => '<fg=gray>stopped</>',
                 ! $s['installed'] => '<fg=red>formula missing</>',

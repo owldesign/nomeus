@@ -43,6 +43,17 @@ final class MySqlDriver extends AbstractDriver
         ];
     }
 
+    /** pid + socket locks, and auto.cnf: the server UUID, which a clone must not share. */
+    public function staleFiles(ServiceInstance $i): array
+    {
+        return [
+            $i->runDir().'/mysql.pid',
+            $i->runDir().'/mysql.sock',
+            $i->runDir().'/mysql.sock.lock',
+            $i->dataDir().'/auto.cnf',
+        ];
+    }
+
     public function env(ServiceInstance $i): array
     {
         return [

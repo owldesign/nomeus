@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\PhpController;
+use App\Http\Controllers\Api\ServicesController;
 use App\Http\Controllers\Api\SitesController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\TasksController;
@@ -24,3 +25,13 @@ Route::get('/php', [PhpController::class, 'index'])->name('api.php.index');
 Route::post('/php/{version}/use', [PhpController::class, 'use'])->where('version', '\d+\.\d+')->name('api.php.use');
 Route::post('/php/{version}/install', [PhpController::class, 'install'])->where('version', '\d+\.\d+')->name('api.php.install');
 Route::post('/php/{version}/update', [PhpController::class, 'update'])->where('version', '\d+\.\d+')->name('api.php.update');
+
+Route::get('/services', [ServicesController::class, 'index'])->name('api.services.index');
+Route::get('/services/types', [ServicesController::class, 'types'])->name('api.services.types');
+Route::post('/services', [ServicesController::class, 'store'])->name('api.services.store');
+Route::get('/services/{name}', [ServicesController::class, 'show'])->name('api.services.show');
+Route::post('/services/{name}/start', [ServicesController::class, 'start'])->name('api.services.start');
+Route::post('/services/{name}/stop', [ServicesController::class, 'stop'])->name('api.services.stop');
+Route::post('/services/{name}/restart', [ServicesController::class, 'restart'])->name('api.services.restart');
+Route::post('/services/{name}/clone', [ServicesController::class, 'clone'])->name('api.services.clone');
+Route::delete('/services/{name}', [ServicesController::class, 'destroy'])->name('api.services.destroy');

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devkit · runbook 2b · services api + page</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>devkit <small>· runbook 2b · services api + page</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~15 min · phases 0–4</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>the dashboard drives the 2a engine through tasks that run the CLI</b> — and, in Phase 1 here, the open question from the design review: a launchd agent bootstrapped by a task spawned from php-fpm.
+  Precondition: 2a committed, at least <code>redis</code> and one postgres instance exist.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-2b.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; chmod +x bin/devkit &amp;&amp; vendor/bin/pest &amp;&amp; npx tsc --noEmit &amp;&amp; npm run build &amp;&amp; devkit status | head -2</pre>
+<pre class="out">Tests: 89 passed — +Api/Services 5 · TaskRunner artisanPlan 1 · devkit 0.2.2</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>The launchd-from-fpm question <span class="c">settle it first</span><span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Stop redis from the dashboard, read the task</span></label>
+    <div class="body">
+<pre class="cmd">open http://devkit.test/services</pre>
+<pre class="out">rows: redis · postgresql · fsv-pg … green LEDs, ports, pids · strip shows "svc 3/3"
+redis → stop → enqueuing… → running services:stop redis… → services:stop redis done → LED grey, pid —</pre>
+<pre class="cmd">devkit tasks --limit=1 &amp;&amp; devkit task:log "$(devkit tasks --limit=1 | awk -F'|' 'NR==4{gsub(/ /,"",$2);print $2}')"</pre>
+<pre class="out">done  services:stop redis · log: "redis stopped (127.0.0.1:6380)"</pre>
+    </div>
+    <div class="callout red">If the task is <code>failed</code> and its log says <code>launchctl bootout failed … Domain does not support specified action</code> (or exit 125 on enable/disable), the fpm-spawned task can't reach your login session's launchd. Tell me — the fix is prefixing <code>launchctl asuser &lt;uid&gt;</code> in <code>LaunchdManager</code>, and I'd rather ship it against your output than guess.</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">…and start it again</span></label>
+    <div class="body">
+<pre class="out">redis → start → services:start redis done → LED green · redis-cli -p &lt;port&gt; ping → PONG</pre>
+    </div>
+    <div class="callout gold">Passing both directions means every 2a operation works from the dashboard unchanged, because they all go through the same two launchctl calls.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>The page <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Expand a row</span></label>
+    <div class="body">
+<pre class="out">▸ postgresql → .env block (DB_CONNECTION=pgsql … DB_PORT=…) with "copy .env" · data path · log tail refreshing every 4 s</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">Create from the form</span></label>
+    <div class="body">
+<pre class="out">type PostgreSQL · version "postgresql@17 · installed 17.10" · name placeholder shows what devkit would pick · port placeholder 5432
+name: throwaway → create → task streams "initdb … starting throwaway on 127.0.0.1:&lt;next free&gt;" → new row appears</pre>
+    </div>
+    <div class="callout blue">Picking a version that says "will install" runs <code>brew install</code> inside the task (a minute or two); the Tasks page shows brew's output live. Validation mistakes — a taken name, a bad port, an unknown version — come back as a red line under the form immediately, not as a failed task.</div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">Clone and delete</span></label>
+    <div class="body">
+<pre class="out">throwaway → clone → name throwaway-copy, port blank → clone → "services:clone throwaway → throwaway-copy done" → two rows
+throwaway-copy → delete → "delete throwaway-copy?" keep data ☐ → yes → row gone
+throwaway → delete → keep data ☑ → yes → row gone; ls ~/.devkit/services/throwaway/data still there</pre>
+<pre class="cmd">rm -rf ~/.devkit/services/throwaway</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>API directly <span class="c">optional</span><span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">List, types, one action</span></label>
+    <div class="body">
+<pre class="cmd">curl -s http://devkit.test/api/services | python3 -m json.tool | head -30; curl -s http://devkit.test/api/services/types | python3 -c 'import json,sys; [print(t["type"], [f["formula"] for f in t["formulae"] if f["installed"]]) for t in json.load(sys.stdin)["data"]]'</pre>
+<pre class="out">instances with status + env · postgresql ['postgresql@17'] · mysql [] (or ['mysql'] — brew's) · redis ['redis']</pre>
+<pre class="cmd">curl -s -X POST -H 'X-Devkit: 1' -H 'Accept: application/json' -w '\n' http://devkit.test/api/services/redis/restart</pre>
+<pre class="out">202 {"task":{"label":"services:restart redis","argv":["/opt/homebrew/bin/php","…/artisan","services:restart","redis","--no-interaction"],…}}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Commit and hand-off</h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Commit</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "phase-2b: /api/services, services page, cli-as-task"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="4.2"><label><input type="checkbox"><span class="id">4.2</span><span class="title">Hand-off for 2c</span></label>
+    <div class="body"><p>Paste the pest summary and the 1.1 task log line. 2c: <code>services:adopt</code> (your brew-services clusters → devkit instances, data copied), MariaDB / Meilisearch / Typesense / SeaweedFS / Reverb drivers, <code>services:doctor</code>.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>Task failed: "Domain does not support specified action" / exit 125</b> — see 1.1. Everything else in 2b is fine; this is the one thing php-fpm's session context can change, and it has a one-line fix once confirmed.</div>
+  <div class="callout red"><b>"copy .env" does nothing / says copy failed</b> — the dashboard is on plain http, which browsers don't treat as a secure context, so the clipboard API is absent. devkit falls back to the legacy copy path; if even that fails, the block is select-all: click it, ⌘C. Permanent fix: <code>devkit secure devkit</code> — https://devkit.test is a secure context (the installer now does this when Valet is trusted).</div>
+  <div class="callout red"><b>Task failed with brew "Refusing to load formula … untrusted tap"</b> — a new formula from a tap you haven't trusted. <code>brew trust &lt;tap&gt;</code> once (runbook 0a's Homebrew 6 note).</div>
+  <div class="callout red"><b>Create task stuck "running" for minutes</b> — brew is downloading a bottle. Tasks page → log shows progress; create's timeout is 30 minutes.</div>
+  <div class="callout red"><b>Red LED, "exit 1" in the pid column, restart does nothing</b> — a crash loop: launchd relaunches a process that dies at once. Expand the row: the log says why. Postgres clone with <code>lock file "postmaster.pid" already exists</code> was the first case (the copy carried the source's lock; clone now waits for it and strips it). Manual fix for any leftover: <code>devkit services:stop X &amp;&amp; rm ~/.devkit/services/X/data/postmaster.pid &amp;&amp; devkit services:start X</code> — start also removes stale locks itself now. The second case, <code>data directory … has invalid permissions</code>, was the copy landing as 0755; clone now mirrors the source's 0700. Manual fix: <code>chmod 700 ~/.devkit/services/X/data &amp;&amp; devkit services:restart X</code>.</div>
+  <div class="callout red"><b>Row shows a red LED "formula missing"</b> — the instance's formula was uninstalled behind devkit's back (<code>brew uninstall</code>). <code>brew install &lt;formula&gt;</code> brings it back with the data intact.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'devkit-runbook-2b';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

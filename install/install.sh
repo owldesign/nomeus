@@ -191,6 +191,12 @@ if [[ -f "$DEVKIT_HOME/artisan" ]]; then
       log "valet link devkit"
       valet link devkit
     fi
+    # https for the dashboard: a secure origin is what browsers require for the clipboard API
+    # (and later wss). Only when trusted — otherwise this would prompt for sudo mid-script.
+    if [[ -f /etc/sudoers.d/valet && ! -f "$HOME/.config/valet/Certificates/devkit.test.crt" ]]; then
+      log "valet secure devkit"
+      valet secure devkit
+    fi
   )
 else
   warn "no artisan in $DEVKIT_HOME — Laravel skeleton not scaffolded yet (see docs/runbook-1a-scaffold.html)"

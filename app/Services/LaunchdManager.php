@@ -90,7 +90,7 @@ final class LaunchdManager
 XML;
     }
 
-    /** @return array{loaded:bool, pid:?int, state:?string, disabled:bool} */
+    /** @return array{loaded:bool, pid:?int, state:?string, last_exit:?int, disabled:bool} */
     public function state(string $name): array
     {
         $result = $this->shell->run(['launchctl', 'print', $this->domain().'/'.$this->label($name)], timeout: 15);
@@ -98,11 +98,13 @@ XML;
         $loaded = $result->successful();
         preg_match('/^\s*pid = (\d+)/m', $out, $pid);
         preg_match('/^\s*state = (\S+)/m', $out, $state);
+        preg_match('/^\s*last exit code = (-?\d+|\(never exited\))/m', $out, $exit);
 
         return [
             'loaded' => $loaded,
             'pid' => $loaded && isset($pid[1]) ? (int) $pid[1] : null,
             'state' => $loaded ? ($state[1] ?? null) : null,
+            'last_exit' => $loaded && isset($exit[1]) && is_numeric($exit[1]) ? (int) $exit[1] : null,
             'disabled' => $this->isDisabled($name),
         ];
     }

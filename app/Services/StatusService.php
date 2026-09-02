@@ -16,6 +16,7 @@ final class StatusService
         private readonly Probe $probe,
         private readonly BrewBridge $brew,
         private readonly PhpManager $php,
+        private readonly ServiceManager $services,
     ) {}
 
     public function snapshot(): array
@@ -58,6 +59,13 @@ final class StatusService
                 'url' => "http://{$site}.{$tld}",
                 'linked' => $installed && $this->valet->isLinked($site),
             ],
+            // Port probe only: launchctl per instance is too slow for a 5-second poll.
+            'instances' => array_map(fn ($i) => [
+                'name' => $i->name,
+                'type' => $i->type,
+                'port' => $i->port,
+                'running' => $this->probe->tcp('127.0.0.1', $i->port),
+            ], $this->services->all()),
         ];
     }
 
