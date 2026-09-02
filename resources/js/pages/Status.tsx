@@ -58,7 +58,12 @@ export default function Status() {
             {valet.installed ? (
               <>
                 {valet.version ?? '?'} <span className="text-dim">tld</span> .{valet.tld}{' '}
-                <span className="text-dim">loopback</span> {valet.loopback}
+                <span className="text-dim">loopback</span> {valet.loopback}{' '}
+                {valet.trusted ? (
+                  <span className="text-green">trusted</span>
+                ) : (
+                  <span className="text-gold">not trusted — run devkit trust for dashboard actions</span>
+                )}
               </>
             ) : (
               <span className="text-red">not installed</span>

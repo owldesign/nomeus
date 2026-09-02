@@ -31,10 +31,11 @@ class StatusCommand extends Command
         $site = config('devkit.site');
 
         $valet = $s['valet']['installed']
-            ? sprintf('%s   tld .%s   paths: %s',
+            ? sprintf('%s   tld .%s   paths: %s   %s',
                 $s['valet']['version'] ?? '?',
                 $s['valet']['tld'],
-                $s['valet']['paths'] ? implode(', ', $s['valet']['paths']) : '<fg=yellow>none parked</>')
+                $s['valet']['paths'] ? implode(', ', $s['valet']['paths']) : '<fg=yellow>none parked</>',
+                $s['valet']['trusted'] ? '<fg=green>trusted</>' : '<fg=yellow>not trusted — dashboard actions need: devkit trust</>')
             : '<fg=red>not installed</>';
 
         $this->table([], [

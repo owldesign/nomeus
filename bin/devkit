@@ -30,7 +30,12 @@ cmd="${1:-}"
 if [[ -n "$cmd" ]]; then
   for v in "${VALET_PASSTHROUGH[@]}"; do
     if [[ "$cmd" == "$v" ]]; then
-      command -v valet >/dev/null 2>&1 || { echo "devkit: valet not found on PATH (composer global bin dir?)" >&2; exit 127; }
+      # Invoke Valet through Homebrew's bin symlink: that exact path is what `valet trust`
+      # whitelists in sudoers. Composer's copy prompts for a password on every command.
+      for VALET in /opt/homebrew/bin/valet /usr/local/bin/valet; do
+        [[ -x "$VALET" ]] && exec "$VALET" "$@"
+      done
+      command -v valet >/dev/null 2>&1 || { echo "devkit: valet not found (run install/install.sh)" >&2; exit 127; }
       exec valet "$@"
     fi
   done

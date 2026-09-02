@@ -12,6 +12,8 @@ export interface Status {
     tld: string;
     loopback: string | null;
     paths: string[];
+    bin: string;
+    trusted: boolean;
   };
   php: {
     global: string | null;

@@ -69,15 +69,34 @@ final class ValetBridge
         ));
     }
 
-    /** `valet --version` → "4.12.0". Cached: it boots Valet's PHP app every call. */
+    /**
+     * Valet's version, read from cli/valet.php next to the binary. Running `valet --version`
+     * on 4.12 escalates through sudo (the read-only whitelist is newer than that release), so
+     * the subprocess is only a fallback. Cached briefly either way.
+     */
     public function version(): ?string
     {
         return Cache::remember('devkit.valet.version', 60, function (): ?string {
-            $result = $this->shell->run(['valet', '--version'], timeout: 30);
+            $bin = $this->shell->valetBin();
+            $real = realpath($bin);
+            if ($real !== false) {
+                $file = dirname($real).'/cli/valet.php';
+                if (is_file($file) && preg_match("/\\\$version\s*=\s*'([^']+)'/", (string) file_get_contents($file), $m)) {
+                    return $m[1];
+                }
+            }
+
+            $result = $this->shell->run([$bin, '--version'], timeout: 30);
             preg_match('/(\d+\.\d+\.\d+)/', $result->output(), $m);
 
             return $m[1] ?? null;
         });
+    }
+
+    /** True when `valet trust` has installed its NOPASSWD sudoers rule — required for dashboard actions. */
+    public function isTrusted(): bool
+    {
+        return is_file('/etc/sudoers.d/valet');
     }
 
     public function isLinked(string $site): bool

@@ -38,6 +38,8 @@ final class StatusService
                 'tld' => $tld,
                 'loopback' => $installed ? $this->valet->loopback() : null,
                 'paths' => $installed ? $this->valet->paths() : [],
+                'bin' => $this->shell->valetBin(),
+                'trusted' => $this->valet->isTrusted(),
             ],
             'php' => [
                 'global' => $this->globalPhpVersion(),
@@ -61,7 +63,7 @@ final class StatusService
     {
         $commands = [
             'which' => ['which', 'valet', 'php', 'composer', 'pgrep', 'brew'],
-            'valet --version' => ['valet', '--version'],
+            'valet --version' => [$this->shell->valetBin(), '--version'],
             'php -r PHP_VERSION' => ['php', '-r', 'echo PHP_VERSION;'],
             'pgrep -x nginx' => ['pgrep', '-x', 'nginx'],
             'pgrep -x dnsmasq' => ['pgrep', '-x', 'dnsmasq'],
@@ -73,6 +75,8 @@ final class StatusService
             'sapi' => PHP_SAPI,
             'uid' => function_exists('posix_geteuid') ? posix_geteuid() : null,
             'user' => Shell::currentUser(),
+            'groups' => $this->groups(),
+            'sudoers' => ['valet' => is_file('/etc/sudoers.d/valet'), 'brew' => is_file('/etc/sudoers.d/brew')],
             'env' => $this->shell->env(),
             'commands' => [],
             'sockets' => [],
@@ -98,6 +102,21 @@ final class StatusService
             "{$loopback}:443" => $this->probe->tcp($loopback, 443),
             '127.0.0.1:'.$this->config->get('mail.smtp_port', 1025) => $this->probe->tcp('127.0.0.1', (int) $this->config->get('mail.smtp_port', 1025)),
         ];
+
+        return $out;
+    }
+
+    /** The sudoers rule Valet writes is for %admin (gid 80); fpm's worker has to be in it. */
+    private function groups(): array
+    {
+        if (! function_exists('posix_getgroups')) {
+            return [];
+        }
+        $out = [];
+        foreach (posix_getgroups() as $gid) {
+            $gr = posix_getgrgid($gid);
+            $out[] = ($gr['name'] ?? '?').":{$gid}";
+        }
 
         return $out;
     }

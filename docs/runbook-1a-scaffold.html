@@ -116,8 +116,9 @@ resources/js/{app.tsx, router.tsx, api/client.ts, api/types.ts, hooks/useApi.ts,
 vite.config.ts   tsconfig.json   .env.example
 tests/Pest.php   tests/Unit/DevkitConfigTest.php   tests/Feature/Api/StatusTest.php
 install/install.sh (updated)   docs/runbook-1a-scaffold.html</pre>
-<pre class="cmd">cd ~/Code/devkit &amp;&amp; chmod +x bin/devkit install/install.sh &amp;&amp; bash -n bin/devkit &amp;&amp; echo shim-ok</pre>
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o devkit-1a.zip -d ~/Code/ &amp;&amp; cd devkit &amp;&amp; chmod +x bin/devkit install/install.sh &amp;&amp; bash -n bin/devkit &amp;&amp; echo shim-ok</pre>
     </div>
+    <div class="callout red">Apply slice zips with <code>unzip -o … -d ~/Code/</code> — it overlays files and never deletes. Dragging folders in Finder and choosing "Replace" swaps out whole directories, which silently removes skeleton files (<code>tests/TestCase.php</code>, <code>app/Http/Controllers/Controller.php</code>, <code>routes/console.php</code>, …) that live next to ours. The installer checks for these and prints the restore command.</div>
     <div class="callout gold">Order matters in this phase: our files go in first, then the Laravel skeleton is merged <em>around</em> them with <code>--ignore-existing</code>. That is what lets us ship a full <code>bootstrap/app.php</code>, <code>routes/web.php</code> and <code>.env.example</code> without hand-editing the skeleton's copies.</div>
   </div>
 </section>
@@ -203,6 +204,7 @@ install/install.sh (updated)   docs/runbook-1a-scaffold.html</pre>
 [devkit] linked /opt/homebrew/bin/devkit
 [devkit] then: devkit status   ·   open http://devkit.test</pre>
     </div>
+    <div class="callout gold">Run it with <code>--trust</code> at least once (or <code>devkit trust</code>). The dashboard runs as php-fpm, which can't answer a sudo prompt; <code>valet trust</code>'s NOPASSWD rule is what lets it drive Valet. <code>devkit status</code> shows <span style="color:var(--green,#4ade80)">trusted</span> once it's in place.</div>
     <div class="callout gold">The repo lives in <code>~/Code</code> while sites are parked from <code>~/Sites</code>, so the dashboard is reached by <code>valet link</code>, not by parking. The installer only links when <code>~/.config/valet/Sites/devkit</code> is absent.</div>
   </div>
 
@@ -290,11 +292,13 @@ top strip: php 8.4.25 · valet 4.12.0 · four LEDs · "polled HH:MM:SS" ticks ev
 
   <div class="callout red"><b>devkit.test → 502 Bad Gateway</b> — php-fpm for the global version isn't up.<pre class="cmd">devkit restart &amp;&amp; tail -20 ~/.config/valet/Log/nginx-error.log</pre></div>
   <div class="callout red"><b>devkit.test → Laravel error "Vite manifest not found"</b> — assets never built.<pre class="cmd">npm run build</pre></div>
+  <div class="callout red"><b>fpm diagnostics: "sudo: a terminal is required to read the password"</b> — Valet 4.12 sudo's for every non-read command, and its NOPASSWD rule only matches <code>/opt/homebrew/bin/valet</code>. devkit now always invokes that path; the rule itself comes from:<pre class="cmd">devkit trust &amp;&amp; sudo cat /etc/sudoers.d/valet</pre>Expect <code>Cmnd_Alias VALET = /opt/homebrew/bin/valet *</code> and <code>%admin … NOPASSWD</code>. If <code>diagnostics.groups</code> in the fpm dump lacks <code>admin:80</code>, php-fpm's worker isn't in the admin group and the rule can't apply — say so, that's a different fix.</div>
   <div class="callout red"><b>CLI and /api/status disagree</b> (version null, fpm "unknown", a service "stopped" that curl proves is up) — always the fpm environment. <code>devkit status --diagnose</code> vs <code>/api/status?diagnose=1</code>, see 5.3. Valet's sockets in <code>~/.config/valet/*.sock</code> are the fpm source of truth; pgrep is only the fallback.</div>
   <div class="callout red"><b>Dashboard strip says "api unreachable"</b> — open <code>/api/status</code> directly; a 500 there is a PHP exception, read <code>storage/logs/laravel-*.log</code>. A 403 means you're not on loopback (VPN with a non-loopback route to yourself?).</div>
   <div class="callout red"><b>devkit: command not found</b> — brew's bin dir isn't on PATH in this shell, or the symlink was skipped.<pre class="cmd">ls -l "$(brew --prefix)/bin/devkit" || ./install/install.sh --skip-node</pre></div>
   <div class="callout red"><b>tsc errors in Layout.tsx / Status.tsx</b> — React types missing.<pre class="cmd">npm install -D @types/react @types/react-dom</pre></div>
-  <div class="callout red"><b>pest: "Class Tests\TestCase not found"</b> — 1.2 skipped <code>tests/TestCase.php</code>. Copy it from <code>/tmp/devkit-skel/tests/TestCase.php</code>.</div>
+  <div class="callout red"><b>pest: "Class Tests\TestCase not found"</b> — a skeleton file is gone, almost always because a slice was applied by replacing folders. Re-run the 1.2 rsync (recreate <code>/tmp/devkit-skel</code> via 1.1 if /tmp was cleared); it restores only what's missing.</div>
+  <div class="callout red"><b>zsh: permission denied: devkit</b> — the execute bit on <code>bin/devkit</code> was lost in transit.<pre class="cmd">chmod +x ~/Code/devkit/bin/devkit</pre>The installer now restores it on re-run.</div>
 </section>
 </main>
 

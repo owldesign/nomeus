@@ -16,8 +16,17 @@ beforeEach(function () {
     symlink($this->dir, "{$this->dir}/valet/Sites/devkit");
     file_put_contents("{$this->dir}/config.json", json_encode(['code_dir' => '~/Sites']));
 
+    // A fake Valet install: bin symlink → package dir with cli/valet.php, as `valet install` lays it out.
+    mkdir("{$this->dir}/pkg/cli", 0755, true);
+    file_put_contents("{$this->dir}/pkg/valet", "#!/bin/sh\necho stub\n");
+    chmod("{$this->dir}/pkg/valet", 0755);
+    file_put_contents("{$this->dir}/pkg/cli/valet.php", "<?php\n\$version = '4.12.0';\n");
+    mkdir("{$this->dir}/bin", 0755, true);
+    symlink("{$this->dir}/pkg/valet", "{$this->dir}/bin/valet");
+
     config()->set('devkit.config_path', "{$this->dir}/config.json");
     config()->set('devkit.valet_config_dir', "{$this->dir}/valet");
+    config()->set('devkit.valet_bin', "{$this->dir}/bin/valet");
 
     // Never touch real sockets from the suite; nginx/mailpit liveness is asserted via pgrep fakes below.
     $this->mock(Probe::class, function ($m) {
@@ -48,6 +57,7 @@ it('returns the status snapshot', function () {
         ->assertOk()
         ->assertJsonPath('valet.installed', true)
         ->assertJsonPath('valet.version', '4.12.0')
+        ->assertJsonPath('valet.bin', "{$this->dir}/bin/valet")
         ->assertJsonPath('valet.tld', 'test')
         ->assertJsonPath('valet.paths', ['/Users/me/Sites'])
         ->assertJsonPath('php.global', '8.4.25')
@@ -58,6 +68,17 @@ it('returns the status snapshot', function () {
         ->assertJsonPath('dashboard.url', 'http://devkit.test')
         ->assertJsonPath('dashboard.linked', true)
         ->assertJsonPath('devkit.code_dir', \App\Support\DevkitConfig::homeDir().'/Sites');
+});
+
+it('reads the valet version from cli/valet.php without running valet', function () {
+    Process::fake(['*valet*--version*' => Process::result('', 'sudo: a password is required', 1)]);
+
+    $this->getJson('/api/status')->assertOk()->assertJsonPath('valet.version', '4.12.0');
+    Process::assertNotRan(function ($process) {
+        $cmd = is_array($process->command) ? implode(' ', $process->command) : (string) $process->command;
+
+        return str_contains($cmd, '--version');
+    });
 });
 
 it('reports nginx up when the port answers even if pgrep cannot see it', function () {

@@ -46,6 +46,27 @@ final class Shell
         return "$home/.composer/vendor/bin";
     }
 
+    /**
+     * Valet must be invoked through Homebrew's bin symlink: `valet trust` writes a NOPASSWD
+     * sudoers rule for exactly "<brew>/bin/valet *", and Valet's wrapper hands sudo the
+     * path it was invoked by, unresolved. Any other path prompts for a password — which
+     * php-fpm cannot answer.
+     */
+    public function valetBin(): string
+    {
+        $configured = config('devkit.valet_bin');
+        if (is_string($configured) && $configured !== '' && is_executable($configured)) {
+            return $configured;
+        }
+        $brew = $this->brewPrefix().'/bin/valet';
+        if (is_executable($brew)) {
+            return $brew;
+        }
+        $composer = $this->composerBinDir().'/valet';
+
+        return is_executable($composer) ? $composer : 'valet';
+    }
+
     public static function currentUser(): string
     {
         if (function_exists('posix_getpwuid')) {
@@ -68,9 +89,11 @@ final class Shell
             'HOME' => DevkitConfig::homeDir(),
             'USER' => $user,
             'LOGNAME' => $user,
+            // brew bin before composer bin: `valet` on PATH must resolve to the sudoers-trusted symlink.
             'PATH' => implode(':', [
-                $this->composerBinDir(), "$brew/bin", "$brew/sbin",
+                "$brew/bin", "$brew/sbin",
                 '/usr/bin', '/bin', '/usr/sbin', '/sbin',
+                $this->composerBinDir(),
             ]),
             'LC_ALL' => 'en_US.UTF-8',
             'HOMEBREW_NO_AUTO_UPDATE' => '1',

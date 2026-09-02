@@ -82,8 +82,21 @@ fi
 
 # ── 2. Composer global bin on PATH ────────────────────────────────────────────
 COMPOSER_BIN="$(composer global config bin-dir --absolute 2>/dev/null || echo "$HOME/.composer/vendor/bin")"
-export PATH="$COMPOSER_BIN:$PATH"
-rc_add "$COMPOSER_BIN" "export PATH=\"$COMPOSER_BIN:\$PATH\""
+export PATH="$PATH:$COMPOSER_BIN"
+# Composer bin goes LAST: `valet` must resolve to <brew>/bin/valet, the path `valet trust`
+# whitelists in sudoers. An earlier devkit install prepended it; migrate that line in place.
+OLD_LINE="export PATH=\"$COMPOSER_BIN:\$PATH\""
+NEW_LINE="export PATH=\"\$PATH:$COMPOSER_BIN\""
+if grep -qF -- "$OLD_LINE" "$RC"; then
+  python3 - "$RC" "$OLD_LINE" "$NEW_LINE" <<'PY'
+import sys
+path, old, new = sys.argv[1:4]
+src = open(path).read()
+open(path, 'w').write(src.replace(old, new))
+PY
+  log "moved composer bin to the end of PATH in $RC"
+fi
+rc_add "$COMPOSER_BIN" "$NEW_LINE"
 
 # ── 3. Valet ──────────────────────────────────────────────────────────────────
 if ! command -v valet >/dev/null; then
@@ -154,6 +167,16 @@ fi
 # ── 6. devkit app: deps, build, Valet link, CLI shim ─────────────────────────
 # Each step is skipped when its output already exists, so re-runs are cheap.
 if [[ -f "$DEVKIT_HOME/artisan" ]]; then
+  # Skeleton integrity: these ship with `composer create-project`, not with devkit's slices.
+  # Missing means a slice was applied by replacing directories instead of overlaying files.
+  SKELETON_MISSING=0
+  for f in tests/TestCase.php app/Http/Controllers/Controller.php routes/console.php bootstrap/providers.php config/app.php; do
+    [[ -f "$DEVKIT_HOME/$f" ]] || { warn "skeleton file missing: $f"; SKELETON_MISSING=1; }
+  done
+  if [[ "$SKELETON_MISSING" -eq 1 ]]; then
+    warn "restore with: rsync -a --ignore-existing --exclude .env --exclude .git /tmp/devkit-skel/ $DEVKIT_HOME/   (runbook 1a §1)"
+    warn "apply slices with: unzip -o <slice>.zip -d $(dirname "$DEVKIT_HOME")/   — never by replacing folders"
+  fi
   (
     cd "$DEVKIT_HOME"
     [[ -d vendor ]]       || { log "composer install"; composer install --no-interaction --prefer-dist; }
@@ -173,14 +196,22 @@ else
   warn "no artisan in $DEVKIT_HOME — Laravel skeleton not scaffolded yet (see docs/runbook-1a-scaffold.html)"
 fi
 
-if [[ -x "$DEVKIT_HOME/bin/devkit" ]]; then
+if [[ -f "$DEVKIT_HOME/bin/devkit" ]]; then
+  [[ -x "$DEVKIT_HOME/bin/devkit" ]] || { log "restoring execute bit on bin/devkit"; chmod +x "$DEVKIT_HOME/bin/devkit"; }
   ln -sf "$DEVKIT_HOME/bin/devkit" "$BREW_PREFIX/bin/devkit"
   log "linked $BREW_PREFIX/bin/devkit"
 else
   warn "bin/devkit missing — shim symlink skipped"
 fi
 
-# ── 7. Summary ────────────────────────────────────────────────────────────────
+# ── 7. Trust check ────────────────────────────────────────────────────────────
+# Valet 4.12 sudo's for nearly every command. From a terminal that prompts; from php-fpm
+# (the dashboard) it cannot, so dashboard actions require the NOPASSWD rule `valet trust` writes.
+if [[ ! -f /etc/sudoers.d/valet ]]; then
+  warn "no /etc/sudoers.d/valet — the dashboard cannot run Valet actions until you run: devkit trust   (or re-run with --trust)"
+fi
+
+# ── 8. Summary ────────────────────────────────────────────────────────────────
 echo
 log "done. Open a new shell (or: source $RC), then verify:"
 printf '  %-10s %s\n' "php"     "$(php -v 2>/dev/null | head -1 || echo '?')"

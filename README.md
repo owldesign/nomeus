@@ -17,10 +17,16 @@ cd ~/Code/devkit
 
 The installer bootstraps Homebrew/Valet, then (once the Laravel app is present) runs `composer install`,
 builds the SPA, `valet link`s the dashboard at `http://devkit.test`, and symlinks `bin/devkit` into brew's bin.
-Runbooks for each slice live in `docs/`.
+Runbooks for each slice live in `docs/`. Slices arrive as zips — apply them with
+`unzip -o <slice>.zip -d ~/Code/` (overlay only); never replace directories, which drops
+skeleton files that sit next to devkit's own.
 
 Requires Homebrew. Set `DEVKIT_CODE_DIR` to park a directory other than `~/Code`;
 `DEVKIT_PHP_DEFAULT` to pick a global PHP other than 8.4.
+
+`valet trust` (or `install.sh --trust`) is required for the dashboard: Valet escalates through
+sudo for almost every command, php-fpm can't answer a prompt, and the NOPASSWD rule Valet writes
+matches only `<brew>/bin/valet` — which is the path devkit always uses.
 
 ## Layout
 
