@@ -54,6 +54,11 @@ if [[ "$CHECK" -eq 1 ]]; then
   }
   COMPOSER_BIN="$(composer global config bin-dir --absolute 2>/dev/null || echo "$HOME/.composer/vendor/bin")"
   BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
+  # an existing config.json is the truth for code_dir (the default is only for a first install)
+  if [[ -f "$CONFIG_DIR/config.json" && -z "${DEVKIT_CODE_DIR:-}" ]]; then
+    STORED="$(sed -n 's/.*"code_dir": *"\([^"]*\)".*/\1/p' "$CONFIG_DIR/config.json")"
+    [[ -n "$STORED" ]] && CODE_DIR="${STORED/#\~/$HOME}"
+  fi
   echo "devkit install --check ($DEVKIT_HOME)"
   row 'command -v brew'                                            'homebrew'                    'https://brew.sh'
   row '[[ "$(brew --version | head -1 | sed -E "s/^Homebrew ([0-9]+).*/\1/")" -ge 6 ]]' 'homebrew 6+' 'brew update'

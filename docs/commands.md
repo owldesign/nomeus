@@ -19,7 +19,7 @@ Write a key in ~/.devkit/config.json
 
 ## docs
 
-### `docs:commands [--out=docs/commands.md] [--stdout]`
+### `docs:commands [--out=] [--stdout]`
 
 Regenerate docs/commands.md from the registered devkit commands
 
@@ -41,7 +41,7 @@ Write the auto_prepend_file ini into every installed PHP version (needed once; a
 
 - `--restart` — run `valet restart php` afterwards so php-fpm loads the ini
 
-### `dumps:serve [--port=9912] [--host=127.0.0.1]`
+### `dumps:serve [--port=] [--host=]`
 
 Receive dumps and recorded events (VarDumper server protocol) and store them for the Debug page
 
@@ -60,7 +60,7 @@ Check every layer devkit depends on and name the fix for anything wrong
 
 - `--section` — valet, php, devkit, services, dumps, mail, retention
 
-### `dumps [--kind=] [--lines=20] [--follow]`
+### `dumps [--kind=] [--lines=] [--follow]`
 
 Show recent dumps and recorded events in the terminal
 
@@ -89,7 +89,7 @@ Set a site up from its dev.yml: link, tls, php, node, services, databases, mail,
 - `--dry-run` — show the plan and change nothing
 - `--skip-scripts` — do everything except the post-init commands
 
-### `logs [site] [--file=] [--nginx] [--fpm] [--lines=50] [--level=] [--follow]`
+### `logs [site] [--file=] [--nginx] [--fpm] [--lines=] [--level=] [--follow]`
 
 Show (and follow) a site's Laravel log, or valet's nginx / php-fpm logs
 
@@ -97,7 +97,7 @@ Show (and follow) a site's Laravel log, or valet's nginx / php-fpm logs
 - `--file` — a specific log file name in that site (e.g. laravel-2026-09-02.log)
 - `--nginx` — valet's nginx error log instead
 - `--fpm` — valet's php-fpm log instead
-- `--lines=50` — how many recent entries to start with
+- `--lines` — how many recent entries to start with
 - `--level` — only entries at this severity (error, warning, info, debug)
 - `--follow` — keep printing new entries until Ctrl-C
 
@@ -135,11 +135,11 @@ Show devkit, Valet, PHP and service status
 - `--json` — Emit the snapshot as JSON
 - `--diagnose` — JSON snapshot plus env and raw subprocess output — compare with /api/status?diagnose=1
 
-### `tasks [--limit=20]`
+### `tasks [--limit=]`
 
 Recent background tasks (dashboard actions) and their outcome
 
-- `--limit=20` — How many recent tasks to show
+- `--limit` — How many recent tasks to show
 
 ### `xdebug [--json]`
 
@@ -149,7 +149,7 @@ Xdebug per PHP version: installed, mode, and whether the IDE is listening
 
 ### `php:install <version>`
 
-Install a PHP version from the 
+Install a PHP version from the shivammathur/php tap (streams brew output)
 
 - `version` — e.g. 8.1 or php@8.1
 
@@ -221,7 +221,7 @@ Service instances and their state
 
 - `--json` — Emit as JSON
 
-### `services:logs <name> [--lines=50] [--clear]`
+### `services:logs <name> [--lines=] [--clear]`
 
 Tail a service instance's logs
 

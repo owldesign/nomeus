@@ -17,11 +17,9 @@ brew "nginx"
 brew "dnsmasq"
 brew "composer"                      # pulls homebrew-core `php` as a dependency; `valet use` relinks the active version
 
-# PHP versions — Valet expects the php@X.Y naming. Add php@8.1 / php@8.0 / php@7.4 here if a legacy site needs them.
-brew "shivammathur/php/php@8.2"
-brew "shivammathur/php/php@8.3"
+# The default PHP only. Other versions are `devkit php:install X.Y` (which accepts a homebrew-core php@X.Y
+# or the tap's); listing them here would make `brew bundle check` fail on a machine that got them elsewhere.
 brew "shivammathur/php/php@8.4"
-brew "shivammathur/php/php@8.5"
 
 # Node version management (Herd parity: nvm + .nvmrc)
 brew "nvm"

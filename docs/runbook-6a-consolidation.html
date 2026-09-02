@@ -173,7 +173,7 @@ N ok · N warn · 0 fail</pre>
  18 done, 0 todo
 (then the doctor table)</pre>
     </div>
-    <div class="callout blue">"Brewfile satisfied" may say todo if LaraDumps is still installed — the Brewfile no longer lists it (Phase 5a replaced it); <code>brew uninstall --cask laradumps</code> is optional cleanup, not a requirement. A todo row prints the exact command; a full re-run of <code>install.sh</code> is a no-op when everything is done.</div>
+    <div class="callout blue">The Brewfile now lists only the default PHP; extra versions are <code>devkit php:install</code>'s business, so a homebrew-core <code>php@8.5</code> no longer fails the check. "parked" reads <code>code_dir</code> from config.json. "Brewfile satisfied" may say todo if LaraDumps is still installed — the Brewfile no longer lists it (Phase 5a replaced it); <code>brew uninstall --cask laradumps</code> is optional cleanup, not a requirement. A todo row prints the exact command; a full re-run of <code>install.sh</code> is a no-op when everything is done.</div>
   </div>
 </section>
 
