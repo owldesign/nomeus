@@ -40,6 +40,10 @@ class AppServiceProvider extends ServiceProvider
             $app->make(Shell::class),
             (string) (config('nomeus.launch_agents_dir') ?: \App\Support\Platform::unitsDir()),
         ));
+        // where php comes from: brew on macOS, apt + the root helper on Linux
+        $this->app->singleton(\App\Services\Php\PhpProvider::class, fn ($app) => \App\Support\Platform::isMac()
+            ? $app->make(BrewBridge::class)
+            : new \App\Services\Php\AptPhp($app->make(Shell::class)));
         // the supervisor everyone else asks for: launchd on macOS, systemd --user on Linux
         $this->app->singleton(\App\Services\ProcessManager::class, fn ($app) => \App\Support\Platform::isMac()
             ? $app->make(LaunchdManager::class)

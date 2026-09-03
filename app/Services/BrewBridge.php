@@ -11,7 +11,7 @@ use RuntimeException;
  * shivammathur tap offers, what's outdated. Reads are filesystem-only (safe and instant
  * from php-fpm); `brew outdated` is the one subprocess and is cached.
  */
-final class BrewBridge
+final class BrewBridge implements \App\Services\Php\PhpProvider
 {
     public const TAP = 'shivammathur/php';
 
@@ -264,6 +264,103 @@ final class BrewBridge
             'cwd' => null,
             'timeout' => 1800,
         ];
+    }
+
+    // ── PhpProvider: where php lives under brew ──────────────────────────────
+
+    public function phpBin(string $version): ?string
+    {
+        $bin = $this->prefix()."/opt/php@{$version}/bin/php";
+
+        return is_executable($bin) ? $bin : null;
+    }
+
+    public function iniDirs(string $version): array
+    {
+        return [$this->prefix()."/etc/php/{$version}/conf.d"];
+    }
+
+    public function writeIni(string $version, string $name, string $content): void
+    {
+        foreach ($this->iniDirs($version) as $dir) {
+            if (! is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            file_put_contents("{$dir}/{$name}", $content, LOCK_EX);
+        }
+    }
+
+    public function removeIni(string $version, string $name): void
+    {
+        foreach ($this->iniDirs($version) as $dir) {
+            @unlink("{$dir}/{$name}");
+        }
+    }
+
+    public function restartFpmPlans(): array
+    {
+        return [['label' => 'valet restart php', 'argv' => [$this->shell->valetBin(), 'restart', 'php'], 'cwd' => null, 'timeout' => 120]];
+    }
+
+    public function extensionInstallPlans(string $version, string $ext): array
+    {
+        $formula = "shivammathur/extensions/{$ext}@{$version}";
+
+        return array_values(array_filter([$this->trustTapPlan($formula), $this->installFormulaPlan($formula)]));
+    }
+
+    public function xdebugInstallPlans(string $version): array
+    {
+        return $this->extensionInstallPlans($version, 'xdebug');
+    }
+
+    /** The tap's ini names the .so; the opt path is the fallback. */
+    public function xdebugSoCandidates(string $version): array
+    {
+        $out = [];
+        foreach ([$this->xdebugTapIni($version), $this->xdebugTapIni($version).'.nomeus-off'] as $ini) {
+            if (is_file($ini) && preg_match('/^\s*zend_extension\s*=\s*"?([^"\s]+)"?/m', (string) file_get_contents($ini), $m)) {
+                $out[] = $m[1];
+            }
+        }
+        $out[] = $this->prefix()."/opt/xdebug@{$version}/xdebug.so";
+
+        return array_values(array_unique($out));
+    }
+
+    public function xdebugTapIni(string $version): string
+    {
+        return $this->prefix()."/etc/php/{$version}/conf.d/20-xdebug.ini";
+    }
+
+    public function xdebugVendorIniPresent(string $version): bool
+    {
+        return is_file($this->xdebugTapIni($version));
+    }
+
+    public function quarantineXdebug(string $version): bool
+    {
+        $ini = $this->xdebugTapIni($version);
+        if (! is_file($ini)) {
+            return false;
+        }
+        if (! rename($ini, $ini.'.nomeus-off')) {
+            throw new RuntimeException("Could not move {$ini} aside.");
+        }
+
+        return true;
+    }
+
+    public function unquarantineXdebug(string $version): bool
+    {
+        $ini = $this->xdebugTapIni($version);
+
+        return is_file($ini.'.nomeus-off') && rename($ini.'.nomeus-off', $ini);
+    }
+
+    public function sourceName(): string
+    {
+        return 'brew';
     }
 
     public function assertVersion(string $version): string

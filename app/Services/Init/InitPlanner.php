@@ -26,6 +26,7 @@ final class InitPlanner
         private readonly Shell $shell,
         private readonly \App\Services\Php\PhpExtensions $extensions,
         private readonly \App\Services\Node\NodeManager $node,
+        private readonly \App\Services\Php\PhpProvider $php,
     ) {}
 
     /** @return list<Step> */
@@ -238,7 +239,7 @@ final class InitPlanner
     private function sh(Manifest $m, array $argv, callable $log, int $timeout): void
     {
         $site = $this->valet->find($m->domain);
-        $phpBin = $site?->php ? $this->brew->prefix()."/opt/php@{$site->php}/bin" : $this->brew->prefix().'/bin';
+        $phpBin = $site?->php && ($bin = $this->php->phpBin($site->php)) ? dirname($bin) : $this->brew->prefix().'/bin';
         $env = $this->shell->env();
         $env['PATH'] = $phpBin.':'.$env['PATH'];
         // scripts that touch node (npm ci, vite build) run under the site's pinned version

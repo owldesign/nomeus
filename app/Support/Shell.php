@@ -148,11 +148,14 @@ final class Shell
     }
 
     /** @param  array<int, string>|string  $command */
-    public function run(array|string $command, ?string $cwd = null, int $timeout = 120, ?callable $output = null): ProcessResult
+    public function run(array|string $command, ?string $cwd = null, int $timeout = 120, ?callable $output = null, ?string $input = null): ProcessResult
     {
         $process = Process::env($this->env())->timeout($timeout);
         if ($cwd !== null) {
             $process = $process->path($cwd);
+        }
+        if ($input !== null) {
+            $process = $process->input($input);
         }
 
         return $process->run($command, $output);

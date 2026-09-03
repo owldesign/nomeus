@@ -11,7 +11,7 @@ beforeEach(function () {
     $this->w = new FakeServicesWorld;
     $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, new \App\Services\Dumps\CaptureFlag($this->w->config), $this->w->shell, new \App\Services\Php\XdebugState($this->w->config));
     $this->node = new \App\Services\Node\NodeManager($this->w->brew, $this->w->shell);
-    $this->planner = new InitPlanner($this->w->valet, $this->w->manager, new DriverRegistry, $this->w->brew, $this->w->shell, new \App\Services\Php\PhpExtensions($this->w->brew, $this->w->shell, $prepend), $this->node);
+    $this->planner = new InitPlanner($this->w->valet, $this->w->manager, new DriverRegistry, $this->w->brew, $this->w->shell, new \App\Services\Php\PhpExtensions($this->w->brew, $this->w->shell, $prepend), $this->node, $this->w->brew);
     $this->runner = new InitRunner($this->planner);
     $this->site = realpath($this->w->valetFs->parked('smoke', laravel: true));
     file_put_contents("{$this->site}/.env.example", "APP_NAME=Laravel\nAPP_URL=http://localhost\nMAIL_MAILER=log\n");

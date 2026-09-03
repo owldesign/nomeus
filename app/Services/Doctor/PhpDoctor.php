@@ -10,7 +10,7 @@ use App\Services\PhpManager;
 final class PhpDoctor implements Section
 {
     public function __construct(
-        private readonly BrewBridge $brew,
+        private readonly \App\Services\Php\PhpProvider $brew,
         private readonly PhpManager $php,
         private readonly PrependInstaller $prepend,
         private readonly XdebugManager $xdebug,
@@ -29,7 +29,7 @@ final class PhpDoctor implements Section
         $r = new Rows;
         $installed = $this->brew->installedPhp();
         if ($installed === []) {
-            return $r->fail('installed', 'no brew php — nomeus php:install 8.4')->all();
+            return $r->fail('installed', 'no php from '.$this->brew->sourceName().' — nomeus php:install 8.4')->all();
         }
         $linked = $this->brew->linkedPhp();
         $r->expect($linked !== null, 'linked', "php {$linked} ({$this->brew->phpPatch((string) $linked)})", 'no linked php — nomeus php:use 8.4');
@@ -37,7 +37,7 @@ final class PhpDoctor implements Section
         $r->expect($running !== [] && $running !== ['unknown'], 'php-fpm', 'running: '.implode(', ', $running), 'no php-fpm socket answers — valet restart php');
 
         $outdated = $this->brew->outdatedPhp();
-        $r->expect($outdated === [], 'brew outdated', 'all php versions current', 'outdated: '.implode(', ', array_map(fn ($v, $patch) => "php {$v} → {$patch}", array_keys($outdated), $outdated)).' — nomeus php:update <version>', 'warn');
+        $r->expect($outdated === [], $this->brew->sourceName().' outdated', 'all php versions current', 'outdated: '.implode(', ', array_map(fn ($v, $patch) => "php {$v} → {$patch}", array_keys($outdated), $outdated)).' — nomeus php:update <version>', 'warn');
 
         $ini = $this->prepend->status();
         foreach ($installed as $v) {
@@ -50,7 +50,7 @@ final class PhpDoctor implements Section
                 continue;
             }
             if ($x['tap_ini']) {
-                $r->warn("xdebug php {$v}", "the formula's 20-xdebug.ini is back (brew upgrade?) — nomeus xdebug:mode {$x['mode']} --php={$v} re-quarantines it");
+                $r->warn("xdebug php {$v}", "the vendor's 20-xdebug.ini is back (an upgrade?) — nomeus xdebug:mode {$x['mode']} --php={$v} re-quarantines it");
             } elseif ($x['mode'] === 'detect' && ! $this->xdebug->watcher()['running']) {
                 $r->warn("xdebug php {$v}", "detect mode but the watcher agent is not running — nomeus xdebug:mode detect --php={$v} re-installs it (log: ~/.nomeus/php/xdebug-detect.log)");
             } elseif ($x['mode'] === 'on' && ! $ide) {

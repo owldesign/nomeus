@@ -2,7 +2,6 @@
 
 namespace App\Services\Php;
 
-use App\Services\BrewBridge;
 use App\Services\Dumps\PrependInstaller;
 use App\Support\Shell;
 use RuntimeException;
@@ -14,7 +13,7 @@ use RuntimeException;
 final class PhpExtensions
 {
     public function __construct(
-        private readonly BrewBridge $brew,
+        private readonly PhpProvider $brew,   // BrewBridge on macOS, AptPhp on Linux
         private readonly Shell $shell,
         private readonly PrependInstaller $prepend,
     ) {}
@@ -27,8 +26,8 @@ final class PhpExtensions
     /** Lowercased `php -m` of that version's binary. @return list<string> */
     public function loaded(string $version): array
     {
-        $php = $this->brew->prefix()."/opt/php@{$version}/bin/php";
-        if (! is_executable($php)) {
+        $php = $this->brew->phpBin($version);
+        if ($php === null) {
             return [];
         }
         $out = $this->shell->run([$php, '-m'], timeout: 20)->output();
@@ -68,19 +67,18 @@ final class PhpExtensions
 
             return;
         }
-        $formula = $this->formula($version, $ext);
-        foreach (array_filter([$this->brew->trustTapPlan($formula), $this->brew->installFormulaPlan($formula)]) as $plan) {
+        foreach ($this->brew->extensionInstallPlans($version, $ext) as $plan) {
             $log($plan['label']);
             $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($t, $b) => $log(rtrim($b)));
             if (! $result->successful()) {
-                throw new RuntimeException("{$plan['label']} failed (exit {$result->exitCode()}) — brew search shivammathur/extensions/{$ext} lists what exists for {$version}");
+                throw new RuntimeException("{$plan['label']} failed (exit {$result->exitCode()}) — ".($this->brew->sourceName() === 'brew' ? "brew search shivammathur/extensions/{$ext} lists what exists for {$version}" : "apt-cache search php{$version}- lists what the PPA has"));
             }
         }
         if ($restart) {
             $this->prepend->restartAndWait($log);
         }
         if (! $this->has($version, $ext)) {
-            throw new RuntimeException("{$ext} installed but php {$version} does not list it — {$this->brew->prefix()}/opt/php@{$version}/bin/php --ini");
+            throw new RuntimeException("{$ext} installed but php {$version} does not list it — ".($this->brew->phpBin($version) ?? 'php').' --ini');
         }
         $log("php {$version}: {$ext} loaded");
     }

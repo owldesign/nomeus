@@ -42,9 +42,10 @@ class IniCommand extends Command
             return self::FAILURE;
         }
 
+        $etc = dirname(app(\App\Services\Php\PhpProvider::class)->iniDirs($version)[0] ?? $brew->prefix()."/etc/php/{$version}/conf.d");
         $path = $this->option('fpm')
-            ? $brew->prefix()."/etc/php/{$version}/php-fpm.d/valet-fpm.conf"
-            : $brew->prefix()."/etc/php/{$version}/php.ini";
+            ? "{$etc}/php-fpm.d/valet-fpm.conf"
+            : "{$etc}/php.ini";
 
         if (! is_file($path)) {
             $this->error("Not found: {$path}".($this->option('fpm') ? ' — Valet writes it on first `use`/`isolate` of that version.' : ''));

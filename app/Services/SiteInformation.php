@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Cache;
 /** `php artisan about --json` for a Laravel site, cached briefly. null for non-Laravel sites or failures. */
 final class SiteInformation
 {
-    public function __construct(private readonly Shell $shell) {}
+    public function __construct(private readonly Shell $shell, private readonly \App\Services\Php\PhpProvider $php) {}
 
     /** Why the last about() returned null, if it did (not cached — describes this process's attempt). */
     public ?string $lastError = null;
@@ -29,7 +29,7 @@ final class SiteInformation
 
         // the site's own php when isolated, so `about` reports what the site actually runs on
         $php = 'php';
-        if ($site->php !== null && is_executable($bin = $this->shell->brewPrefix()."/opt/php@{$site->php}/bin/php")) {
+        if ($site->php !== null && ($bin = $this->php->phpBin($site->php)) !== null) {
             $php = $bin;
         }
         $result = $this->shell->run([$php, 'artisan', 'about', '--json'], cwd: $site->path, timeout: 60);

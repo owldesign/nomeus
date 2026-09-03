@@ -1,0 +1,3 @@
+# nomeus — lets the user run the root helper (a fixed set of verbs) without a password.
+# Installed by install/install-linux.sh as /etc/sudoers.d/nomeus with __USER__ replaced.
+__USER__ ALL=(root) NOPASSWD: /usr/local/bin/nomeus-helper

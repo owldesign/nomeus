@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nomeus · runbook 7g-2a · php on linux</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>nomeus <small>· runbook 7g-2a · php on linux (the provider)</small></h1>
+    <span class="c" style="color:var(--dim)">macOS + the Ubuntu VM · ~20 min · phases 0–3</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>on the Mac, nothing changed (again); on the VM, the root helper and <code>AptPhp</code> can read and write PHP the apt way</b> — versions, ini, fpm restart, an extension — before Valet or the installer exist there.
+  Precondition: 7g-1 committed; the VM from 7g-1 phase 2 with Homebrew.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Mac: apply, test, doctor <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-7g2a.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; chmod +x install/linux/nomeus-helper &amp;&amp; vendor/bin/pest &amp;&amp; nomeus doctor | tail -1 &amp;&amp; nomeus xdebug &amp;&amp; nomeus php:ext | head -2</pre>
+<pre class="out">Tests: 218 passed — +AptPhp 2 · NomeusHelper 2 · nomeus 1.8.0 · doctor unchanged · xdebug table unchanged · php 8.4 N extensions</pre>
+    </div>
+    <div class="callout gold">The three PHP services now ask <code>PhpProvider</code> for everything; on the Mac the provider <em>is</em> <code>BrewBridge</code>, so the ini files, the quarantine, the restarts are byte-for-byte what they were. <code>nomeus dumps:install</code> reporting "unchanged" for every version is the proof.</div>
+  </div>
+
+  <div class="step" data-step="0.2"><label><input type="checkbox"><span class="id">0.2</span><span class="title">Same ini, same restart</span></label>
+    <div class="body">
+<pre class="cmd">nomeus dumps:install &amp;&amp; nomeus xdebug:mode trigger &amp;&amp; nomeus xdebug:mode trigger</pre>
+<pre class="out">ini unchanged for 8.1 … 8.5 · first mode call: whatever it was → trigger (restart) · second: (ini unchanged)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>VM: PHP from the PPA, the helper <span class="t">~8 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">PPA + php 8.4 + the helper and its sudoers rule</span></label>
+    <div class="body">
+<pre class="cmd">ssh &lt;vm&gt;
+sudo add-apt-repository -y ppa:ondrej/php &amp;&amp; sudo apt update &amp;&amp; sudo apt install -y php8.4-cli php8.4-fpm php8.4-common php8.4-mbstring php8.4-xml php8.4-curl php8.4-zip php8.4-sqlite3
+git clone --depth 1 https://github.com/owldesign/nomeus.git ~/.nomeus/app  # or scp the checkout
+sudo install -m 0755 ~/.nomeus/app/install/linux/nomeus-helper /usr/local/bin/nomeus-helper
+sed "s/__USER__/$USER/" ~/.nomeus/app/install/linux/sudoers.nomeus | sudo tee /etc/sudoers.d/nomeus &gt;/dev/null &amp;&amp; sudo chmod 0440 /etc/sudoers.d/nomeus &amp;&amp; sudo visudo -cf /etc/sudoers.d/nomeus
+sudo -n /usr/local/bin/nomeus-helper restart-fpm 8.4 &amp;&amp; echo helper-ok</pre>
+<pre class="out">/etc/sudoers.d/nomeus: parsed OK · helper-ok (no password asked: the rule works)</pre>
+    </div>
+    <div class="callout gold">That's the entire root surface of nomeus on Linux: one script, six verbs, every argument validated, no shell. <code>sudo -n</code> means "never prompt" — if the rule is missing, nomeus fails fast with the message instead of hanging on a password prompt inside a task.</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">AptPhp reads the machine</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/.nomeus/app &amp;&amp; php8.4 /home/linuxbrew/.linuxbrew/bin/composer install --no-interaction 2&gt;&amp;1 | tail -1; cp -n .env.example .env; php8.4 artisan key:generate -q
+NOMEUS_PLATFORM=linux php8.4 artisan tinker --execute='$p = app(App\Services\Php\PhpProvider::class); dump(get_class($p), $p->installedPhp(), $p->linkedPhp(), $p->phpPatch("8.4"), $p->iniDirs("8.4"), $p->xdebugSoCandidates("8.4"));'</pre>
+<pre class="out">"App\Services\Php\AptPhp" · ["8.4"] · "8.4" · "8.4.x" · ["/etc/php/8.4/cli/conf.d", "/etc/php/8.4/fpm/conf.d"] · ["/usr/lib/php/2024…/xdebug.so"]</pre>
+    </div>
+    <div class="callout blue">composer for the VM: <code>brew install composer</code> (Linuxbrew) or the PPA's — either. <code>NOMEUS_PLATFORM</code> isn't needed on a real Linux box (detection does it); it's shown so the same line reads on the Mac if you're curious.</div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">Write the ini through the helper, restart fpm, install an extension</span></label>
+    <div class="body">
+<pre class="cmd">php8.4 artisan dumps:install --restart &amp;&amp; ls -l /etc/php/8.4/*/conf.d/99-nomeus.ini &amp;&amp; php8.4 artisan php:ext redis --php=8.4 &amp;&amp; php8.4 -m | grep -i redis</pre>
+<pre class="out">ini written for 8.4 · systemctl restart php8.4-fpm · php-fpm back? — see the callout · two 99-nomeus.ini files (cli, fpm) owned by root · apt install php8.4-redis · php 8.4: redis loaded · redis</pre>
+    </div>
+    <div class="callout red">"php-fpm did not come back" on the VM is expected at this stage: the readiness check looks for Valet's sockets, which don't exist until 7g-2b. The ini files and the restart itself are what 7g-2a delivers; the log lines before the wait are the proof.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>Commit</h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Commit, push, tag</span></label>
+    <div class="body">
+<pre class="cmd">git pull --rebase origin main; git add -A &amp;&amp; git commit -m "7g-2a: PhpProvider (brew/apt), AptPhp, the linux root helper" &amp;&amp; git push &amp;&amp; git tag -a v1.8.0 -m "nomeus 1.8.0 — php on linux" &amp;&amp; git push --tags</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">Hand-off</span></label>
+    <div class="body"><p>Paste 1.2's dump and 1.3's first lines. 7g-2b: <code>ValetBridge</code> on valet-linux-plus, the Ubuntu installer (PPA, nginx, dnsmasq, composer, valet-linux-plus, Linuxbrew, fnm, helper + sudoers, linger), Valet's sockets in the readiness check.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>helper: "sudo: a password is required"</b> — the sudoers file isn't in place, has the wrong user, or the wrong mode (must be 0440). <code>sudo visudo -cf /etc/sudoers.d/nomeus</code>; the user must match <code>$USER</code>.</div>
+  <div class="callout red"><b>AptPhp lists no versions</b> — it needs both <code>/etc/php/X.Y</code> and <code>/usr/bin/phpX.Y</code>; the PPA's <code>phpX.Y-cli</code> package provides the latter.</div>
+  <div class="callout red"><b>The Mac's doctor or xdebug table changed after the overlay</b> — it shouldn't; paste it. The provider binding is in <code>AppServiceProvider</code>: <code>PhpProvider</code> → <code>BrewBridge</code> when <code>Platform::isMac()</code>.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'nomeus-runbook-7g2a';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# nomeus root helper — the only thing nomeus runs with sudo on Linux (NOPASSWD via /etc/sudoers.d/nomeus).
+# A fixed set of verbs; every argument is validated; no shell is ever spawned from user input.
+#
+#   write-ini <php-version> <cli|fpm|all> <name>   content on stdin → /etc/php/<v>/<sapi>/conf.d/<name>
+#   rm-ini    <php-version> <name>
+#   restart-fpm <php-version>                       systemctl restart php<v>-fpm
+#   apt-install <pkg…>                              packages matching ^php[0-9.]*(-[a-z0-9-]+)?$|^nginx$|^dnsmasq$
+#   apt-upgrade <prefix>                            apt-get install --only-upgrade '<prefix>*'
+#   dismod / enmod <php-version> <module>           phpdismod / phpenmod -v <v> -s ALL <module>
+set -euo pipefail
+
+die() { echo "nomeus-helper: $*" >&2; exit 2; }
+[[ "${EUID}" -eq 0 ]] || die "must run as root (via sudo)"
+ver() { [[ "$1" =~ ^[0-9]+\.[0-9]+$ ]] || die "bad php version: $1"; }
+name() { [[ "$1" =~ ^[A-Za-z0-9._-]+\.ini$ ]] || die "bad ini name: $1"; }
+mod() { [[ "$1" =~ ^[a-z0-9_]+$ ]] || die "bad module: $1"; }
+pkg() { [[ "$1" =~ ^php[0-9.]*(-[a-z0-9-]+)?$ || "$1" == nginx || "$1" == dnsmasq ]] || die "package not allowed: $1"; }
+
+verb="${1:-}"; shift || true
+case "$verb" in
+  write-ini)
+    [[ $# -eq 3 ]] || die "usage: write-ini <version> <cli|fpm|all> <name>"
+    ver "$1"; name "$3"
+    case "$2" in cli|fpm) sapis=("$2") ;; all) sapis=(cli fpm) ;; *) die "bad sapi: $2" ;; esac
+    tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+    cat > "$tmp"                                   # stdin byte-for-byte (no $(cat): that strips trailing newlines)
+    for s in "${sapis[@]}"; do
+      dir="/etc/php/$1/$s/conf.d"
+      [[ -d "$dir" ]] || continue
+      install -m 0644 "$tmp" "$dir/$3"
+    done ;;
+  rm-ini)
+    [[ $# -eq 2 ]] || die "usage: rm-ini <version> <name>"
+    ver "$1"; name "$2"
+    rm -f "/etc/php/$1/cli/conf.d/$2" "/etc/php/$1/fpm/conf.d/$2" ;;
+  restart-fpm)
+    [[ $# -eq 1 ]] || die "usage: restart-fpm <version>"
+    ver "$1"
+    systemctl restart "php$1-fpm" ;;
+  apt-install)
+    [[ $# -ge 1 ]] || die "usage: apt-install <pkg…>"
+    for p in "$@"; do pkg "$p"; done
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$@" ;;
+  apt-upgrade)
+    [[ $# -eq 1 ]] || die "usage: apt-upgrade <prefix>"
+    [[ "$1" =~ ^php[0-9.]+$ ]] || die "upgrade prefix must be phpX.Y: $1"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --only-upgrade "$1"'*' ;;
+  dismod|enmod)
+    [[ $# -eq 2 ]] || die "usage: $verb <version> <module>"
+    ver "$1"; mod "$2"
+    if [[ "$verb" == dismod ]]; then phpdismod -v "$1" -s ALL "$2"; else phpenmod -v "$1" -s ALL "$2"; fi ;;
+  *) die "unknown verb: ${verb:-(none)}" ;;
+esac

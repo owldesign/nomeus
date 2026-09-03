@@ -2,7 +2,7 @@
 
 namespace App\Services\Dumps;
 
-use App\Services\BrewBridge;
+use App\Services\Php\PhpProvider;
 use App\Services\Php\IniManager;
 use App\Services\Php\XdebugState;
 use App\Support\NomeusConfig;
@@ -19,7 +19,7 @@ final class PrependInstaller
 
     public function __construct(
         private readonly NomeusConfig $config,
-        private readonly BrewBridge $brew,
+        private readonly PhpProvider $brew,   // "brew" by history: the macOS provider is BrewBridge; on Linux it is AptPhp
         private readonly CaptureFlag $flag,
         private readonly Shell $shell,
         private readonly XdebugState $xdebug,
@@ -35,9 +35,16 @@ final class PrependInstaller
         return $this->config->dir().'/php/prepend.php';
     }
 
+    /** The first ini location (macOS has one; Linux has cli and fpm — see iniPaths). */
     public function iniPath(string $version): string
     {
-        return $this->brew->prefix()."/etc/php/{$version}/conf.d/".self::INI;
+        return ($this->brew->iniDirs($version)[0] ?? "/etc/php/{$version}/conf.d").'/'.self::INI;
+    }
+
+    /** @return list<string> every ini location for the version */
+    public function iniPaths(string $version): array
+    {
+        return array_map(fn ($d) => "{$d}/".self::INI, $this->brew->iniDirs($version));
     }
 
     public function host(): string
@@ -73,15 +80,21 @@ final class PrependInstaller
         $written = [];
         $unchanged = [];
         foreach ($this->brew->installedPhp() as $version) {
-            $ini = $this->iniPath($version);
-            if (! is_dir(dirname($ini))) {
-                throw new RuntimeException("php@{$version} has no conf.d at ".dirname($ini));
+            $paths = $this->iniPaths($version);
+            if ($paths === []) {
+                throw new RuntimeException("php@{$version} has no conf.d directory");
             }
-            if (is_file($ini) && file_get_contents($ini) === $this->iniSource($version)) {
+            $current = true;
+            foreach ($paths as $ini) {
+                if (! is_file($ini) || file_get_contents($ini) !== $this->iniSource($version)) {
+                    $current = false;
+                }
+            }
+            if ($current) {
                 $unchanged[] = $version;
                 continue;
             }
-            $this->write($ini, $this->iniSource($version));
+            $this->brew->writeIni($version, self::INI, $this->iniSource($version));   // direct on macOS, root helper on Linux
             $written[] = $version;
         }
 
@@ -93,8 +106,10 @@ final class PrependInstaller
     {
         $out = [];
         foreach ($this->brew->installedPhp() as $version) {
-            $ini = $this->iniPath($version);
-            $out[$version] = ['ini' => is_file($ini), 'current' => is_file($ini) && file_get_contents($ini) === $this->iniSource($version)];
+            $paths = $this->iniPaths($version);
+            $exists = $paths !== [] && array_reduce($paths, fn ($c, $p) => $c && is_file($p), true);
+            $current = $exists && array_reduce($paths, fn ($c, $p) => $c && file_get_contents($p) === $this->iniSource($version), true);
+            $out[$version] = ['ini' => $exists, 'current' => $current];
         }
 
         return $out;
@@ -105,10 +120,16 @@ final class PrependInstaller
         return is_file($this->prependPath()) && file_get_contents($this->prependPath()) === $this->prependSource();
     }
 
-    /** `valet restart php` — all versions' fpm daemons, through valet's sudoers. */
+    /** The first restart plan (macOS: `valet restart php`, all versions at once); Linux has one per version — see restartPlans(). */
     public function restartPlan(): array
     {
-        return ['label' => 'valet restart php', 'argv' => [$this->shell->valetBin(), 'restart', 'php'], 'cwd' => null, 'timeout' => 120];
+        return $this->brew->restartFpmPlans()[0] ?? ['label' => 'valet restart php', 'argv' => [$this->shell->valetBin(), 'restart', 'php'], 'cwd' => null, 'timeout' => 120];
+    }
+
+    /** @return list<array> */
+    public function restartPlans(): array
+    {
+        return $this->brew->restartFpmPlans();
     }
 
     /**
@@ -120,11 +141,12 @@ final class PrependInstaller
      */
     public function restartAndWait(callable $log, int $seconds = 15): void
     {
-        $plan = $this->restartPlan();
-        $log($plan['label']);
-        $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($t, $b) => $log(rtrim($b)));
-        if (! $result->successful()) {
-            throw new RuntimeException('valet restart php failed: '.trim($result->errorOutput() ?: $result->output()));
+        foreach ($this->restartPlans() as $plan) {
+            $log($plan['label']);
+            $result = $this->shell->run($plan['argv'], null, $plan['timeout'], fn ($t, $b) => $log(rtrim($b)));
+            if (! $result->successful()) {
+                throw new RuntimeException("{$plan['label']} failed: ".trim($result->errorOutput() ?: $result->output()));
+            }
         }
         $php = app(\App\Services\PhpManager::class);
         $deadline = microtime(true) + $seconds;

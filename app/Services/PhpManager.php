@@ -11,7 +11,7 @@ use RuntimeException;
 final class PhpManager
 {
     public function __construct(
-        private readonly BrewBridge $brew,
+        private readonly \App\Services\Php\PhpProvider $brew,   // BrewBridge on macOS, AptPhp on Linux
         private readonly ValetBridge $valet,
         private readonly Shell $shell,
         private readonly Probe $probe,
@@ -23,7 +23,6 @@ final class PhpManager
         $linked = $this->brew->linkedPhp();
         $outdated = $this->brew->outdatedPhp();
         $fpm = $this->runningFpmVersions();
-        $prefix = $this->brew->prefix();
 
         $usedBy = [];
         if ($this->valet->isInstalled()) {
@@ -46,8 +45,8 @@ final class PhpManager
                 linked: $v === $linked,
                 fpm: in_array($v, $fpm, true),
                 sites: $usedBy[$v] ?? [],
-                ini: "{$prefix}/etc/php/{$v}/php.ini",
-                confd: "{$prefix}/etc/php/{$v}/conf.d",
+                ini: dirname($confd = $this->brew->iniDirs($v)[0] ?? "/etc/php/{$v}/conf.d").'/php.ini',
+                confd: $confd,
                 outdated: $outdated[$v] ?? null,
             );
         }
