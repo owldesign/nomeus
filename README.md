@@ -52,6 +52,7 @@ Then, per site, a `nomeus.yml` (see [docs/nomeus-yml.md](docs/nomeus-yml.md)) an
 - [docs/commands.md](docs/commands.md) — every command (generated: `nomeus docs:commands`) — including `nomeus new`, `nomeus rm`, `nomeus php:ext`
 - [docs/nomeus-yml.md](docs/nomeus-yml.md) — the manifest
 - [docs/layout.md](docs/layout.md) — where things live: `~/.nomeus`, ports, launchd labels, ini files, sudoers
+- [docs/mcp.md](docs/mcp.md) — `nomeus mcp`: your stack as tools for Claude Desktop, Claude Code, Cursor
 - [docs/runbooks.md](docs/runbooks.md) — the build history, slice by slice, with every trap met on a real machine
 
 ## Development

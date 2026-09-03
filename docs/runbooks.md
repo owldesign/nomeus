@@ -23,3 +23,4 @@ They are the build history — and the record of every trap met on a real machin
 | 7a | [rename](runbook-7a-rename.html) | devkit → nomeus: `migrate:devkit`, nomeus.yml, the one-line installer |
 | 7b | [new](runbook-7b-new.html) | `nomeus new`: scaffold → nomeus.yml → init; the Claude Design briefs |
 | 7c | [installer](runbook-7c-installer.html) | the install experience, nomeus.dev/install on Pages, `php:ext`, `rm` |
+| 7d | [mcp](runbook-7d-mcp.html) | `nomeus mcp`: the stack as tools for Claude Desktop / Code / Cursor |

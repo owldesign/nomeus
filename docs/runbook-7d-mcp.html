@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nomeus · runbook 7d · mcp</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>nomeus <small>· runbook 7d · the MCP server</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~15 min · phases 0–3</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>Claude (Desktop, Code, or Cursor) can ask your stack questions and flip the safe switches — through the same classes the CLI uses, with no server, port or token.</b>
+  Precondition: 7c committed; Claude Desktop installed for phase 2.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test <span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-7d.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; vendor/bin/pest &amp;&amp; nomeus mcp --list</pre>
+<pre class="out">Tests: 203 passed — +McpServer 2 · Tools 4 · nomeus 1.4.0
+a table of 20 tools with descriptions</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>The tools, from the terminal <span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Read tools</span></label>
+    <div class="body">
+<pre class="cmd">nomeus mcp --call=whats_on_port --args='{"port":5433}' &amp;&amp; nomeus mcp --call=tail_log --args='{"source":"smoke","level":"error","lines":3}' &amp;&amp; nomeus mcp --call=site_env_keys --args='{"name":"smoke"}'</pre>
+<pre class="out">{"instance":"pg17","type":"postgresql","main_port":true} · the last three ERROR entries with their traces · the .env KEYS of smoke (no values — that's the rule)</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">A mutation, and the wire protocol itself</span></label>
+    <div class="body">
+<pre class="cmd">nomeus mcp --call=set_xdebug --args='{"version":"8.4","mode":"trigger"}' | head -12</pre>
+<pre class="out">"ok": true · "restarted": false if it was already trigger (true, with the restart log, otherwise)</pre>
+<pre class="cmd">printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"you","version":"0"}}}' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_services","arguments":{}}}' | nomeus mcp | cut -c1-160</pre>
+<pre class="out">two lines: the initialize result (serverInfo nomeus 1.4.0) and the list_services result — exactly what a client sees over stdio</pre>
+    </div>
+    <div class="callout gold">Stdout is the protocol channel; nothing else in nomeus writes to it while <code>mcp</code> runs (PHP notices go to stderr). Anything that isn't a JSON line would break the client's parser — which is why the tool never prints progress.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>In Claude Desktop <span class="t">~6 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Register</span></label>
+    <div class="body">
+<pre class="cmd">nomeus mcp:install claude &amp;&amp; nomeus mcp:install claude --write</pre>
+<pre class="out">the snippet, then: wrote …/claude_desktop_config.json — restart Claude Desktop; nomeus appears under the tools icon</pre>
+    </div>
+    <div class="callout blue">Claude Code instead: <code>nomeus mcp:install code --write</code> (runs <code>claude mcp add</code>). Cursor: <code>nomeus mcp:install cursor --write</code>. The entry is just <code>{"command": "/opt/homebrew/bin/nomeus", "args": ["mcp"]}</code>.</div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">Ask</span></label>
+    <div class="body">
+<pre class="out">Restart Claude Desktop → the tools icon lists nomeus (20 tools). Try, in one chat:
+  "What's listening on port 5433, and is it healthy?"           → whats_on_port + service_status
+  "Show me the last errors in smoke's log and explain them."     → tail_log
+  "Switch Xdebug on PHP 8.4 to trigger mode."                    → set_xdebug (Claude asks before running a mutation)
+  "Run nomeus's doctor and tell me what needs fixing."           → doctor
+  "Which of my sites use redis?"                                 → list_sites + site_env_keys per site</pre>
+    </div>
+    <div class="callout gold">What it will not do, by design: create or remove sites, create/delete/adopt instances, install PHP versions or extensions, update itself. If Claude proposes one of those, the answer is the terminal command — the tools' descriptions say so.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>Commit</h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Commit, push, tag</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "7d: mcp server (stdio), mcp:install, docs/mcp.md" &amp;&amp; git push &amp;&amp; git tag -a v1.4.0 -m "nomeus 1.4.0 — mcp" &amp;&amp; git push --tags</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">Hand-off</span></label>
+    <div class="body"><p>Paste one exchange from 2.2. Next: 7e xdebug detect watcher · 7f node versions · 7g linux — and the design integration when Claude Design's tokens are in.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>Claude Desktop: "nomeus" missing or "server disconnected"</b> — Claude's log (<code>~/Library/Logs/Claude/mcp-server-nomeus.log</code>) shows what nomeus printed. Usually the shim path: the config must name <code>/opt/homebrew/bin/nomeus</code> (or the full path to <code>bin/nomeus</code>), since Claude Desktop's PATH is not your shell's.</div>
+  <div class="callout red"><b>A tool returns "Internal error: …"</b> — a PHP exception inside the handler; <code>nomeus mcp --call=&lt;tool&gt; --args='…'</code> reproduces it in the terminal with the full message.</div>
+  <div class="callout red"><b>Claude sees the tools but calls nothing</b> — the client sends <code>initialize</code> with a protocol version nomeus doesn't know; nomeus answers with its own (2025-06-18) and current clients accept that. Older clients may need the 2024-11-05 shape — paste the log line.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'nomeus-runbook-7d';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
