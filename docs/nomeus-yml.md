@@ -7,7 +7,7 @@ skips anything already in place, so re-running after an edit is the normal workf
 name: smoke                 # APP_NAME and the Mail page's tag for this app  (default: directory name)
 domain: smoke               # site name without the tld → smoke.test         (default: directory name)
 php: "8.4"                  # nomeus isolate php@8.4 (must be installed)
-node: "22"                  # written to .nvmrc only — run `nvm install` yourself
+node: "22"                  # .nvmrc; init installs it with fnm and runs post-init scripts under it
 secure: true                # valet secure
 
 services:

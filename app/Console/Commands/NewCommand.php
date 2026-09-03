@@ -29,6 +29,7 @@ class NewCommand extends Command
         {--from= : composer create-project <package[:constraint]> instead (e.g. laravel/laravel:^12, statamic/statamic)}
         {--empty : use an empty/existing directory, no scaffold}
         {--php= : isolate to this version (default: linked)}
+        {--node= : pin a Node version (.nvmrc; fnm installs it during init), e.g. 22 or lts}
         {--db= : postgresql | mysql | mariadb | none}
         {--redis}
         {--service=* : extra types: meilisearch, typesense, seaweedfs}
@@ -119,7 +120,7 @@ class NewCommand extends Command
 
         $services = array_values(array_filter(array_merge($db && $db !== 'none' ? [$db] : [], $redis ? ['redis'] : [], $extras)));
         $answers = [
-            'name' => $name, 'domain' => $name, 'php' => $php, 'secure' => $secure, 'services' => $services, 'mail' => $mail,
+            'name' => $name, 'domain' => $name, 'php' => $php, 'node' => $this->option('node') ?: null, 'secure' => $secure, 'services' => $services, 'mail' => $mail,
             'post_init' => $from !== null ? ['php artisan migrate --force'] : [],   // recorded even with --no-scripts: the next `init` runs it
         ];
         if ($redis) {

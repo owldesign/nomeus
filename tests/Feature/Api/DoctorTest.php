@@ -71,6 +71,7 @@ it('reports every section with a fix for what is missing', function () {
         ->and($rows['nomeus|config']['level'])->toBe('ok')
         ->and($rows['nomeus|bin/nomeus']['level'])->toBe('warn')
         ->and($rows['php|redis ext smoke']['detail'])->toContain('php:ext redis --php=8.4')
+        ->and($rows['php|node']['level'])->toBe('warn')                    // no fnm in the fake prefix
         ->and($rows['dumps|server']['detail'])->toContain('services:create dumps')
         ->and($rows['mail|mailpit']['detail'])->toContain('nomeus mail --create')
         ->and($rows['retention|tasks']['level'])->toBe('ok')

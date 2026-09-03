@@ -284,3 +284,10 @@ export interface DoctorReport {
   counts: { ok: number; warn: number; fail: number };
   sections: string[];
 }
+
+export interface NodeState {
+  fnm: string | null;
+  versions: string[];
+  default: string | null;
+  pins: { site: string; pin: string; installed: string | null }[];
+}

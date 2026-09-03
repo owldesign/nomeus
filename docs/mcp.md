@@ -21,7 +21,7 @@ Without `--write` the command prints the snippet. Restart the client; "nomeus" s
 | `list_sites`, `site_info(name)`, `site_env_keys(name)` | sites; one site with `artisan about` and its manifest; a site's `.env` **keys** plus the values of the driver keys only (`SESSION_DRIVER`, `CACHE_STORE`, …) — never secrets |
 | `list_services`, `service_status(name)`, `service_logs(name, lines)`, `whats_on_port(port)` | instances with live status and the `.env` lines to use them; what listens on a port |
 | `start_service`, `stop_service`, `restart_service` (name) | the launchd agent |
-| `php_versions`, `xdebug_status`, `set_xdebug(version, mode)` | versions and isolation; Xdebug off / on / trigger (restarts php-fpm) |
+| `php_versions`, `node_versions`, `xdebug_status`, `set_xdebug(version, mode)` | PHP versions and isolation; Node versions and pins; Xdebug off / on / trigger / detect |
 | `tail_log(source, lines, level)` | a site's newest Laravel log, or `nginx` / `fpm`, parsed |
 | `recent_dumps(kind, limit)`, `set_capture(on)` | the Debug page's store; capture on/off |
 | `doctor(section)`, `list_tasks`, `task_log(id)` | health with fixes; background tasks |

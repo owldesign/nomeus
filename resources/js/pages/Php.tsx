@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { PhpVersion } from '@/api/types';
 import { ApiError } from '@/api/client';
 import TaskProgress from '@/components/TaskProgress';
-import { useCheckPhpUpdates, usePhp, usePhpAction, useRefetchAfterTask } from '@/hooks/useApi';
+import { useCheckPhpUpdates, useNode, useNodeAction, usePhp, usePhpAction, useRefetchAfterTask } from '@/hooks/useApi';
 
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : String(e));
 
@@ -100,6 +100,65 @@ function Install({ installable }: { installable: string[] }) {
   );
 }
 
+/** Node through fnm: installed versions, the default, per-site pins; install/pin as tasks. */
+function NodeSection() {
+  const node = useNode();
+  const act = useNodeAction();
+  const refetch = useRefetchAfterTask();
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [version, setVersion] = useState('lts');
+  const run = (a: Parameters<typeof act.mutate>[0]) => act.mutate(a, { onSuccess: (r) => setTaskId(r.task.id) });
+  if (!node.data) return null;
+  const d = node.data;
+  return (
+    <div className="mt-8">
+      <div className="mb-2 flex items-baseline justify-between">
+        <h2 className="text-[15px] font-semibold">Node <span className="text-dim font-normal">via fnm</span></h2>
+        {d.fnm ? <span className="text-dim">{d.fnm}</span> : <span className="text-gold">fnm not installed — brew install fnm</span>}
+      </div>
+      {d.fnm && (
+        <>
+          <div className="flex flex-wrap items-center gap-3 border border-line bg-panel px-3 py-2">
+            {d.versions.length === 0 && <span className="text-dim">no versions yet</span>}
+            {d.versions.map((v) => (
+              <span key={v} className={`inline-flex items-center gap-2 ${v === d.default ? 'text-green' : ''}`}>
+                node {v}{v === d.default ? ' (default)' : ''}
+                {v !== d.default && (
+                  <button type="button" className="text-dim hover:text-gold" disabled={!!taskId} onClick={() => run({ action: 'use', version: v, default: true })} title="make default">make default</button>
+                )}
+              </span>
+            ))}
+            <span className="ml-auto inline-flex items-center gap-2">
+              <input className="w-24 border border-line bg-bg px-2 py-0.5" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="22 / lts" />
+              <button type="button" className="border border-line px-2 py-0.5 hover:border-gold hover:text-gold disabled:text-mute" disabled={!!taskId || !version} onClick={() => run({ action: 'install', version })}>install</button>
+            </span>
+            {taskId && <TaskProgress id={taskId} onFinished={() => { refetch(); setTimeout(() => setTaskId(null), 3000); }} />}
+          </div>
+          {d.pins.length > 0 && (
+            <table className="mt-2 w-full border-collapse">
+              <thead><tr className="text-dim"><th className="py-1 pr-4 text-left font-normal">site</th><th className="py-1 pr-4 text-left font-normal">.nvmrc</th><th className="py-1 text-left font-normal">installed</th></tr></thead>
+              <tbody>
+                {d.pins.map((p) => (
+                  <tr key={p.site} className="border-t border-dashed border-line">
+                    <td className="py-1 pr-4">{p.site}</td>
+                    <td className="py-1 pr-4">{p.pin}</td>
+                    <td className="py-1">
+                      {p.installed ? <span className="text-green">{p.installed}</span> : (
+                        <button type="button" className="text-red hover:text-gold" disabled={!!taskId} onClick={() => run({ action: 'use', version: p.pin, site: p.site })}>not installed — install {p.pin}</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {act.isError && <div className="mt-1 text-red">{String(act.error)}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Php() {
   const php = usePhp();
   const check = useCheckPhpUpdates();
@@ -146,6 +205,7 @@ export default function Php() {
           <Install installable={php.data.installable} />
         </>
       )}
+      <NodeSection />
     </div>
   );
 }

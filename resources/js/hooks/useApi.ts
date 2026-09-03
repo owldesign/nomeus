@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api, del, post } from '@/api/client';
-import type { BrewService, DoctorReport, DumpEntry, DumpKind, DumpRequest, DumpsStatus, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task, XdebugMode, XdebugStatus } from '@/api/types';
+import type { BrewService, DoctorReport, NodeState, DumpEntry, DumpKind, DumpRequest, DumpsStatus, Enqueued, LogEntry, LogSource, LogTail, MailMessage, MailPage, MailStatus, PhpState, ServiceInstance, ServiceType, Site, SiteDetail, Status, Task, XdebugMode, XdebugStatus } from '@/api/types';
 
 export function useStatus() {
   return useQuery({
@@ -92,6 +92,7 @@ export function useRefetchAfterTask() {
     qc.invalidateQueries({ queryKey: ['php'] });
     qc.invalidateQueries({ queryKey: ['services'] });
     qc.invalidateQueries({ queryKey: ['xdebug'] });
+    qc.invalidateQueries({ queryKey: ['node'] });
     qc.invalidateQueries({ queryKey: ['dumps', 'status'] });
   };
 }
@@ -411,4 +412,21 @@ export interface NewSiteRequest {
 
 export function useNewSite() {
   return useMutation({ mutationFn: (body: NewSiteRequest) => post<Enqueued>('/sites/new', body) });
+}
+
+export function useNode() {
+  return useQuery({
+    queryKey: ['node'],
+    queryFn: async () => (await api<{ data: NodeState }>('/node')).data,
+    refetchInterval: 15000,
+  });
+}
+
+export function useNodeAction() {
+  return useMutation({
+    mutationFn: (a: { action: 'install'; version: string; default?: boolean } | { action: 'use'; version: string; site?: string; default?: boolean }) =>
+      a.action === 'install'
+        ? post<Enqueued>('/node/install', { version: a.version, default: !!a.default })
+        : post<Enqueued>('/node/use', { version: a.version, site: a.site, default: !!a.default }),
+  });
 }

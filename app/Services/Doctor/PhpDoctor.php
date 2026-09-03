@@ -16,6 +16,7 @@ final class PhpDoctor implements Section
         private readonly XdebugManager $xdebug,
         private readonly \App\Services\Php\PhpExtensions $extensions,
         private readonly \App\Services\ValetBridge $valet,
+        private readonly \App\Services\Node\NodeManager $node,
     ) {}
 
     public function name(): string
@@ -76,6 +77,19 @@ final class PhpDoctor implements Section
             $loaded[$v] ??= $this->extensions->has($v, 'redis');
             if (! $loaded[$v]) {
                 $r->warn("redis ext {$site->name}", "the site's .env uses redis but php {$v} has no redis extension — nomeus php:ext redis --php={$v}");
+            }
+        }
+
+        // node: fnm present, every pinned version installed
+        if (! $this->node->available()) {
+            $r->warn('node', 'fnm is not installed — brew install fnm; sites\' .nvmrc pins are only honoured by hand');
+        } else {
+            $installed = $this->node->installed();
+            $r->ok('node', ($installed['versions'] === [] ? 'no versions yet — nomeus node:install lts' : 'node '.implode(', ', $installed['versions'])).($installed['default'] ? " · default {$installed['default']}" : ''));
+            foreach ($this->node->pins($this->valet->isInstalled() ? $this->valet->sites() : []) as $pin) {
+                if ($pin['installed'] === null) {
+                    $r->warn("node pin {$pin['site']}", ".nvmrc wants {$pin['pin']} but it is not installed — nomeus node:install {$pin['pin']}");
+                }
             }
         }
 

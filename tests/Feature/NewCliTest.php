@@ -41,6 +41,7 @@ beforeEach(function () {
         },
         '*launchctl*' => Process::result(''),
         "*php' '-m'*" => Process::result("[PHP Modules]\nCore\nredis\n\n[Zend Modules]\n"),   // init's redis-extension check
+        '*which*' => Process::result(''),                          // no fnm on PATH in the fake world
         '*--version*' => Process::result("stub 1.0\n"),
         "*mailpit' 'version*" => Process::result("mailpit v1.31.0\n"),
         '*composer*create-project*' => function ($p) {

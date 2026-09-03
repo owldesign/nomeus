@@ -69,7 +69,7 @@ afterEach(function () {
 
 it('exposes the read tools against the fake world', function () {
     expect($this->tools->names())->toContain('list_sites', 'whats_on_port', 'set_xdebug', 'doctor', 'init_plan')
-        ->and(count($this->tools->names()))->toBe(20);
+        ->and(count($this->tools->names()))->toBe(21);
 
     $sites = ($this->call)('list_sites');
     expect($sites[0]['name'])->toBe('smoke')->and($sites[0]['manifest'])->toBeTrue();

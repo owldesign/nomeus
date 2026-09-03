@@ -81,6 +81,7 @@ class SitesController extends Controller
             'starter' => ['nullable', Rule::in(['laravel', 'empty', 'from'])],
             'from' => ['nullable', 'string', 'regex:#^[a-z0-9_.-]+/[a-z0-9_.-]+(:.+)?$#i'],
             'php' => ['nullable', 'string', 'regex:/^\d+\.\d+$/'],
+            'node' => ['nullable', 'string', 'regex:/^(v?\d+(\.\d+){0,2}|lts)$/i'],
             'db' => ['nullable', Rule::in(['postgresql', 'mysql', 'mariadb', 'none'])],
             'redis' => ['nullable', 'boolean'],
             'services' => ['nullable', 'array'],
@@ -98,7 +99,7 @@ class SitesController extends Controller
         } else {
             $args[] = '--laravel';
         }
-        foreach (['dir', 'php', 'db'] as $k) {
+        foreach (['dir', 'php', 'node', 'db'] as $k) {
             if (! empty($data[$k])) {
                 $args[] = "--{$k}=".$data[$k];
             }

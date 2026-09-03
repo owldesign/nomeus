@@ -4,7 +4,7 @@
 #   ./install/install.sh [--trust] [--skip-node] [--check] [--verbose]
 #
 #   --trust       run `valet trust` so later valet commands don't prompt for sudo
-#   --skip-node   don't `nvm install --lts` (nvm itself is still installed)
+#   --skip-node   don't `fnm install --lts` (fnm itself is still installed)
 #   --check       report what is and isn't in place; change nothing
 #   --verbose     stream every step's output instead of the spinner
 #
@@ -68,7 +68,7 @@ if [[ "$CHECK" -eq 1 ]]; then
   row 'test -f /etc/sudoers.d/valet'                               'valet trusted'               'valet trust'
   row 'brew list --versions "php@$PHP_DEFAULT"'                    "php@$PHP_DEFAULT"            "brew install shivammathur/php/php@$PHP_DEFAULT"
   row 'grep -q "\"$CODE_DIR\"" "$HOME/.config/valet/config.json"' "parked $CODE_DIR"          "cd $CODE_DIR && valet park"
-  row 'test -s "$BREW_PREFIX/opt/nvm/nvm.sh"'                       'nvm'                         'brew install nvm'
+  row 'test -x "$BREW_PREFIX/bin/fnm"'                              'fnm'                         'brew install fnm'
   row 'test -f "$CONFIG_DIR/config.json"'                          '~/.nomeus/config.json'       'install.sh writes it'
   row 'test -f "$NOMEUS_HOME/vendor/autoload.php"'                 'composer deps'               'composer install'
   row 'test -f "$NOMEUS_HOME/.env"'                                '.env'                        'cp .env.example .env && php artisan key:generate'
@@ -98,7 +98,7 @@ if brew bundle check --no-upgrade --file="$NOMEUS_HOME/install/Brewfile" >/dev/n
   ui_done "Brewfile"
 else
   ui_hint "brew bundle --no-upgrade --file=install/Brewfile   (the log names the formula)"
-  ui_step "Brewfile  (nginx dnsmasq php@$PHP_DEFAULT composer nvm mailpit tableplus …)" brew bundle --no-upgrade --file="$NOMEUS_HOME/install/Brewfile"
+  ui_step "Brewfile  (nginx dnsmasq php@$PHP_DEFAULT composer fnm mailpit tableplus …)" brew bundle --no-upgrade --file="$NOMEUS_HOME/install/Brewfile"
 fi
 
 # ── 2. PATH: composer's global bin, last ──────────────────────────────────────
@@ -142,22 +142,23 @@ if grep -q "\"$CODE_DIR\"" "$HOME/.config/valet/config.json" 2>/dev/null; then u
   ui_step "valet park $CODE_DIR" park
 fi
 
-# ── 4. nvm + Node LTS ─────────────────────────────────────────────────────────
-mkdir -p "$HOME/.nvm"
-NVM_SH="$BREW_PREFIX/opt/nvm/nvm.sh"
-rc_add "opt/nvm/nvm.sh" "export NVM_DIR=\"\$HOME/.nvm\"; [ -s \"$NVM_SH\" ] && . \"$NVM_SH\""
-if [[ -s "$NVM_SH" ]]; then
-  export NVM_DIR="$HOME/.nvm"
-  # shellcheck disable=SC1090
-  . "$NVM_SH"
+# ── 4. fnm + Node LTS ─────────────────────────────────────────────────────────
+# fnm is a binary, so nomeus can call it (init installs a site's .nvmrc version; scripts run under it).
+# An existing nvm is left alone — both read .nvmrc.
+FNM_LINE='eval "$(fnm env --use-on-cd --shell zsh)"'
+[[ "$RC" == *bash* ]] && FNM_LINE='eval "$(fnm env --use-on-cd --shell bash)"'
+if [[ -x "$BREW_PREFIX/bin/fnm" ]]; then
+  rc_add "fnm env" "$FNM_LINE"
+  eval "$("$BREW_PREFIX/bin/fnm" env --shell bash)"
   if [[ "$SKIP_NODE" -eq 0 ]]; then
-    if command -v node >/dev/null 2>&1; then ui_done "node $(node --version)"; else
-      ui_hint "nvm install --lts"
-      ui_step "node lts (nvm install --lts)" nvm install --lts
+    if "$BREW_PREFIX/bin/fnm" ls 2>/dev/null | grep -q 'v[0-9]'; then ui_done "node $("$BREW_PREFIX/bin/fnm" current 2>/dev/null || echo)"; else
+      ui_hint "fnm install --lts"
+      ui_step "node lts (fnm install --lts)" "$BREW_PREFIX/bin/fnm" install --lts
+      "$BREW_PREFIX/bin/fnm" default lts-latest >/dev/null 2>&1 || true
     fi
   fi
 else
-  ui_warn "nvm not found at $NVM_SH — npm steps will be skipped"
+  ui_warn "fnm not found at $BREW_PREFIX/bin/fnm — npm steps will be skipped"
 fi
 
 # ── 5. ~/.nomeus ──────────────────────────────────────────────────────────────
@@ -199,7 +200,7 @@ if command -v npm >/dev/null 2>&1; then
   if [[ -d node_modules ]]; then ui_done "npm install"; else ui_hint "npm install"; ui_step "npm install" npm install --no-audit --no-fund; fi
   if [[ -f public/build/manifest.json ]]; then ui_done "dashboard build"; else ui_hint "npm run build"; ui_step "dashboard build (npm run build)" npm run build; fi
 else
-  ui_warn "npm not found (nvm not loaded?) — later: npm install && npm run build"
+  ui_warn "npm not found (fnm not loaded?) — later: npm install && npm run build"
 fi
 if [[ -L "$HOME/.config/valet/Sites/nomeus" ]]; then ui_done "nomeus.test linked"; else ui_step "valet link nomeus" valet link nomeus; fi
 if [[ -f "$HOME/.config/valet/Certificates/nomeus.test.crt" ]]; then ui_done "nomeus.test secured"; elif [[ -f /etc/sudoers.d/valet ]]; then

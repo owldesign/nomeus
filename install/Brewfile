@@ -21,8 +21,8 @@ brew "composer"                      # pulls homebrew-core `php` as a dependency
 # or the tap's); listing them here would make `brew bundle check` fail on a machine that got them elsewhere.
 brew "shivammathur/php/php@8.4"
 
-# Node version management (Herd parity: nvm + .nvmrc)
-brew "nvm"
+# Node version management: fnm (a binary — callable from nomeus; honours .nvmrc and .node-version)
+brew "fnm"
 
 # Mail catcher — homebrew-core formula. Phase 3 wires it up; installed now so `brew bundle` is one-shot.
 brew "mailpit"

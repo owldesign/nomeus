@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\DumpsController;
 use App\Http\Controllers\Api\LogsController;
 use App\Http\Controllers\Api\MailController;
+use App\Http\Controllers\Api\NodeController;
 use App\Http\Controllers\Api\PhpController;
 use App\Http\Controllers\Api\ServicesController;
 use App\Http\Controllers\Api\SitesController;
@@ -68,3 +69,7 @@ Route::post('/xdebug/mode', [XdebugController::class, 'mode'])->name('api.xdebug
 
 Route::get('/doctor', [DoctorController::class, 'index'])->name('api.doctor');
 Route::post('/update', [DoctorController::class, 'update'])->name('api.update');
+
+Route::get('/node', [NodeController::class, 'index'])->name('api.node.index');
+Route::post('/node/install', [NodeController::class, 'install'])->name('api.node.install');
+Route::post('/node/use', [NodeController::class, 'use'])->name('api.node.use');

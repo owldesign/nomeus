@@ -25,6 +25,7 @@ final class InitPlanner
         private readonly BrewBridge $brew,
         private readonly Shell $shell,
         private readonly \App\Services\Php\PhpExtensions $extensions,
+        private readonly \App\Services\Node\NodeManager $node,
     ) {}
 
     /** @return list<Step> */
@@ -70,12 +71,20 @@ final class InitPlanner
             $nvmrc = "{$m->path}/.nvmrc";
             $current = is_file($nvmrc) ? trim((string) file_get_contents($nvmrc)) : null;
             $was = $current ?? 'absent';
-            $steps[] = $current === $m->node
-                ? Step::skip('node', "node {$m->node}", '.nvmrc already says so')
-                : Step::run('node', "node {$m->node}", function ($log) use ($nvmrc, $m) {
-                    file_put_contents($nvmrc, $m->node."\n");
-                    $log(".nvmrc = {$m->node}");
-                }, "write .nvmrc ({$was} → {$m->node}); nvm install/use is yours to run");
+            $have = $this->node->available() ? $this->node->satisfied($m->node) : null;
+            $steps[] = $current === $m->node && ($have !== null || ! $this->node->available())
+                ? Step::skip('node', "node {$m->node}", '.nvmrc already says so'.($have ? " (node {$have} installed)" : ''))
+                : Step::run('node', "node {$m->node}", function ($log) use ($nvmrc, $m, $current) {
+                    if ($current !== $m->node) {
+                        file_put_contents($nvmrc, $m->node."\n");
+                        $log(".nvmrc = {$m->node}");
+                    }
+                    if ($this->node->available()) {
+                        $this->node->install($m->node, $log);
+                    } else {
+                        $log('fnm not installed — .nvmrc written, install node yourself (brew install fnm)');
+                    }
+                }, ($current !== $m->node ? "write .nvmrc ({$was} → {$m->node}); " : '').($this->node->available() ? ($have ? '' : "fnm install {$m->node}") : 'fnm missing: .nvmrc only'));
         }
 
         // ── services ──────────────────────────────────────────────────────────
@@ -232,6 +241,8 @@ final class InitPlanner
         $phpBin = $site?->php ? $this->brew->prefix()."/opt/php@{$site->php}/bin" : $this->brew->prefix().'/bin';
         $env = $this->shell->env();
         $env['PATH'] = $phpBin.':'.$env['PATH'];
+        // scripts that touch node (npm ci, vite build) run under the site's pinned version
+        $argv = $this->node->execArgv($this->node->pinOf($m->path), $argv);
         $result = \Illuminate\Support\Facades\Process::env($env)->path($m->path)->timeout($timeout)
             ->run($argv, fn ($type, $buf) => $log(rtrim($buf)));
         if (! $result->successful()) {

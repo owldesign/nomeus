@@ -25,3 +25,4 @@ They are the build history — and the record of every trap met on a real machin
 | 7c | [installer](runbook-7c-installer.html) | the install experience, nomeus.dev/install on Pages, `php:ext`, `rm` |
 | 7d | [mcp](runbook-7d-mcp.html) | `nomeus mcp`: the stack as tools for Claude Desktop / Code / Cursor |
 | 7e | [detect](runbook-7e-detect.html) | Xdebug detect: the ini follows the IDE via a launchd watcher |
+| 7f | [node](runbook-7f-node.html) | Node versions through fnm: `node:*`, pins in init, the PHP page section |

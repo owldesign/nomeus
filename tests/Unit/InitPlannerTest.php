@@ -10,7 +10,8 @@ use Tests\Support\FakeServicesWorld;
 beforeEach(function () {
     $this->w = new FakeServicesWorld;
     $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, new \App\Services\Dumps\CaptureFlag($this->w->config), $this->w->shell, new \App\Services\Php\XdebugState($this->w->config));
-    $this->planner = new InitPlanner($this->w->valet, $this->w->manager, new DriverRegistry, $this->w->brew, $this->w->shell, new \App\Services\Php\PhpExtensions($this->w->brew, $this->w->shell, $prepend));
+    $this->node = new \App\Services\Node\NodeManager($this->w->brew, $this->w->shell);
+    $this->planner = new InitPlanner($this->w->valet, $this->w->manager, new DriverRegistry, $this->w->brew, $this->w->shell, new \App\Services\Php\PhpExtensions($this->w->brew, $this->w->shell, $prepend), $this->node);
     $this->runner = new InitRunner($this->planner);
     $this->site = realpath($this->w->valetFs->parked('smoke', laravel: true));
     file_put_contents("{$this->site}/.env.example", "APP_NAME=Laravel\nAPP_URL=http://localhost\nMAIL_MAILER=log\n");
@@ -102,4 +103,33 @@ it('installs the redis extension when a manifest wants redis and the php lacks i
     $steps = $this->planner->plan(($this->manifest)());
     $step = collect($steps)->firstWhere('id', 'php-ext:redis');
     expect($step->skip)->toBeNull()->and($step->detail)->toContain('shivammathur/extensions/redis@8.3');   // the manifest's php
+});
+
+it('installs the pinned node through fnm when it is present, and runs post-init under it', function () {
+    $fnm = "{$this->w->root}/fnm";                                      // outside the fake brew prefix (its path contains "brew")
+    file_put_contents($fnm, "#!/bin/sh\n");
+    chmod($fnm, 0755);
+    $installed = [];
+    Process::fake([
+        '*which*' => Process::result("{$fnm}\n"),
+        "*fnm' 'ls'*" => function () use (&$installed) {                       // by reference: an arrow fn would capture the empty array
+            return Process::result(implode("\n", array_map(fn ($v) => "* v{$v}", $installed))."\n");
+        },
+        "*fnm' 'install'*" => function ($p) use (&$installed) { $installed[] = $p->command[2].'.0.0'; return Process::result(''); },
+        "*fnm' 'exec'*" => Process::result("ran under fnm\n"),
+    ]);
+    $m = ($this->manifest)();
+    $step = collect($this->planner->plan($m))->firstWhere('id', 'node');
+    expect($step->skip)->toBeNull()->and($step->detail)->toContain('fnm install 22');
+
+    $log = [];
+    $step->execute(function (string $l) use (&$log) { $log[] = $l; });
+    expect(file_get_contents("{$m->path}/.nvmrc"))->toBe("22\n")
+        ->and(implode("\n", $log))->toContain('fnm install 22');
+    Process::assertRan(fn ($p) => $p->command === [$fnm, 'install', '22']);
+
+    // now satisfied → skip; and a script runs as fnm exec --using 22
+    expect(collect($this->planner->plan($m))->firstWhere('id', 'node')->skip)->toContain('node 22.0.0 installed');
+    collect($this->planner->plan($m))->firstWhere('id', 'post-init:0')->execute(fn () => null);
+    Process::assertRan(fn ($p) => array_slice($p->command, 0, 5) === [$fnm, 'exec', '--using', '22', '--']);
 });

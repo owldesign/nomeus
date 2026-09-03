@@ -4,7 +4,7 @@ use App\Support\NomeusConfig;
 
 return [
     // Bumped per slice; `nomeus status --json | grep version` tells which cut is live.
-    'version' => '1.5.0',
+    'version' => '1.6.0',
 
     // ~/.nomeus/config.json — written by install/install.sh
     'config_path' => env('NOMEUS_CONFIG_PATH') ?: NomeusConfig::defaultPath(),

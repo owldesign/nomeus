@@ -107,7 +107,15 @@ Open the Mailpit inbox (starts the mailpit instance if it is stopped)
 
 - `--create` — create the mailpit instance if there is none
 
-### `new [name] [--dir=] [--laravel] [--from=] [--empty] [--php=] [--db=] [--redis] [--service=*] [--mail] [--secure] [--no-scripts] [--open] [--edit] [--dry-run] [--yes]`
+### `mcp [--list] [--call=] [--args=]`
+
+Serve the Model Context Protocol over stdio (for Claude Desktop, Claude Code, Cursor) — see nomeus mcp:install
+
+- `--list` — print the tools instead of serving
+- `--call` — call one tool and print the result (with --args)
+- `--args` — JSON arguments for --call
+
+### `new [name] [--dir=] [--laravel] [--from=] [--empty] [--php=] [--node=] [--db=] [--redis] [--service=*] [--mail] [--secure] [--no-scripts] [--open] [--edit] [--dry-run] [--yes]`
 
 Create a site: scaffold, nomeus.yml, init — interactive when run without flags
 
@@ -117,6 +125,7 @@ Create a site: scaffold, nomeus.yml, init — interactive when run without flags
 - `--from` — composer create-project <package[:constraint]> instead (e.g. laravel/laravel:^12, statamic/statamic)
 - `--empty` — use an empty/existing directory, no scaffold
 - `--php` — isolate to this version (default: linked)
+- `--node` — pin a Node version (.nvmrc; fnm installs it during init), e.g. 22 or lts
 - `--db` — postgresql | mysql | mariadb | none
 - `--service` — extra types: meilisearch, typesense, seaweedfs
 - `--mail` — mailpit + client package
@@ -126,6 +135,10 @@ Create a site: scaffold, nomeus.yml, init — interactive when run without flags
 - `--edit` — open the directory in the IDE when done
 - `--dry-run` — print the nomeus.yml and the init plan, create nothing
 - `--yes` — never prompt; take flags and defaults
+
+### `node [--json]`
+
+Node versions (fnm): installed, the default, and which sites pin what
 
 ### `rm <site> [--db] [--keep-dir] [--yes]`
 
@@ -174,6 +187,15 @@ Recent background tasks (dashboard actions) and their outcome
 
 Xdebug per PHP version: installed, mode, and whether the IDE is listening
 
+## mcp
+
+### `mcp:install <client> [--write]`
+
+Register nomeus as an MCP server in Claude Desktop, Claude Code or Cursor
+
+- `client` — claude | code | cursor
+- `--write` — write the client config instead of printing the snippet
+
 ## migrate
 
 ### `migrate:devkit [--from=] [--dry-run] [--resume] [--yes]`
@@ -184,6 +206,23 @@ Move a devkit-era installation to nomeus: ~/.devkit → ~/.nomeus, launchd agent
 - `--dry-run` — show the plan and change nothing
 - `--resume` — ~/.nomeus already holds the moved data; redo the ini, agents (starting all), dashboard and shim
 - `--yes` — no confirmation
+
+## node
+
+### `node:install <version> [--default]`
+
+Install a Node version with fnm
+
+- `version` — 22, 22.11, 22.11.0, or lts
+- `--default` — make it the default
+
+### `node:use <version> [--site=] [--default]`
+
+Pin a site to a Node version (.nvmrc), installing it if needed
+
+- `version` — 22, 22.11.0, lts
+- `--site` — pin this site (writes its .nvmrc); default: the current directory if it is a site
+- `--default` — also make it the fnm default
 
 ## php
 
@@ -323,8 +362,15 @@ Install Xdebug for a PHP version (shivammathur/extensions tap) and take over its
 
 Switch Xdebug: off (not loaded) · on (every request) · trigger (XDEBUG_TRIGGER / browser helper)
 
-- `mode` — off | on | trigger
+- `mode` — off | on | trigger | detect (follows the IDE: on while it listens)
 - `--php` — which version; defaults to the linked php
 - `--all` — every version that has xdebug
 - `--no-restart` — write the ini only (php-fpm keeps the old mode until valet restart php)
+
+### `xdebug:watch [--interval=2] [--once]`
+
+Follow the IDE: xdebug on while it listens, off when it stops (the agent behind xdebug:mode detect)
+
+- `--interval=2` — seconds between polls
+- `--once` — one poll, apply, exit (tests / a manual sync)
 

@@ -156,6 +156,8 @@ class ToolRegistry
         // ── php ─────────────────────────────────────────────────────────────
         $this->add('php_versions', 'Installed PHP versions: which is linked (global), which sites are isolated to which, php-fpm state, brew updates.', [], [],
             fn () => array_map(fn ($v) => $v->toArray(), $this->app->make(PhpManager::class)->versions()));
+        $this->add('node_versions', 'Node versions installed through fnm, the default, and which sites pin which version (.nvmrc).', [], [],
+            fn () => ['fnm' => ($n = $this->app->make(\App\Services\Node\NodeManager::class))->fnmBin()] + $n->installed() + ['pins' => $n->pins($this->app->make(ValetBridge::class)->sites())]);
         $this->add('xdebug_status', 'Xdebug per PHP version (installed, mode off/on/trigger) and whether an IDE is listening on the debug port.', [], [],
             fn () => ['versions' => ($x = $this->app->make(XdebugManager::class))->status(), 'ide_listening' => $x->ideListening(), 'port' => $x->port()]);
         $this->add('set_xdebug', 'Switch Xdebug for a PHP version: off (not loaded), on (every request), trigger (only with XDEBUG_TRIGGER / the browser helper). Restarts php-fpm.',
