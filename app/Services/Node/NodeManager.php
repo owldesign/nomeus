@@ -137,8 +137,14 @@ final class NodeManager
     public function execArgv(?string $version, array $argv): array
     {
         $bin = $this->fnmBin();
-        if ($bin === null || $version === null) {
+        if ($bin === null) {
             return $argv;
+        }
+        if ($version === null) {
+            $version = $this->installed()['default'] ?? $this->installed()['versions'][0] ?? null;   // whatever node there is
+            if ($version === null) {
+                return $argv;
+            }
         }
 
         return [$bin, 'exec', '--using', ltrim($version, 'v'), '--', ...$argv];

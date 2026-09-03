@@ -1,0 +1,78 @@
+/* Nomeus design tokens — Tailwind v4 @theme
+   Drop into app.css after @import "tailwindcss";
+   Names describe rank & meaning, not hue: a light theme swaps values, never classes. */
+
+@theme {
+  /* Surface layers — four layers, one hue. Wells go down (inset), interaction goes up (raised). */
+  --color-bg:           oklch(0.15 0.01 255);   /* page */
+  --color-panel:        oklch(0.185 0.012 255); /* cards, tables */
+  --color-raised:       oklch(0.23 0.014 255);  /* hover, active rows */
+  --color-inset:        oklch(0.12 0.01 255);   /* code wells, log tails, status strip */
+
+  /* Lines */
+  --color-line:         oklch(0.29 0.014 255);  /* default border; row separators at /55% */
+  --color-line-strong:  oklch(0.38 0.016 255);  /* emphasized borders, kbd frames */
+
+  /* Text ranks */
+  --color-text:         oklch(0.93 0.006 85);   /* primary values, messages */
+  --color-mid:          oklch(0.74 0.01 250);   /* secondary values */
+  --color-dim:          oklch(0.56 0.012 250);  /* labels, meta, timestamps */
+  --color-faint:        oklch(0.43 0.012 250);  /* hints, disabled, zero-counts */
+
+  /* The lantern — the one accent. Mark, primary actions, active nav, focus rings. */
+  --color-lantern:      oklch(0.79 0.14 68);
+  --color-lantern-dim:  oklch(0.60 0.10 68);
+
+  /* Semantics — state and nothing else. Tinted fills = color at 10–14% alpha over a surface. */
+  --color-ok:           oklch(0.76 0.16 150);
+  --color-warn:         oklch(0.82 0.15 95);    /* hue 95: never collides with lantern (68) */
+  --color-fail:         oklch(0.66 0.19 25);
+  --color-info:         oklch(0.73 0.11 235);
+
+  /* Type — mono for anything a machine produced, sans for anything a human wrote. */
+  --font-sans: "Public Sans", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Scale — data never below 12px. */
+  --text-2xs: 11px;     /* chips, counts */
+  --text-xs: 12px;      /* logs, meta */
+  --text-sm: 12.5px;    /* table data default */
+  --text-base: 14px;    /* body */
+  --text-lg: 16px;      /* panel titles */
+  --text-xl: 20px;      /* page titles */
+
+  /* Rhythm — 4px base: 4 8 12 16 24 32 48. Rows 36px, status strip 44–46px. */
+
+  /* Radii — small & precise; nothing pill-shaped. */
+  --radius-sm: 3px;     /* chips, kbd, level badges */
+  --radius-md: 5px;     /* inputs, buttons */
+  --radius-lg: 8px;     /* panels */
+
+  /* Shadows & glows — glow is reserved for things alive right now. Static UI never glows. */
+  --shadow-panel: 0 1px 0 oklch(1 0 0 / 0.03) inset, 0 8px 24px oklch(0 0 0 / 0.35);
+  --shadow-glow-ok:      0 0 8px  oklch(0.76 0.16 150 / 0.5);
+  --shadow-glow-lantern: 0 0 10px oklch(0.79 0.14 68 / 0.45);
+  --shadow-glow-fail:    0 0 8px  oklch(0.66 0.19 25 / 0.55);
+}
+
+/* Informational motion only: pulse = becoming, flicker = failing repeatedly,
+   dash = work in progress, arrive = new data. Running state is still. */
+@keyframes np-pulse   { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
+@keyframes np-flicker { 0%, 44%, 56%, 68%, 76%, 100% { opacity: 1 } 48%, 52% { opacity: 0.15 } 70%, 74% { opacity: 0.4 } }
+@keyframes np-dash    { to { background-position: -24px 0 } }
+@keyframes np-blink   { 50% { opacity: 0 } }
+@keyframes np-arrive  { 0% { background: oklch(0.79 0.14 68 / 0.14) } 100% { background: transparent } }
+
+/* Migration from current classes:
+   bg-panel     → bg-panel      (unchanged)
+   border-line  → border-line   (unchanged)
+   text-dim     → text-dim      (unchanged)
+   text-gold    → text-lantern
+   bg-green     → bg-ok
+   bg-red       → bg-fail
+   text-blue    → text-info
+
+   Fonts: self-host as woff2 (both OFL) — bundle via public/build, no CDN at runtime:
+   @font-face { font-family: "Geist Mono";  src: url(/build/fonts/GeistMono[wght].woff2) format("woff2"); font-weight: 400 600; font-display: swap; }
+   @font-face { font-family: "Public Sans"; src: url(/build/fonts/PublicSans[wght].woff2) format("woff2"); font-weight: 400 700; font-display: swap; }
+*/

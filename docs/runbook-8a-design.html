@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nomeus · runbook 8a · design</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>nomeus <small>· runbook 8a · the design system, part 1</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~12 min · phases 0–3</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>Claude Design's tokens and components are real on Status and Services</b> — the star LEDs in their states, the strip as a bezel, chips, inline confirms, the doctor with a "run fix" button, the running-task frame. The other six pages still work on aliases until 8b.
+  Precondition: 7g-2b committed.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-8a.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; vendor/bin/pest &amp;&amp; npm run build &amp;&amp; ls public/fonts</pre>
+<pre class="out">Tests: 221 passed — +doctor fix 1 · nomeus 1.10.0 · GeistMono-Variable.woff2 PublicSans-*.woff2 LICENSE-*.txt</pre>
+    </div>
+    <div class="callout gold">The fonts are self-hosted from <code>public/fonts</code> (both SIL OFL, licenses alongside) — no CDN at runtime, as the brief required. If your build tool complains about <code>@keyframes</code> inside <code>@theme</code>, paste it: that syntax needs Tailwind v4.0+.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>Status and Services <span class="t">~6 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">The strip and the Status page</span></label>
+    <div class="body">
+<pre class="cmd">open https://nomeus.test</pre>
+<pre class="out">the strip is a darker bezel: lantern star · php 8.4 in lantern · valet version · four steady green stars · "svc 11/11" · a slow-pulsing polling dot at the right
+Status: sans headings and uppercase labels, mono values; "update nomeus" is the one primary (lantern) button; the doctor panel has OK/WARN/FAIL chips and, under every non-OK row, "fix: $ nomeus …  [run fix]"</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">The LED states, for real</span></label>
+    <div class="body">
+<pre class="cmd">open https://nomeus.test/services</pre>
+<pre class="out">36px rows, mono 12.5; each instance a steady green star; hover washes the row; click a row → the well drops to inset with .env (keys dim, values mid) and the log tail with a blinking lantern caret</pre>
+<pre class="out">click "stop" on redis → the task frame appears in the row (lantern border, marching stripe, streaming log, elapsed) → then the row goes faint with a hollow star and a green "start"
+click "start" → during the seconds before redis answers the star pulses amber (starting) → steady green
+click "delete" on any row → the button swaps in place for a fail-tinted frame: "delete redis?" · keep data · no · [delete]; press Esc → back. Don't confirm.</pre>
+    </div>
+    <div class="callout blue">Crash-looping (the flickering red star with "crash · exit N" in the pid cell) is the state you saw in 2a when postgres lacked LC_ALL. Nothing on your machine does that now; a way to see it safely: <code>nomeus services:create redis --name=tmp --port=6390 --no-start</code>, then <code>echo "port 99999" &gt;&gt; ~/.nomeus/services/tmp/conf/redis.conf</code>, <code>nomeus services:start tmp</code> (it will fail to start and launchd will keep trying), watch the row, then <code>nomeus services:delete tmp</code>.</div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">run fix</span></label>
+    <div class="body">
+<pre class="cmd">nomeus xdebug:mode on --no-restart &amp;&amp; open https://nomeus.test</pre>
+<pre class="out">the doctor gains a WARN row (xdebug on, nothing listening) with "fix: $ nomeus xdebug:mode trigger --php=8.4 [run fix]" → click run fix → a compact task frame, then the row disappears on the next re-check</pre>
+    </div>
+    <div class="callout gold">"run fix" only accepts commands the doctor itself prints, from an allow-list of idempotent ones (ini, xdebug, extensions, node, service start/restart, secure, link, mail). <code>rm</code>, <code>services:delete</code>, <code>self-update</code>, <code>migrate</code> are refused with a 422 — the terminal is the place for those.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>The pages that wait for 8b</h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Nothing broke</span></label>
+    <div class="body">
+<pre class="out">Sites, PHP, Tasks, Mail, Logs, Debug: same layout as before on the new palette (the old class names are aliased to the new tokens). Fonts changed everywhere: Geist Mono for data. They get their components in 8b.</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>Commit</h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Commit, push, tag</span></label>
+    <div class="body">
+<pre class="cmd">git pull --rebase origin main; git add -A &amp;&amp; git commit -m "8a: design tokens, star LED, primitives; Status + Services" &amp;&amp; git push &amp;&amp; git tag -a v1.10.0 -m "nomeus 1.10.0 — design 1" &amp;&amp; git push --tags</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">Hand-off</span></label>
+    <div class="body"><p>Screenshots of Status and Services are the useful thing here — this is the first slice where the outcome is visual. Anything that reads wrong (contrast, sizes, a state that doesn't look like the spec) is a note for 8b, which does Debug, Sites, Logs, Tasks, PHP, Mail on the same primitives.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>Fonts don't change (still the system monospace)</b> — the woff2 files must be served from <code>/fonts/…</code>: <code>curl -sk https://nomeus.test/fonts/GeistMono-Variable.woff2 -o /dev/null -w '%{http_code}'</code> → 200. Valet serves <code>public/</code> directly, so a 404 means the overlay didn't land in <code>public/fonts</code>.</div>
+  <div class="callout red"><b>Build error mentioning <code>oklch</code> or <code>/13</code> opacity</b> — needs Tailwind v4 (opacity modifiers on arbitrary values and oklch tokens). <code>npm ls tailwindcss</code>.</div>
+  <div class="callout red"><b>Stars render as squares</b> — an SVG <code>path</code> inside a table cell with <code>display:none</code> parents can size to 0 in Safari; the component sets explicit width/height, so this means a CSS conflict — paste the page.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'nomeus-runbook-8a';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

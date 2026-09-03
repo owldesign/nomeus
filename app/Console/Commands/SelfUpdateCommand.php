@@ -18,7 +18,7 @@ class SelfUpdateCommand extends Command
 
     protected $description = 'Pull, install dependencies, rebuild the dashboard, regenerate the php ini, then run the doctor';
 
-    public function handle(Shell $shell): int
+    public function handle(Shell $shell, \App\Services\Node\NodeManager $node): int
     {
         $root = base_path();
         $git = is_dir("{$root}/.git") && ! $this->option('no-git');
@@ -70,7 +70,14 @@ class SelfUpdateCommand extends Command
             return self::FAILURE;
         }
         if (! $this->option('no-build')) {
-            if (! $run(['npm', 'ci', '--no-audit', '--no-fund'], 'npm ci', 900) || ! $run(['npm', 'run', 'build'], 'npm run build', 600)) {
+            // From a dashboard task there is no shell profile, so fnm's node isn't on PATH: run npm through fnm when needed.
+            $npm = fn (array $argv) => $shell->which('npm') !== null ? $argv : $node->execArgv($node->pinOf($root) ?? $node->installed()['default'] ?? $node->installed()['lts'], $argv);
+            if ($shell->which('npm') === null && ! $node->available()) {
+                $this->error('npm is not on nomeus\'s PATH and fnm is not installed — run `npm ci && npm run build` from a terminal, or install fnm (brew install fnm).');
+
+                return self::FAILURE;
+            }
+            if (! $run($npm(['npm', 'ci', '--no-audit', '--no-fund']), 'npm ci', 900) || ! $run($npm(['npm', 'run', 'build']), 'npm run build', 600)) {
                 return self::FAILURE;
             }
         }

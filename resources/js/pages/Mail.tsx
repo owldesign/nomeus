@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import type { MailSummary } from '@/api/types';
 import { ApiError } from '@/api/client';
+import Button, { ConfirmInline } from '@/components/Button';
+import Chip from '@/components/Chip';
+import EmptyState from '@/components/EmptyState';
+import Panel, { LABEL, PageHeader } from '@/components/Panel';
 import { useDeleteMail, useMailMessage, useMailMessages, useMailStatus, useMailTags } from '@/hooks/useApi';
 
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : String(e));
@@ -28,23 +32,21 @@ function Preview({ summary }: { summary: MailSummary }) {
 
   return (
     <>
-      <div className="border-b border-line px-3 py-2">
-        <div className="text-fg">{summary.Subject || '(no subject)'}</div>
-        <div className="text-dim">
+      <div className="border-b border-line/55 px-4 py-3">
+        <div className="t-sans text-base font-semibold text-text">{summary.Subject || '(no subject)'}</div>
+        <div className="text-xs text-dim">
           {addr(summary.From)} → {summary.To.map(addr).join(', ')} · {new Date(summary.Created).toLocaleString()}
           {summary.Attachments ? ` · ${summary.Attachments} attachment${summary.Attachments === 1 ? '' : 's'}` : ''}
         </div>
-        <div className="flex gap-3 text-dim">
-          <a className="hover:text-gold" href={summary.view_url} target="_blank" rel="noreferrer">open in Mailpit ↗</a>
-          {msg && hasHtml && msg.Text && (
-            <button type="button" className="hover:text-gold" onClick={() => setMode(showHtml ? 'text' : 'html')}>{showHtml ? 'show text' : 'show html'}</button>
-          )}
+        <div className="mt-1 flex gap-1 text-xs">
+          <a className="px-2 py-[3px] text-mid hover:text-lantern" href={summary.view_url} target="_blank" rel="noreferrer">open in Mailpit ↗</a>
+          {msg && hasHtml && msg.Text && <Button onClick={() => setMode(showHtml ? 'text' : 'html')}>{showHtml ? 'show text' : 'show html'}</Button>}
         </div>
       </div>
       {isLoading && <div className="p-3 text-dim">loading…</div>}
       {msg && showHtml && <iframe title={summary.Subject} src={summary.view_url} className="min-h-0 flex-1 bg-white" sandbox="allow-same-origin" />}
       {msg && !showHtml && (
-        <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap p-4 text-fg">{msg.Text || '(empty message)'}</pre>
+        <pre className="m-0 min-h-0 flex-1 overflow-auto whitespace-pre-wrap bg-inset p-4 text-xs leading-[1.7] text-mid">{msg.Text || '(empty message)'}</pre>
       )}
     </>
   );
@@ -62,79 +64,79 @@ export default function Mail() {
   if (status.data && !status.data.instance) {
     return (
       <div className="max-w-3xl">
-        <h1 className="mb-2 text-[15px] font-semibold">Mail</h1>
-        <p className="text-dim">No mailpit instance yet. <code>nomeus services:create mailpit</code> (or the Services page) — SMTP on 1025, this page reads its inbox.</p>
+        <PageHeader title="Mail" />
+        <Panel><EmptyState title="No mailpit instance yet" line="SMTP on 1025; this page reads its inbox, one app per tag." command="nomeus mail --create" /></Panel>
       </div>
     );
   }
   if (status.data && !available) {
     return (
       <div className="max-w-3xl">
-        <h1 className="mb-2 text-[15px] font-semibold">Mail</h1>
-        <p className="text-gold">{status.data.instance} is stopped. Start it from the Services page or <code>nomeus services:start {status.data.instance}</code>.</p>
+        <PageHeader title="Mail" />
+        <Panel><EmptyState title={`${status.data.instance} is stopped`} line="Start it from the Services page, or:" command={`nomeus services:start ${status.data.instance}`} /></Panel>
       </div>
     );
   }
 
   return (
-    <div className="grid h-[calc(100vh-7rem)] grid-cols-[160px_minmax(280px,380px)_1fr] gap-0 border border-line bg-panel">
-      {/* apps = tags */}
-      <aside className="border-r border-line p-3">
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-dim">apps</span>
-          {status.data && <a className="text-dim hover:text-gold" href={status.data.ui_url} target="_blank" rel="noreferrer" title="open Mailpit's own UI">mailpit ↗</a>}
-        </div>
-        <ul className="space-y-0.5">
-          <li>
-            <button type="button" onClick={() => { setTag(null); setOpen(null); }} className={`w-full rounded-sm px-2 py-1 text-left ${tag === null ? 'bg-bg text-gold' : 'hover:text-gold'}`}>all</button>
-          </li>
-          {(tags.data ?? []).map((t) => (
-            <li key={t}>
-              <button type="button" onClick={() => { setTag(t); setOpen(null); }} className={`w-full rounded-sm px-2 py-1 text-left ${tag === t ? 'bg-bg text-gold' : 'hover:text-gold'}`}>{t}</button>
+    <div className="flex h-[calc(100vh-7rem)] flex-col">
+      <PageHeader title="Mail" summary={messages.data ? `${messages.data.total} message${messages.data.total === 1 ? '' : 's'}${messages.data.unread ? ` · ${messages.data.unread} unread` : ''}` : ''}
+        actions={status.data && <a className="text-xs text-dim hover:text-lantern" href={status.data.ui_url} target="_blank" rel="noreferrer" title="open Mailpit's own UI">mailpit ↗</a>} />
+      <div className="grid min-h-0 flex-1 grid-cols-[170px_minmax(280px,380px)_1fr] overflow-hidden rounded-lg border border-line bg-panel shadow-panel">
+        {/* apps = tags */}
+        <aside className="border-r border-line/55 p-3">
+          <div className={`${LABEL} mb-2`}>apps</div>
+          <ul className="space-y-0.5">
+            <li>
+              <button type="button" onClick={() => { setTag(null); setOpen(null); }} className={`w-full rounded-sm px-2 py-1 text-left ${tag === null ? 'bg-inset text-lantern' : 'text-mid hover:bg-raised hover:text-text'}`}>all</button>
             </li>
-          ))}
-        </ul>
-        {tags.data && tags.data.length === 0 && (
-          <p className="mt-3 text-dim">No tags yet — apps using nomeus/client show up here as they send.</p>
-        )}
-      </aside>
+            {(tags.data ?? []).map((t) => (
+              <li key={t}>
+                <button type="button" onClick={() => { setTag(t); setOpen(null); }} className={`w-full rounded-sm px-2 py-1 text-left ${tag === t ? 'bg-inset text-lantern' : 'text-mid hover:bg-raised hover:text-text'}`}>{t}</button>
+              </li>
+            ))}
+          </ul>
+          {tags.data && tags.data.length === 0 && <p className="mt-3 text-xs text-faint">No tags yet — apps using nomeus/client show up here as they send.</p>}
+        </aside>
 
-      {/* list */}
-      <section className="flex min-h-0 flex-col border-r border-line">
-        <div className="flex items-baseline justify-between border-b border-line px-3 py-2">
-          <span className="text-dim">{messages.data ? `${messages.data.total} message${messages.data.total === 1 ? '' : 's'}${messages.data.unread ? ` · ${messages.data.unread} unread` : ''}` : '…'}</span>
-          {messages.data && messages.data.total > 0 && (
-            <button type="button" className="text-dim hover:text-red" disabled={remove.isPending} onClick={() => { if (confirm(`Delete ${tag ? `all mail tagged ${tag}` : 'all mail'}?`)) remove.mutate(tag); }}>
-              {remove.isPending ? 'deleting…' : 'delete all'}
-            </button>
-          )}
-        </div>
-        {messages.isError && <p className="p-3 text-red">{errorText(messages.error)}</p>}
-        <ul className="min-h-0 flex-1 overflow-auto">
-          {(messages.data?.messages ?? []).map((m) => (
-            <li key={m.ID}>
-              <button
-                type="button"
-                onClick={() => setOpen(m)}
-                className={`block w-full border-b border-dashed border-line px-3 py-2 text-left hover:bg-bg ${open?.ID === m.ID ? 'bg-bg' : ''}`}
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className={`truncate ${m.Read ? 'text-dim' : 'text-fg'}`}>{m.Subject || '(no subject)'}</span>
-                  <span className="shrink-0 text-dim">{when(m.Created)}</span>
-                </div>
-                <div className="truncate text-dim">{addr(m.From)} → {m.To.map((t) => t.Address).join(', ')}</div>
-                {!tag && m.Tags.length > 0 && <div className="mt-0.5 text-blue">{m.Tags.join(' ')}</div>}
-              </button>
-            </li>
-          ))}
-          {messages.data && messages.data.messages.length === 0 && <li className="p-3 text-dim">empty</li>}
-        </ul>
-      </section>
+        {/* list */}
+        <section className="flex min-h-0 flex-col border-r border-line/55">
+          <div className="flex items-center justify-between border-b border-line/55 px-3 py-1.5">
+            <span className="text-xs text-dim">{tag ?? 'all apps'}</span>
+            {messages.data && messages.data.total > 0 && (
+              <ConfirmInline trigger="delete all" question={`delete ${tag ? `all mail tagged ${tag}` : 'all mail'}?`} action="delete" disabled={remove.isPending} onConfirm={() => remove.mutate(tag)} />
+            )}
+          </div>
+          {messages.isError && <p className="p-3 text-fail">{errorText(messages.error)}</p>}
+          <ul className="min-h-0 flex-1 overflow-auto">
+            {(messages.data?.messages ?? []).map((m) => (
+              <li key={m.ID}>
+                <button
+                  type="button"
+                  onClick={() => setOpen(m)}
+                  className={`block w-full border-b border-line/55 px-3 py-2 text-left hover:bg-raised/50 ${open?.ID === m.ID ? 'bg-inset' : ''}`}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className={`inline-flex min-w-0 items-center gap-2 ${m.Read ? 'text-dim' : 'text-text'}`}>
+                      {!m.Read && <span className="inline-block h-[5px] w-[5px] shrink-0 rounded-full bg-lantern" aria-label="unread" />}
+                      <span className="truncate">{m.Subject || '(no subject)'}</span>
+                    </span>
+                    <span className="shrink-0 text-2xs text-faint">{when(m.Created)}</span>
+                  </div>
+                  <div className="truncate text-xs text-dim">{addr(m.From)} → {m.To.map((t) => t.Address).join(', ')}</div>
+                  {!tag && m.Tags.length > 0 && <div className="mt-1 flex gap-1">{m.Tags.map((t) => <Chip key={t} tint="info">{t}</Chip>)}</div>}
+                </button>
+              </li>
+            ))}
+            {messages.data && messages.data.messages.length === 0 && <li><EmptyState title="Nothing here" line={tag ? `no mail tagged ${tag} yet` : 'send something from an app'} /></li>}
+          </ul>
+        </section>
 
-      {/* preview */}
-      <section className="flex min-h-0 flex-col">
-        {open ? <Preview summary={open} /> : <div className="flex flex-1 items-center justify-center text-dim">select a message</div>}
-      </section>
+        {/* preview */}
+        <section className="flex min-h-0 flex-col">
+          {open ? <Preview summary={open} /> : <div className="flex flex-1 items-center justify-center text-faint">select a message</div>}
+        </section>
+      </div>
     </div>
   );
 }

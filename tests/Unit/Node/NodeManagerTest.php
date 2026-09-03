@@ -62,7 +62,7 @@ it('pins sites through .nvmrc and wraps commands with fnm exec', function () {
     expect($this->node->resolve($this->site)['installed'])->toBeNull();
 
     expect($this->node->execArgv('22', ['npm', 'ci']))->toBe([$this->fnm, 'exec', '--using', '22', '--', 'npm', 'ci'])
-        ->and($this->node->execArgv(null, ['npm', 'ci']))->toBe(['npm', 'ci']);
+        ->and($this->node->execArgv(null, ['npm', 'ci']))->toBe([$this->fnm, 'exec', '--using', '22.11.0', '--', 'npm', 'ci']);   // no pin → the default
 
     unlink($this->fnm);
     expect($this->node->available())->toBeFalse()

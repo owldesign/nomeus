@@ -430,3 +430,8 @@ export function useNodeAction() {
         : post<Enqueued>('/node/use', { version: a.version, site: a.site, default: !!a.default }),
   });
 }
+
+/** Run a fix the doctor proposed, as a task. The server only accepts commands the doctor itself would print. */
+export function useDoctorFix() {
+  return useMutation({ mutationFn: (command: string) => post<Enqueued>('/doctor/fix', { command }) });
+}

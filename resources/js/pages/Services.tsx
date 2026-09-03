@@ -2,23 +2,16 @@ import { Fragment, useState } from 'react';
 import type { ServiceInstance, ServiceType } from '@/api/types';
 import { ApiError } from '@/api/client';
 import { copyText } from '@/lib/clipboard';
+import Button, { ConfirmInline } from '@/components/Button';
+import Chip from '@/components/Chip';
+import EmptyState from '@/components/EmptyState';
+import Led, { ledStateFor } from '@/components/Led';
 import TaskProgress from '@/components/TaskProgress';
+import Panel, { INPUT, LABEL, PageHeader } from '@/components/Panel';
+import Table, { CELL, CELL_FIRST, CELL_LAST, rowClass } from '@/components/Table';
 import { useAdopt, useAdoptable, useCreateService, useRefetchAfterTask, useService, useServiceAction, useServiceTypes, useServices, useSites } from '@/hooks/useApi';
 
 const errorText = (e: unknown) => (e instanceof ApiError ? e.message : String(e));
-
-function Led({ s }: { s: ServiceInstance['status'] }) {
-  const [cls, title] = s.running
-    ? ['bg-green shadow-[0_0_6px_var(--color-green)]', 'running']
-    : s.crashing
-      ? ['bg-red shadow-[0_0_6px_var(--color-red)]', `crash-looping (last exit ${s.last_exit}) — expand the row for the log`]
-      : s.loaded
-        ? ['bg-gold', 'loaded, not answering yet']
-        : s.installed
-          ? ['bg-mute', 'stopped']
-          : ['bg-red', 'formula missing'];
-  return <span className={`inline-block h-2 w-2 rounded-full ${cls}`} title={title} />;
-}
 
 function EnvBlock({ env }: { env: Record<string, string> }) {
   const text = Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n');
@@ -29,44 +22,52 @@ function EnvBlock({ env }: { env: Record<string, string> }) {
   };
   return (
     <div className="relative">
-      <pre className="select-all border border-line bg-bg p-3 text-dim">{text}</pre>
-      <button
-        type="button"
-        className={`absolute right-2 top-2 border bg-panel px-2 py-0.5 hover:border-gold hover:text-gold ${state === 'failed' ? 'border-red text-red' : state === 'copied' ? 'border-green text-green' : 'border-line text-dim'}`}
-        onClick={copy}
-      >
-        {state === 'copied' ? 'copied' : state === 'failed' ? 'copy failed — select the block' : 'copy .env'}
-      </button>
+      <pre className="m-0 select-all rounded-md bg-inset px-3 py-2 text-xs leading-[1.7]">
+        {Object.entries(env).map(([k, v]) => <span key={k}><span className="text-dim">{k}</span><span className="text-faint">=</span><span className="text-mid">{v}</span>{'\n'}</span>)}
+      </pre>
+      <div className="absolute right-2 top-1.5">
+        <Button className={state === 'failed' ? 'text-fail' : state === 'copied' ? 'text-ok' : ''} onClick={copy}>
+          {state === 'copied' ? 'copied' : state === 'failed' ? 'copy failed — select the block' : 'copy .env'}
+        </Button>
+      </div>
     </div>
   );
 }
 
+/** The expand well (spec §3): .env keys/values and the log tail with a live caret, on `inset`. */
 function Detail({ name }: { name: string }) {
   const { data } = useService(name);
   if (!data) return <p className="text-dim">reading…</p>;
+  const log = (data.log ?? '').trim();
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <div>
-        <div className="mb-1 text-dim">.env for a site using it</div>
+        <div className={LABEL}>.env for a site using it</div>
         <EnvBlock env={data.env} />
-        <div className="mt-2 text-dim">data {data.dir}/data</div>
+        <div className="mt-2 text-xs text-faint">data {data.dir}/data</div>
       </div>
       <div>
-        <div className="mb-1 text-dim">log</div>
-        <pre className="max-h-64 overflow-auto border border-line bg-bg p-3 text-dim">{data.log?.trim() || '(nothing yet)'}</pre>
+        <div className={LABEL}>log</div>
+        <pre className="m-0 max-h-64 overflow-auto rounded-md bg-inset px-3 py-2 text-xs leading-[1.7] text-mid">
+          {log ? log.split('\n').map((l, i) => <span key={i} className={/error|fatal|panic/i.test(l) ? 'text-fail' : ''}>{l}{'\n'}</span>) : <span className="text-faint">(nothing yet)</span>}
+          <span className="text-lantern animate-blink">▍</span>
+        </pre>
       </div>
     </div>
   );
 }
 
+/** Spec §3: 36px rows, hover wash, crash-looping wash across the row, stopped rows go faint except `start`. */
 function Row({ i, open, onToggle }: { i: ServiceInstance; open: boolean; onToggle: () => void }) {
   const act = useServiceAction();
   const refetch = useRefetchAfterTask();
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [mode, setMode] = useState<'idle' | 'clone' | 'delete'>('idle');
+  const [mode, setMode] = useState<'idle' | 'clone'>('idle');
   const [cloneName, setCloneName] = useState(`${i.name}-copy`);
   const [clonePort, setClonePort] = useState('');
   const [keepData, setKeepData] = useState(false);
+  const state = ledStateFor(i.status);
+  const stopped = state === 'stopped' || state === 'missing';
 
   const run = (a: Parameters<typeof act.mutate>[0]) => {
     setMode('idle');
@@ -75,56 +76,53 @@ function Row({ i, open, onToggle }: { i: ServiceInstance; open: boolean; onToggl
 
   const actions = () => {
     if (act.isPending) return <span className="text-dim">enqueuing…</span>;
-    if (taskId) return <TaskProgress id={taskId} onFinished={() => { refetch(); setTimeout(() => setTaskId(null), 4000); }} />;
+    if (taskId) return <TaskProgress id={taskId} compact onFinished={() => { refetch(); setTimeout(() => setTaskId(null), 4000); }} />;
     if (mode === 'clone') {
       return (
         <span className="inline-flex flex-wrap items-center gap-2">
-          <input aria-label="Clone name" className="w-36 border border-line bg-bg px-2 py-0.5" value={cloneName} onChange={(e) => setCloneName(e.target.value)} />
-          <input aria-label="Clone port" className="w-20 border border-line bg-bg px-2 py-0.5" placeholder="port" value={clonePort} onChange={(e) => setClonePort(e.target.value)} />
-          <button type="button" className="text-gold hover:underline" onClick={() => run({ name: i.name, action: 'clone', newName: cloneName, port: clonePort ? Number(clonePort) : undefined })}>clone</button>
-          <button type="button" className="text-dim hover:underline" onClick={() => setMode('idle')}>cancel</button>
-        </span>
-      );
-    }
-    if (mode === 'delete') {
-      return (
-        <span className="inline-flex flex-wrap items-center gap-2">
-          <span className="text-gold">delete {i.name}?</span>
-          <label className="inline-flex items-center gap-1 text-dim"><input type="checkbox" checked={keepData} onChange={(e) => setKeepData(e.target.checked)} /> keep data</label>
-          <button type="button" className="text-red hover:underline" onClick={() => run({ name: i.name, action: 'delete', keepData })}>yes</button>
-          <button type="button" className="text-dim hover:underline" onClick={() => setMode('idle')}>no</button>
+          <input aria-label="Clone name" className={`${INPUT} w-36 py-[3px]`} value={cloneName} onChange={(e) => setCloneName(e.target.value)} />
+          <input aria-label="Clone port" className={`${INPUT} w-20 py-[3px]`} placeholder="port" value={clonePort} onChange={(e) => setClonePort(e.target.value)} />
+          <Button variant="primary" onClick={() => run({ name: i.name, action: 'clone', newName: cloneName, port: clonePort ? Number(clonePort) : undefined })}>clone</Button>
+          <Button onClick={() => setMode('idle')}>cancel</Button>
         </span>
       );
     }
     return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center gap-x-1 gap-y-1" onClick={(e) => e.stopPropagation()}>
         {i.status.running || i.status.loaded
-          ? <button type="button" className="hover:text-gold" onClick={() => run({ name: i.name, action: 'stop' })}>stop</button>
-          : <button type="button" className="hover:text-gold" onClick={() => run({ name: i.name, action: 'start' })}>start</button>}
-        <button type="button" className="hover:text-gold" onClick={() => run({ name: i.name, action: 'restart' })}>restart</button>
-        <button type="button" className="hover:text-gold" onClick={() => setMode('clone')}>clone</button>
-        <button type="button" className="hover:text-red" onClick={() => setMode('delete')}>delete</button>
-        {act.isError && <span className="basis-full text-red">{errorText(act.error)}</span>}
+          ? <Button onClick={() => run({ name: i.name, action: 'stop' })}>stop</Button>
+          : <Button className={stopped ? 'text-ok' : ''} onClick={() => run({ name: i.name, action: 'start' })}>start</Button>}
+        <Button onClick={() => run({ name: i.name, action: 'restart' })}>restart</Button>
+        <Button onClick={() => setMode('clone')}>clone</Button>
+        <ConfirmInline
+          question={`delete ${i.name}?`}
+          action="delete"
+          onConfirm={() => run({ name: i.name, action: 'delete', keepData })}
+          extra={<label className="inline-flex items-center gap-1 text-xs text-dim"><input type="checkbox" checked={keepData} onChange={(e) => setKeepData(e.target.checked)} /> keep data</label>}
+        />
+        {act.isError && <span className="basis-full text-fail">{errorText(act.error)}</span>}
       </div>
     );
   };
 
+  const faint = stopped ? 'text-faint' : '';
   return (
     <Fragment>
-      <tr className="border-b border-dashed border-line align-top">
-        <td className="py-2 pr-3"><Led s={i.status} /></td>
-        <td className="py-2 pr-4 whitespace-nowrap">
-          <button type="button" className="hover:text-gold" onClick={onToggle}>{open ? '▾' : '▸'} {i.name}</button>
+      <tr className={rowClass({ wash: state === 'crashing' ? 'fail' : undefined, clickable: true })} onClick={onToggle}>
+        <td className={`${CELL_FIRST} w-12 whitespace-nowrap`}>
+          <span className="mr-1 text-2xs text-faint">{open ? '▾' : '▸'}</span>
+          <Led state={state} title={state === 'crashing' ? `crash-looping (last exit ${i.status.last_exit}) — expand for the log` : undefined} />
         </td>
-        <td className="py-2 pr-4 whitespace-nowrap">{i.type} <span className="text-dim">{i.formula}</span></td>
-        <td className="py-2 pr-4 text-dim">{i.version}</td>
-        <td className="py-2 pr-4">{i.port}</td>
-        <td className="py-2 pr-4 text-dim">{i.status.pid ?? (i.status.crashing ? <span className="text-red">exit {i.status.last_exit}</span> : '—')}</td>
-        <td className="py-2">{actions()}</td>
+        <td className={`${CELL} whitespace-nowrap font-medium ${stopped ? 'text-faint' : 'text-text'}`}>{i.name}</td>
+        <td className={`${CELL} whitespace-nowrap ${stopped ? 'text-faint' : 'text-dim'}`}>{i.type} <span className="text-faint">{i.formula}</span></td>
+        <td className={`${CELL} ${stopped ? 'text-faint' : 'text-dim'}`}>{i.version}</td>
+        <td className={`${CELL} ${faint || 'text-text'}`}>{i.port}</td>
+        <td className={`${CELL} ${faint || 'text-dim'}`}>{i.status.pid ?? (i.status.crashing ? <span className="text-fail">crash · exit {i.status.last_exit}</span> : '—')}</td>
+        <td className={CELL_LAST}>{actions()}</td>
       </tr>
       {open && (
-        <tr className="border-b border-dashed border-line">
-          <td colSpan={7} className="py-3 pl-6"><Detail name={i.name} /></td>
+        <tr className="border-b border-line/55">
+          <td colSpan={7} className="bg-inset/60 py-3 pl-12 pr-4"><Detail name={i.name} /></td>
         </tr>
       )}
     </Fragment>
@@ -155,45 +153,41 @@ function CreateForm({ types, existing }: { types: ServiceType[]; existing: Servi
   };
 
   return (
-    <div className="mt-6 border border-line bg-panel px-4 py-3">
-      <div className="mb-2 text-dim">create a service instance</div>
-      <div className="flex flex-wrap items-center gap-2">
-        <select aria-label="Type" className="border border-line bg-bg px-2 py-1 text-fg" value={type} onChange={(e) => { setType(e.target.value); setVersion(''); }}>
+    <Panel className="mt-6" title="create a service instance">
+      <div className="flex flex-wrap items-center gap-2 px-4 pt-3">
+        <select aria-label="Type" className={INPUT} value={type} onChange={(e) => { setType(e.target.value); setVersion(''); }}>
           {types.map((x) => <option key={x.type} value={x.type}>{x.label}</option>)}
         </select>
         {t?.requires_site ? (
-          <select aria-label="Site" className="border border-line bg-bg px-2 py-1 text-fg" value={site} onChange={(e) => setSite(e.target.value)}>
+          <select aria-label="Site" className={INPUT} value={site} onChange={(e) => setSite(e.target.value)}>
             <option value="">site… ({t.site_package} must be installed there)</option>
             {siteSites.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
           </select>
         ) : (
-          <select aria-label="Version" className="border border-line bg-bg px-2 py-1 text-fg" value={version} onChange={(e) => setVersion(e.target.value)}>
+          <select aria-label="Version" className={INPUT} value={version} onChange={(e) => setVersion(e.target.value)}>
             <option value="">{t?.formulae[0]?.formula ?? 'version'} (default)</option>
             {t?.formulae.map((f) => (
               <option key={f.formula} value={f.formula}>{f.formula}{f.installed ? ` · installed ${f.version ?? ''}` : ' · will install'}</option>
             ))}
           </select>
         )}
-        <input aria-label="Name" className="w-36 border border-line bg-bg px-2 py-1" placeholder={suggestedName} value={name} onChange={(e) => setName(e.target.value)} />
-        <input aria-label="Port" className="w-24 border border-line bg-bg px-2 py-1" placeholder={String(t?.default_port ?? '')} value={port} onChange={(e) => setPort(e.target.value)} />
-        <label className="inline-flex items-center gap-1 text-dim"><input type="checkbox" checked={start} onChange={(e) => setStart(e.target.checked)} /> start now</label>
-        <button
-          type="button"
-          className="border border-line px-3 py-1 hover:border-gold hover:text-gold disabled:text-mute"
-          disabled={!type || (t?.requires_site && !site) || create.isPending || taskId !== null}
-          onClick={submit}
-        >
-          {create.isPending ? 'enqueuing…' : 'create'}
-        </button>
+        <input aria-label="Name" className={`${INPUT} w-36`} placeholder={suggestedName} value={name} onChange={(e) => setName(e.target.value)} />
+        <input aria-label="Port" className={`${INPUT} w-24`} placeholder={String(t?.default_port ?? '')} value={port} onChange={(e) => setPort(e.target.value)} />
+        <label className="inline-flex items-center gap-1 text-xs text-dim"><input type="checkbox" checked={start} onChange={(e) => setStart(e.target.checked)} /> start now</label>
+        <span className="ml-auto">
+          <Button variant="primary" disabled={!type || (t?.requires_site && !site) || create.isPending || taskId !== null} onClick={submit}>
+            {create.isPending ? 'enqueuing…' : 'create'}
+          </Button>
+        </span>
       </div>
-      <div className="mt-1 text-dim">placeholders show what nomeus picks when left blank; the port is the standard one when free, otherwise the next free</div>
-      {create.isError && <div className="mt-2 text-red">{errorText(create.error)}</div>}
+      <div className="px-4 pb-3 pt-2 text-xs text-faint">placeholders show what nomeus picks when left blank; the port is the standard one when free, otherwise the next free · <span className="text-dim">nomeus services:create {type}{version ? ` ${version.replace(/^.*@/, '')}` : ''}{name ? ` --name=${name}` : ''}{port ? ` --port=${port}` : ''}{start ? '' : ' --no-start'}</span></div>
+      {create.isError && <div className="px-4 pb-3 text-fail">{errorText(create.error)}</div>}
       {taskId && (
-        <div className="mt-2">
+        <div className="px-4 pb-3">
           <TaskProgress id={taskId} onFinished={() => { refetch(); setTimeout(() => setTaskId(null), 4000); }} />
         </div>
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -206,37 +200,29 @@ function AdoptPanel() {
   if (!adoptable.data || adoptable.data.length === 0) return null;
 
   return (
-    <div className="mt-6 border border-gold/40 bg-panel px-4 py-3">
-      <div className="mb-1 text-gold">running under brew services</div>
-      <div className="mb-3 text-dim">nomeus can take these over on their standard ports. The data is copied; brew's copy stays where it is until you remove it.</div>
-      <table className="w-full border-collapse">
+    <Panel className="mt-6" accent title={<span className="text-lantern">running under brew services</span>}>
+      <div className="px-4 pt-3 text-xs text-dim">nomeus can take these over on their standard ports. The data is copied; brew's copy stays where it is until you remove it.</div>
+      <table className="mt-2 w-full border-collapse">
         <tbody>
           {adoptable.data.map((s) => (
-            <tr key={s.formula} className="border-t border-dashed border-line">
-              <td className="py-1 pr-4">{s.formula} <span className="text-dim">{s.type}</span></td>
-              <td className="py-1 pr-4">{s.loaded ? <span className="text-green">running</span> : <span className="text-dim">{s.plist ? 'stopped, starts at login' : 'stopped'}</span>}</td>
+            <tr key={s.formula} className={rowClass()}>
+              <td className={`${CELL_FIRST} text-text`}>{s.formula} <span className="text-dim">{s.type}</span></td>
+              <td className="pr-4"><span className="inline-flex items-center gap-2"><Led state={s.loaded ? 'running' : 'stopped'} />{s.loaded ? <span className="text-mid">running</span> : <span className="text-dim">{s.plist ? 'stopped, starts at login' : 'stopped'}</span>}</span></td>
               <td className="py-1 pr-4 text-dim">{s.port}{s.answering === false ? ' (silent)' : ''}</td>
               <td className="py-1 pr-4 break-all text-dim">{s.data_dir}</td>
               <td className="py-1">
                 {taskId && busy === s.formula
                   ? <TaskProgress id={taskId} onFinished={() => { refetch(); setTimeout(() => { setTaskId(null); setBusy(null); }, 4000); }} />
                   : (
-                    <button
-                      type="button"
-                      className="border border-line px-2 py-0.5 hover:border-gold hover:text-gold disabled:text-mute"
-                      disabled={adopt.isPending || taskId !== null}
-                      onClick={() => { setBusy(s.formula); adopt.mutate({ formula: s.formula }, { onSuccess: (r) => setTaskId(r.task.id) }); }}
-                    >
-                      adopt
-                    </button>
+                    <Button variant="primary" disabled={adopt.isPending || taskId !== null} onClick={() => { setBusy(s.formula); adopt.mutate({ formula: s.formula }, { onSuccess: (r) => setTaskId(r.task.id) }); }}>adopt</Button>
                   )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      {adopt.isError && <div className="mt-2 text-red">{errorText(adopt.error)}</div>}
-    </div>
+      {adopt.isError && <div className="px-4 pb-3 text-fail">{errorText(adopt.error)}</div>}
+    </Panel>
   );
 }
 
@@ -248,36 +234,22 @@ export default function Services() {
 
   return (
     <div className="max-w-6xl">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h1 className="text-[15px] font-semibold">Services</h1>
-        <span className="text-dim">{services.data ? `${running}/${services.data.length} running` : ''}</span>
-      </div>
+      <PageHeader title="Services" actions={services.data && <Chip tint={running === services.data.length ? 'ok' : running ? 'warn' : 'neutral'}>{running}/{services.data.length} running</Chip>} />
 
       {services.isLoading && <p className="text-dim">reading…</p>}
-      {services.isError && <p className="text-red">{errorText(services.error)}</p>}
+      {services.isError && <p className="text-fail">{errorText(services.error)}</p>}
       {services.data && services.data.length === 0 && (
-        <p className="text-dim">No instances yet. Create one below, or <code>nomeus services:create postgresql</code>.</p>
+        <Panel><EmptyState title="No service instances yet" line="Postgres, MySQL, Redis, Meilisearch and the rest run as launchd agents nomeus owns." command="nomeus services:create postgresql" /></Panel>
       )}
 
       {services.data && services.data.length > 0 && (
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-line text-left text-dim">
-              <th className="py-1 pr-3 font-normal"></th>
-              <th className="py-1 pr-4 font-normal">name</th>
-              <th className="py-1 pr-4 font-normal">type</th>
-              <th className="py-1 pr-4 font-normal">version</th>
-              <th className="py-1 pr-4 font-normal">port</th>
-              <th className="py-1 pr-4 font-normal">pid</th>
-              <th className="py-1 font-normal">actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Panel>
+          <Table columns={['', 'name', 'type', 'version', 'port', 'pid', 'actions']}>
             {services.data.map((i) => (
               <Row key={i.name} i={i} open={open === i.name} onToggle={() => setOpen(open === i.name ? null : i.name)} />
             ))}
-          </tbody>
-        </table>
+          </Table>
+        </Panel>
       )}
 
       {types.data && <CreateForm types={types.data} existing={services.data ?? []} />}

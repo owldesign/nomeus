@@ -99,6 +99,25 @@ it('reports commits behind with self-update --check and refuses a dirty tree', f
     Process::assertNotRan(fn ($p) => ($p->command[0] ?? '') === 'composer');
 });
 
+it('runs npm through fnm when npm is not on the task PATH', function () {
+    if (! is_dir(base_path('.git'))) {
+        $this->markTestSkipped('not a git checkout');
+    }
+    $fnm = "{$this->root}/fnm";
+    file_put_contents($fnm, "#!/bin/sh\n");
+    chmod($fnm, 0755);
+    Process::fake([
+        '*which*' => fn ($p) => Process::result(in_array('fnm', $p->command, true) ? "{$fnm}\n" : ''),   // fnm is on PATH, npm is not (a dashboard task)
+        "*fnm' 'ls'*" => Process::result("* v22.11.0 default\n"),
+        "*fnm' 'exec'*" => Process::result(''),
+        '*git*rev-list*HEAD..*' => Process::result("0\n"),
+        "*'composer' 'install'*" => Process::result(''),
+    ]);
+    $this->artisan('self-update')->expectsOutputToContain('npm ci')->run();
+    Process::assertRan(fn ($p) => array_slice($p->command, 0, 5) === [$fnm, 'exec', '--using', '22.11.0', '--'] && array_slice($p->command, 5, 2) === ['npm', 'ci']);
+    Process::assertRan(fn ($p) => array_slice($p->command, 5) === ['npm', 'run', 'build']);
+});
+
 it('enqueues self-update as a task from the dashboard', function () {
     $php = app(\App\Support\Shell::class)->phpBin();
     $this->postJson('/api/update', ['check' => true], ['X-Nomeus' => '1'])->assertStatus(202)
@@ -125,4 +144,15 @@ it('generates the command reference and clears service logs', function () {
 
     app(DumpStore::class)->insert(['kind' => 'dump', 'request_key' => null, 'uri' => null, 'method' => null, 'command' => null, 'file' => null, 'line' => null, 'text' => 'x', 'html' => '', 'payload' => null]);
     $this->artisan('doctor --section=retention')->expectsOutputToContain('newest 5000 rows')->assertSuccessful();
+});
+
+it('runs only the fixes the doctor proposes, as tasks', function () {
+    $php = app(\App\Support\Shell::class)->phpBin();
+    $this->postJson('/api/doctor/fix', ['command' => 'nomeus dumps:install --restart'], ['X-Nomeus' => '1'])->assertStatus(202)
+        ->assertJsonPath('task.argv', [$php, base_path('artisan'), 'dumps:install', '--restart', '--no-interaction']);
+    $this->postJson('/api/doctor/fix', ['command' => 'nomeus php:ext redis --php=8.4'], ['X-Nomeus' => '1'])->assertStatus(202);
+    $this->postJson('/api/doctor/fix', ['command' => 'nomeus rm shop --db'], ['X-Nomeus' => '1'])->assertUnprocessable();
+    $this->postJson('/api/doctor/fix', ['command' => 'nomeus dumps:install; rm -rf /'], ['X-Nomeus' => '1'])->assertUnprocessable();
+    $this->postJson('/api/doctor/fix', ['command' => 'rm -rf /'], ['X-Nomeus' => '1'])->assertUnprocessable();
+    $this->postJson('/api/doctor/fix', ['command' => 'nomeus dumps:install'])->assertForbidden();
 });

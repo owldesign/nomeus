@@ -69,6 +69,7 @@ Route::post('/xdebug/mode', [XdebugController::class, 'mode'])->name('api.xdebug
 
 Route::get('/doctor', [DoctorController::class, 'index'])->name('api.doctor');
 Route::post('/update', [DoctorController::class, 'update'])->name('api.update');
+Route::post('/doctor/fix', [DoctorController::class, 'fix'])->name('api.doctor.fix');
 
 Route::get('/node', [NodeController::class, 'index'])->name('api.node.index');
 Route::post('/node/install', [NodeController::class, 'install'])->name('api.node.install');

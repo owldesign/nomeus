@@ -29,3 +29,5 @@ They are the build history — and the record of every trap met on a real machin
 | 7g-1 | [linux seam](runbook-7g1-linux-seam.html) | `ProcessManager` (launchd / systemd), `Platform`; no behaviour change on macOS |
 | 7g-2a | [php on linux](runbook-7g2a-php-linux.html) | `PhpProvider` (brew / apt), the root helper; macOS unchanged |
 | 7g-2b | [valet on linux](runbook-7g2b-valet-linux.html) | fpm sockets via the provider, brew services on systemd, `install-linux.sh`, the first VM run |
+| 8a | [design](runbook-8a-design.html) | the tokens, the star LED and primitives, Status + Services on the new system |
+| 8b | [design 2](runbook-8b-design.html) | Panel/Table/Tabs/Field; Sites, PHP, Tasks, Mail, Logs, Debug on the same system; aliases removed |
