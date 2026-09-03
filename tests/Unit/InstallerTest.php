@@ -2,7 +2,7 @@
 
 /** The shell side has no PHP to test it; syntax, the served copy, and the UI library's no-tty rendering. */
 it('has valid bash in every installer script', function () {
-    foreach (['install/install.sh', 'install/bootstrap.sh', 'install/lib/ui.sh', 'install/sync-site.sh'] as $f) {
+    foreach (['install/install.sh', 'install/install-linux.sh', 'install/bootstrap.sh', 'install/lib/ui.sh', 'install/sync-site.sh', 'install/linux/nomeus-helper'] as $f) {
         $result = \Illuminate\Support\Facades\Process::run(['bash', '-n', base_path($f)]);
         expect($result->successful())->toBeTrue("{$f}: ".$result->errorOutput());
     }

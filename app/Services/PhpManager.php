@@ -94,18 +94,9 @@ final class PhpManager
     public function runningFpmVersions(): array
     {
         $versions = [];
-        foreach ($this->valetSockets() as $path) {
-            if (! $this->probe->unix($path)) {
-                continue;
-            }
-            $name = basename($path, '.sock');
-            if ($name === 'valet') {
-                $global = $this->brew->linkedPhp();
-                if ($global !== null) {
-                    $versions[] = $global;
-                }
-            } elseif (preg_match('/^valet(\d)(\d+)$/', $name, $m)) {
-                $versions[] = "{$m[1]}.{$m[2]}";
+        foreach ($this->brew->fpmSockets($this->valet->configDir()) as $version => $path) {   // Valet's sockets on macOS, /run/php on Linux
+            if ($this->probe->unix($path)) {
+                $versions[] = $version;
             }
         }
 

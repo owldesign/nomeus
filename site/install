@@ -21,9 +21,16 @@ say() { printf '%s▶%s %s\n' "$G" "$O" "$*"; }
 die() { printf '%s✗%s %s\n' "$R" "$O" "$*" >&2; exit 1; }
 
 printf '\n%snomeus%s %s— shepherd for your local stack%s\n\n' "$G" "$O" "$D" "$O"
-[[ "$(uname -s)" == "Darwin" ]] || die "macOS only for now."
-command -v git  >/dev/null || die "git is required — run: xcode-select --install"
-command -v brew >/dev/null || die "Homebrew is required first: https://brew.sh"
+OS="$(uname -s)"
+case "$OS" in
+  Darwin)
+    command -v git  >/dev/null || die "git is required — run: xcode-select --install"
+    command -v brew >/dev/null || die "Homebrew is required first: https://brew.sh" ;;
+  Linux)
+    command -v git >/dev/null || die "git is required — sudo apt install git"
+    command -v apt-get >/dev/null || die "Ubuntu/Debian only for now" ;;
+  *) die "unsupported OS: $OS" ;;
+esac
 
 if [[ -d "$NOMEUS_HOME/.git" ]]; then
   say "updating $NOMEUS_HOME ($NOMEUS_REF)"
@@ -36,5 +43,6 @@ else
   git clone --quiet --depth 1 --branch "$NOMEUS_REF" "$NOMEUS_REPO" "$NOMEUS_HOME"
 fi
 
-chmod +x "$NOMEUS_HOME/install/install.sh" "$NOMEUS_HOME/bin/nomeus"
+chmod +x "$NOMEUS_HOME/install/install.sh" "$NOMEUS_HOME/install/install-linux.sh" "$NOMEUS_HOME/bin/nomeus" 2>/dev/null || true
+if [[ "$OS" == "Linux" ]]; then exec "$NOMEUS_HOME/install/install-linux.sh" "$@"; fi
 exec "$NOMEUS_HOME/install/install.sh" "$@"

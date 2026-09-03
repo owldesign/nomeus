@@ -189,6 +189,17 @@ final class AptPhp implements PhpProvider
         return true;
     }
 
+    /** The PPA's fpm units listen on /run/php/phpX.Y-fpm.sock; valet-linux-plus adds its own valet.sock for the global version. */
+    public function fpmSockets(string $valetConfigDir): array
+    {
+        $out = [];
+        foreach ($this->installedPhp() as $v) {
+            $out[$v] = $this->root."/run/php/php{$v}-fpm.sock";
+        }
+
+        return $out;
+    }
+
     public function sourceName(): string
     {
         return 'apt (ppa:ondrej/php)';

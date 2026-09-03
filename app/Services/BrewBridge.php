@@ -358,6 +358,23 @@ final class BrewBridge implements \App\Services\Php\PhpProvider
         return is_file($ini.'.nomeus-off') && rename($ini.'.nomeus-off', $ini);
     }
 
+    /** Valet's sockets live in its config dir: valet.sock is the global version, valetXY.sock an isolated one. */
+    public function fpmSockets(string $valetConfigDir): array
+    {
+        $dir = rtrim($valetConfigDir, '/');
+        $out = [];
+        foreach (glob("{$dir}/*.sock") ?: [] as $path) {
+            $name = basename($path, '.sock');
+            if ($name === 'valet' && ($global = $this->linkedPhp()) !== null) {
+                $out[$global] = $path;
+            } elseif (preg_match('/^valet(\d)(\d+)$/', $name, $m)) {
+                $out["{$m[1]}.{$m[2]}"] = $path;
+            }
+        }
+
+        return $out;
+    }
+
     public function sourceName(): string
     {
         return 'brew';

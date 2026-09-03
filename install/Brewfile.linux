@@ -1,0 +1,5 @@
+# nomeus — Linuxbrew Brewfile: services and node only. PHP, nginx and dnsmasq come from apt (see install-linux.sh).
+tap "shivammathur/extensions"      # not used for php on Linux, but the tap's presence keeps brew quiet about unknown formulas
+brew "fnm"                          # node versions (nomeus node:*)
+brew "mailpit"                      # nomeus mail --create
+# service formulas are installed on demand by nomeus services:create (postgresql@17, mysql@9.7, redis, meilisearch, …)

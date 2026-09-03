@@ -99,9 +99,10 @@ final class ValetBridge
             $bin = $this->shell->valetBin();
             $real = realpath($bin);
             if ($real !== false) {
-                $file = dirname($real).'/cli/valet.php';
-                if (is_file($file) && preg_match("/\\\$version\s*=\s*'([^']+)'/", (string) file_get_contents($file), $m)) {
-                    return $m[1];
+                foreach ([dirname($real).'/cli/valet.php', dirname($real).'/cli/app.php', dirname(dirname($real)).'/cli/valet.php'] as $file) {   // laravel/valet · valet-linux-plus layouts
+                    if (is_file($file) && preg_match("/\\\$version\s*=\s*'([^']+)'/", (string) file_get_contents($file), $m)) {
+                        return $m[1];
+                    }
                 }
             }
 

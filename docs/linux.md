@@ -1,6 +1,6 @@
 # Nomeus on Linux
 
-Status: **in progress** — 7g-1 put the seam in; 7g-2a adds PHP on Linux (this); 7g-2b Valet + the installer; 7g-3 proves it on Ubuntu 24.04.
+Status: **in progress** — 7g-1 the seam · 7g-2a PHP on Linux · 7g-2b Valet + the installer (this) · 7g-3 proves it on Ubuntu 24.04.
 
 ## What carries over unchanged
 
@@ -26,9 +26,26 @@ prepend ini.
 `Platform::name()` decides (`NOMEUS_PLATFORM=linux|macos` overrides it). On macOS nothing changed in 7g-1 beyond
 the indirection; the systemd code only executes when the platform says Linux.
 
-## Known gaps until 7g-2b
+## Installing on Ubuntu
 
-Reverb (site-bound) still computes its php bin dir from the brew prefix in `ServiceManager`; `BrewServices` adoption is macOS-only; the installer is macOS-only.
+```bash
+curl -fsSL https://nomeus.dev/install | bash        # detects Linux → install/install-linux.sh
+```
+
+The installer: apt prerequisites → `ppa:ondrej/php` + `ppa:ondrej/nginx` → `php8.4` (+fpm, common extensions) → nginx, dnsmasq
+→ composer → valet-linux-plus (`valet install`, `valet trust`) → Linuxbrew + `Brewfile.linux` (fnm, mailpit) → the root helper and its
+sudoers rule → `loginctl enable-linger` → the app (deps, build, `nomeus.test`, php ini) → `nomeus doctor`. `--check` reports without changing.
+
+## Where things live on Linux
+
+| what | path |
+|---|---|
+| nomeus | `~/.nomeus` (same tree as macOS), the app at `~/.nomeus/app`, `~/.local/bin/nomeus` |
+| services | `~/.config/systemd/user/nomeus-svc-<name>.service`, data under `~/.nomeus/services/<name>/` |
+| php | `/usr/bin/phpX.Y`, `/etc/php/X.Y/{cli,fpm}/conf.d/99-nomeus.ini`, `phpX.Y-fpm` units, `/run/php/phpX.Y-fpm.sock` |
+| root helper | `/usr/local/bin/nomeus-helper`, `/etc/sudoers.d/nomeus` |
+| valet | `~/.config/valet` (same layout), nginx + dnsmasq as system services |
+| brew services | `~/.config/systemd/user/homebrew.<formula>.service` — adoptable by `nomeus services:adopt` |
 
 ## Not planned
 

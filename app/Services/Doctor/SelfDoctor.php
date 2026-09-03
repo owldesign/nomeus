@@ -53,6 +53,14 @@ final class SelfDoctor implements Section
         $r->expect(is_file(base_path('vendor/autoload.php')), 'vendor', 'composer deps present', 'composer install');
         $r->expect(class_exists(\Symfony\Component\Yaml\Yaml::class), 'symfony/yaml', 'present (nomeus.yml)', 'composer require symfony/yaml', 'warn');
 
+        if (\App\Support\Platform::isLinux()) {
+            $helper = \App\Services\Php\AptPhp::HELPER;
+            $r->expect(is_executable($helper), 'root helper', $helper, "{$helper} missing — sudo install -m 0755 install/linux/nomeus-helper {$helper}");
+            $r->expect(is_file('/etc/sudoers.d/nomeus'), 'sudoers', '/etc/sudoers.d/nomeus', 'no NOPASSWD rule for the helper — install/install-linux.sh writes /etc/sudoers.d/nomeus');
+            $linger = trim($this->shell->run(['loginctl', 'show-user', (string) (getenv('USER') ?: get_current_user()), '-p', 'Linger', '--value'], timeout: 10)->output());
+            $r->expect($linger === 'yes', 'linger', 'user services outlive the login session', 'loginctl enable-linger '.(getenv('USER') ?: get_current_user()).' — without it services stop when you log out', 'warn');
+        }
+
         if (is_dir(base_path('.git'))) {
             $dirty = trim($this->shell->run(['git', 'status', '--porcelain'], base_path(), 20)->output());
             $r->expect($dirty === '', 'git', 'clean working tree', substr_count($dirty, "\n") + 1 .' changed file(s) — self-update refuses until committed or stashed', 'warn');

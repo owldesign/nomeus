@@ -30,18 +30,21 @@ final class BrewServices
     public function list(): array
     {
         $found = [];
+        $mac = \App\Support\Platform::isMac();
         foreach ($this->loadedLabels() as $label => $pid) {
             $found[$label] = ['loaded' => true, 'pid' => $pid];
         }
-        foreach (glob(rtrim($this->agentsDir, '/').'/'.self::PREFIX.'*.plist') ?: [] as $plist) {
-            $label = basename($plist, '.plist');
-            $found[$label] = ($found[$label] ?? ['loaded' => false, 'pid' => null]) + ['plist' => $plist];
+        // the unit files brew services wrote: plists on macOS, homebrew.<formula>.service under ~/.config/systemd/user on Linux
+        $pattern = $mac ? self::PREFIX.'*.plist' : 'homebrew.*.service';
+        foreach (glob(rtrim($this->agentsDir, '/').'/'.$pattern) ?: [] as $unit) {
+            $label = $mac ? basename($unit, '.plist') : basename($unit, '.service');
+            $found[$label] = ($found[$label] ?? ['loaded' => false, 'pid' => null]) + ['plist' => $unit];
         }
         ksort($found);
 
         $out = [];
         foreach ($found as $label => $f) {
-            $formula = substr($label, strlen(self::PREFIX));
+            $formula = $mac ? substr($label, strlen(self::PREFIX)) : substr($label, strlen('homebrew.'));
             $driver = $this->drivers->driverForFormula($formula);
             $dataDir = $driver?->brewDataDir($this->brew->prefix(), $formula);
             $port = $driver?->defaultPort();
@@ -65,10 +68,13 @@ final class BrewServices
     /** Brew services nomeus knows how to take over: a driver exists and brew's data dir is present. */
     public function adoptable(): array
     {
-        if (! \App\Support\Platform::isMac()) {
-            return [];   // brew services on Linux is systemd-based; adoption there is 7g-2's job
-        }
         return array_values(array_filter($this->list(), fn ($s) => $s['type'] !== null && $s['has_data']));
+    }
+
+    /** brew services' unit name for a formula on this platform. */
+    public static function label(string $formula): string
+    {
+        return \App\Support\Platform::isMac() ? self::PREFIX.$formula : "homebrew.{$formula}";
     }
 
     public function find(string $formula): ?array
@@ -91,9 +97,26 @@ final class BrewServices
         }
     }
 
-    /** @return array<string, ?int> label => pid for loaded homebrew.mxcl.* agents */
+    /** @return array<string, ?int> label => pid for loaded brew-services units (launchd agents / systemd --user units) */
     private function loadedLabels(): array
     {
+        if (! \App\Support\Platform::isMac()) {
+            $result = $this->shell->run(['systemctl', '--user', 'list-units', '--type=service', '--all', '--no-legend', '--plain', 'homebrew.*'], timeout: 15);
+            $out = [];
+            foreach (preg_split('/\R/', $result->output()) as $line) {
+                // "homebrew.postgresql@17.service loaded active running …"
+                if (preg_match('/^(homebrew\.\S+)\.service\s+\S+\s+(\S+)\s+(\S+)/', trim($line), $m)) {
+                    $pid = null;
+                    if ($m[2] === 'active') {
+                        $show = $this->shell->run(['systemctl', '--user', 'show', $m[1].'.service', '--property=MainPID'], timeout: 15)->output();
+                        $pid = preg_match('/MainPID=(\d+)/', $show, $p) && (int) $p[1] > 0 ? (int) $p[1] : null;
+                    }
+                    $out[$m[1]] = $pid;
+                }
+            }
+
+            return $out;
+        }
         $result = $this->shell->run(['launchctl', 'list'], timeout: 15);
         $out = [];
         foreach (preg_split('/\R/', $result->output()) as $line) {

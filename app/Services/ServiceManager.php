@@ -29,6 +29,7 @@ final class ServiceManager
         private readonly Probe $probe,
         private readonly BrewServices $brewServices,
         private readonly ValetBridge $valet,
+        private readonly \App\Services\Php\PhpProvider $php,
     ) {}
 
     public function dir(): string
@@ -116,7 +117,7 @@ final class ServiceManager
                 throw new RuntimeException("{$driver->sitePackage()} is not installed in {$siteObj->name} ({$requirement} missing): cd {$siteObj->path} && composer require {$driver->sitePackage()}");
             }
             $binDir = $siteObj->php !== null
-                ? $this->brew->prefix()."/opt/php@{$siteObj->php}/bin"
+                ? (($bin = $this->php->phpBin($siteObj->php)) ? dirname($bin) : $this->brew->prefix()."/opt/php@{$siteObj->php}/bin")
                 : $this->brew->prefix().'/bin';
             $problem = $this->brew->binaryRuns("{$binDir}/php");
             if ($problem !== null) {

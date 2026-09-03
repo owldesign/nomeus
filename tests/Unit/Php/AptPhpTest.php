@@ -50,6 +50,7 @@ it('reads versions, the alternatives link, patches, ini dirs and outdated from t
         ->and($this->php->availablePhp())->toBe(['8.1', '8.2', '8.5'])
         ->and($this->php->outdatedPhp())->toBe(['8.4' => '8.4.14-1'])
         ->and($this->php->assertVersion('php8.4'))->toBe('8.4')
+        ->and($this->php->fpmSockets('/ignored'))->toBe(['8.3' => "{$this->root}/run/php/php8.3-fpm.sock", '8.4' => "{$this->root}/run/php/php8.4-fpm.sock"])
         ->and($this->php->sourceName())->toContain('apt');
 });
 

@@ -64,6 +64,16 @@ interface PhpProvider
     /** Restore the vendor's ini (undo quarantine); used only by tests/migration. */
     public function unquarantineXdebug(string $version): bool;
 
+    /**
+     * Where a running php-fpm answers, per version: [version => socket path]. macOS: Valet's
+     * ~/.config/valet/valet.sock (global) and valetXY.sock (isolated); Linux: /run/php/phpX.Y-fpm.sock.
+     * Only versions that could have a socket are listed; existence/answering is the caller's check.
+     *
+     * @param  string  $valetConfigDir  ~/.config/valet (or a test's fake) — where Valet's sockets live on macOS
+     * @return array<string, string>
+     */
+    public function fpmSockets(string $valetConfigDir): array;
+
     /** One-line description of the source, for the doctor ("brew", "apt (ondrej)"). */
     public function sourceName(): string;
 }

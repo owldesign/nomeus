@@ -69,7 +69,7 @@ final class FakeServicesWorld
         $registry = new DriverRegistry;
         $this->brewServices = new BrewServices($this->shell, $this->brew, $registry, $this->probe, "{$this->root}/agents");
         $this->valet = new ValetBridge($this->shell, $this->valetFs->configDir);
-        $this->manager = new ServiceManager($this->config, $this->brew, $registry, $this->launchd, $this->shell, $this->probe, $this->brewServices, $this->valet);
+        $this->manager = new ServiceManager($this->config, $this->brew, $registry, $this->launchd, $this->shell, $this->probe, $this->brewServices, $this->valet, $this->brew);
         $this->manager->shutdownTimeout = 0;
 
         $labelOf = fn (string $t): string => substr($t, strrpos($t, '/') + 1);
