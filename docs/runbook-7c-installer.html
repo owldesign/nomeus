@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nomeus · runbook 7c · installer</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>nomeus <small>· runbook 7c · the install experience</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~20 min · phases 0–5</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>what a stranger sees after <code>curl … | bash</code> — named steps, a spinner, a log, a summary — and the two gaps from 7b closed: <code>php:ext</code> and <code>rm</code>.</b> Plus nomeus.dev/install served from the repo.
+  Precondition: 7b committed.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-7c.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; chmod +x bin/nomeus install/*.sh install/lib/ui.sh &amp;&amp; vendor/bin/pest &amp;&amp; npm run build &amp;&amp; nomeus status | head -2</pre>
+<pre class="out">Tests: 197 passed — +Installer 3 · PhpExtensions 1 · Rm 2 · InitPlanner 1 · nomeus 1.3.0</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>The installer, on a machine where everything is done <span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">--check, restyled</span></label>
+    <div class="body">
+<pre class="cmd">install/install.sh --check</pre>
+<pre class="out">the NOMEUS wordmark in gold · 18 ✓ rows · "18 done, 0 todo" · the doctor table</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">A full run is a no-op — and looks like one</span></label>
+    <div class="body">
+<pre class="cmd">install/install.sh</pre>
+<pre class="out">  · homebrew 6.x.x                                /opt/homebrew
+  · Brewfile                                      already in place
+  · composer bin on PATH                          /Users/owldesign/.zshrc
+  · valet 4.12.0
+  · valet install · valet trust · php 8.4 · parked /Users/owldesign/Sites · node v22.x
+  · ~/.nomeus/config.json · composer install · .env · npm install · dashboard build
+  · nomeus.test linked · nomeus.test secured · nomeus shim · php ini (99-nomeus.ini)
+  ────────────────────────────────────────────────────────
+  nomeus v1.3.0 is installed        https://nomeus.test
+  doctor   N ok · 0 warn · 0 fail
+  next     nomeus mail --create   nomeus services:create dumps   nomeus new shop
+  17 step(s) · 6s</pre>
+    </div>
+    <div class="callout gold">Every "·" is a step that found its result already there. On a fresh Mac the same lines are "✓ … 42s" with a spinner while brew works, output in <code>~/.nomeus/install.log</code>, and the first failing step prints its last 30 log lines plus the fix and stops. <code>--verbose</code> streams instead. Steps that need your password (valet install, valet trust) stay visible.</div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">See a failure, safely</span></label>
+    <div class="body">
+<pre class="cmd">bash -c 'source install/lib/ui.sh; ui_init /tmp/ui.log; ui_banner; ui_step "pretend brew" true; ui_hint "brew bundle --file=install/Brewfile"; ui_step "pretend failure" sh -c "echo something went wrong; exit 2"'</pre>
+<pre class="out">✓ pretend brew · ✗ pretend failure · the log tail ("something went wrong") · → brew bundle --file=install/Brewfile · log: /tmp/ui.log</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>php:ext and rm <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Extensions per version</span></label>
+    <div class="body">
+<pre class="cmd">nomeus php:ext &amp;&amp; nomeus php:ext redis --php=8.3</pre>
+<pre class="out">php 8.4  N extensions: bcmath … redis … zip
+brew trust shivammathur/extensions · brew install shivammathur/extensions/redis@8.3 · valet restart php · php-fpm back · php 8.3: redis loaded · redis: ready on php 8.3</pre>
+<pre class="cmd">nomeus doctor --section=php | grep -i redis</pre>
+<pre class="out">no "redis ext" warns — every site whose .env uses redis runs on a php that has it (the shop you fixed by hand yesterday is one of them)</pre>
+    </div>
+    <div class="callout gold">Unlike Xdebug, an extension like redis should always load, so the tap's ini stays. <code>init</code> now adds a <code>php-ext:redis</code> step whenever a manifest asks for redis, and <code>nomeus new … --redis</code> therefore can't produce yesterday's "Class Redis not found".</div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">The reverse of new</span></label>
+    <div class="body">
+<pre class="cmd">nomeus new throwaway --laravel --db=postgresql --redis --yes --no-scripts &amp;&amp; nomeus rm throwaway --db</pre>
+<pre class="out">plan: unsecure? · rm -rf /Users/owldesign/Sites/throwaway · dropdb throwaway on pg17 → Remove throwaway.test? y → done · throwaway.test removed</pre>
+    </div>
+    <div class="callout blue"><code>rm</code> without <code>--db</code> leaves databases alone and says so; <code>--keep-dir</code> only unsecures/unlinks. It refuses proxies and nomeus itself.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>nomeus.dev/install <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Commit and push site/</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "7c: installer ui, nomeus.dev site, php:ext, rm" &amp;&amp; git push &amp;&amp; git tag -a v1.3.0 -m "nomeus 1.3.0" &amp;&amp; git push --tags</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">GitHub Pages + DNS</span></label>
+    <div class="body">
+<pre class="out">github.com/owldesign/nomeus → Settings → Pages → Source: Deploy from a branch · Branch: main · Folder: /site → Save
+Custom domain: nomeus.dev (site/CNAME already says so) → wait for the DNS check → Enforce HTTPS
+DNS at your registrar: CNAME  nomeus.dev → owldesign.github.io   (apex: A records 185.199.108.153 · .109 · .110 · .111 + the CNAME on www)</pre>
+    </div>
+    <div class="callout gold">GitHub Pages serves <code>site/install</code> (a copy of <code>install/bootstrap.sh</code>, kept identical by a test and <code>install/sync-site.sh</code>) at <code>https://nomeus.dev/install</code> as plain text — exactly what <code>curl | bash</code> needs. The placeholder <code>site/index.html</code> is the honest version of the landing page until Claude Design's replaces it.</div>
+  </div>
+
+  <div class="step" data-step="3.3"><label><input type="checkbox"><span class="id">3.3</span><span class="title">The one-liner, for real</span></label>
+    <div class="body">
+<pre class="cmd">curl -fsSL https://nomeus.dev/install | head -3 &amp;&amp; NOMEUS_HOME=~/Code/nomeus bash -c "$(curl -fsSL https://nomeus.dev/install)" -- --check</pre>
+<pre class="out">#!/usr/bin/env bash … · "updating /Users/owldesign/Code/nomeus (main)" · the --check table · doctor</pre>
+    </div>
+    <div class="callout blue">Pointed at your checkout it updates and checks; on a fresh Mac the same line clones to <code>~/.nomeus/app</code> and installs. The first real stranger-run is the only thing this slice can't do for you.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Hand-off</h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Next</span></label>
+    <div class="body"><p>Paste 1.2's summary card. Next: 7d MCP server · 7e xdebug detect · 7f node · 7g linux; and the design integration slice whenever Claude Design returns tokens.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>Spinner never stops on "Brewfile"</b> — brew is asking something on a hidden tty (a cask needing a password). <code>tail -f ~/.nomeus/install.log</code> in another window shows it; Ctrl-C and re-run with <code>--verbose</code>.</div>
+  <div class="callout red"><b>php:ext: "brew search shivammathur/extensions/redis lists what exists"</b> — the tap has no build for that PHP yet (usually a brand-new minor); pick the PHP the site actually runs.</div>
+  <div class="callout red"><b>nomeus.dev/install returns 404 after enabling Pages</b> — Pages builds take a minute; the CNAME file must be in <code>site/</code> (it is); DNS propagation can take longer than the Pages check.</div>
+  <div class="callout red"><b>rm: "dropdb … role postgres does not exist"</b> — same adopted-cluster role issue as 3b; the directory was still removed, drop the database by hand as your user.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'nomeus-runbook-7c';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

@@ -88,6 +88,11 @@ final class PostgresDriver extends AbstractDriver
         ];
     }
 
+    public function dropDatabasePlan(ServiceInstance $i, string $binDir, string $name): ?array
+    {
+        return ['label' => "dropdb {$name}", 'argv' => ["{$binDir}/dropdb", '--if-exists', '-h', '127.0.0.1', '-p', (string) $i->port, '-U', 'postgres', $name], 'cwd' => null, 'timeout' => 60];
+    }
+
     public function env(ServiceInstance $i): array
     {
         return [

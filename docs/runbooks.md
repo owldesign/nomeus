@@ -21,3 +21,5 @@ They are the build history — and the record of every trap met on a real machin
 | 5b | [xdebug](runbook-5b-xdebug.html) | off/on/trigger; PhpStorm settings that otherwise hang your sites |
 | 6a | [consolidation](runbook-6a-consolidation.html) | doctor, self-update, install --check, docs, v1.0 |
 | 7a | [rename](runbook-7a-rename.html) | devkit → nomeus: `migrate:devkit`, nomeus.yml, the one-line installer |
+| 7b | [new](runbook-7b-new.html) | `nomeus new`: scaffold → nomeus.yml → init; the Claude Design briefs |
+| 7c | [installer](runbook-7c-installer.html) | the install experience, nomeus.dev/install on Pages, `php:ext`, `rm` |

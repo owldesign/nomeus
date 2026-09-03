@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nomeus — Herd Pro, without the subscription</title>
+<meta name="description" content="Nomeus is a free, open-source, self-hosted replacement for Laravel Herd Pro on macOS, built on Laravel Valet and Homebrew.">
+<style>
+  :root { color-scheme: dark light; --bg:#0f1115; --panel:#161920; --line:#262a33; --fg:#e6e6e6; --dim:#8b909a; --gold:#e3b341; --blue:#79b8ff; --green:#3fb950; }
+  @media (prefers-color-scheme: light) { :root { --bg:#fbfaf7; --panel:#fff; --line:#e6e2d8; --fg:#1b1d22; --dim:#6a6f78; --gold:#9a6b00; --blue:#0b5fb3; --green:#1a7f37; } }
+  * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--fg); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  main { max-width:44rem; margin:0 auto; padding:4rem 1.25rem 5rem } h1 { font-size:2.25rem; letter-spacing:-.02em; margin:0 0 .25rem } .sub { color:var(--dim); margin:0 0 2rem }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:.9rem 1rem; overflow:auto; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .cmd { display:flex; gap:.5rem; align-items:center } .cmd pre { flex:1; margin:0 } button { font:inherit; border:1px solid var(--line); background:var(--panel); color:var(--fg); border-radius:6px; padding:.6rem .9rem; cursor:pointer } button:hover { border-color:var(--gold) }
+  table { border-collapse:collapse; width:100%; margin:1.5rem 0; font-size:.95rem } th, td { text-align:left; padding:.45rem .5rem; border-bottom:1px solid var(--line); vertical-align:top } th { color:var(--dim); font-weight:500 }
+  a { color:var(--blue) } .k { color:var(--gold) } h2 { font-size:1.15rem; margin:2.5rem 0 .75rem } .dim { color:var(--dim) } footer { color:var(--dim); font-size:.9rem; margin-top:3rem }
+</style>
+</head>
+<body>
+<main>
+  <h1>Nomeus</h1>
+  <p class="sub">νομεύς, <em>shepherd</em> — Herd Pro, without the subscription. On Laravel Valet and Homebrew, for macOS.</p>
+
+  <div class="cmd"><pre id="install">curl -fsSL https://nomeus.dev/install | bash</pre><button type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('install').textContent).then(()=>{this.textContent='copied'})">copy</button></div>
+  <p class="dim">Needs Xcode Command Line Tools and Homebrew. Clones <a href="https://github.com/owldesign/nomeus">github.com/owldesign/nomeus</a> to <code>~/.nomeus/app</code>, installs the Brewfile, Valet, the dashboard, and ends with <code>nomeus doctor</code>. Re-running is a no-op.</p>
+
+  <table>
+    <tr><th>Herd Pro</th><th>Nomeus</th></tr>
+    <tr><td>Sites, PHP versions, isolation, TLS</td><td>Valet, through <span class="k">nomeus sites</span> / <span class="k">php:*</span> and the dashboard</td></tr>
+    <tr><td>Services</td><td>Postgres, MySQL, MariaDB, Redis, Meilisearch, Typesense, SeaweedFS (S3) — multiple instances, clone, adopt from <span class="k">brew services</span></td></tr>
+    <tr><td>Mail</td><td>a Mailpit instance, one inbox per app</td></tr>
+    <tr><td><span class="k">herd init</span> / herd.yml</td><td><span class="k">nomeus init</span> / nomeus.yml, and <span class="k">nomeus new</span></td></tr>
+    <tr><td>Log viewer</td><td>every site's logs, nginx, php-fpm; file:line into your IDE</td></tr>
+    <tr><td>Dumps</td><td>dump()/dd(), queries, jobs, views, requests, logs — no package needed for dumps</td></tr>
+    <tr><td>Xdebug</td><td>per PHP version: off / on / trigger</td></tr>
+  </table>
+
+  <h2>What it is not</h2>
+  <p>No menubar app (<a href="https://phpmon.app">PHP Monitor</a> is recommended), no Windows or Linux yet, no support contract. It costs nothing: MIT.</p>
+
+  <footer>
+    <a href="https://github.com/owldesign/nomeus">GitHub</a> · <a href="https://github.com/owldesign/nomeus/tree/main/docs">docs</a> · ZHUK LLC / Owl Design
+  </footer>
+</main>
+</body>
+</html>

@@ -42,7 +42,13 @@ final class SelfDoctor implements Section
         $r->expect($this->valet->isInstalled() && in_array($site, $this->valet->secured(), true), 'dashboard tls', 'secured', "not secured — the clipboard and other browser APIs need https: nomeus secure {$site}", 'warn');
 
         $shim = $this->shell->which('nomeus');
-        $r->expect($shim !== null, 'bin/nomeus', $shim ?? '', 'not on PATH — add '.base_path('bin').' to PATH (install.sh does)', 'warn');
+        $target = $shim !== null ? (realpath($shim) ?: null) : null;   // a dangling symlink (checkout moved) is "found" by which but runs nothing
+        $r->expect($shim !== null && $target !== null && is_executable($target), 'bin/nomeus',
+            ($shim ?? '').($target && $target !== $shim ? " → {$target}" : ''),
+            $shim === null
+                ? 'not on PATH — ln -sf '.base_path('bin/nomeus').' '.$this->shell->brewPrefix().'/bin/nomeus'
+                : "{$shim} points at a missing file — ln -sf ".base_path('bin/nomeus')." {$shim}",
+            'warn');
         $r->expect(is_file(base_path('public/build/manifest.json')), 'build', 'public/build present', 'no build — npm run build');
         $r->expect(is_file(base_path('vendor/autoload.php')), 'vendor', 'composer deps present', 'composer install');
         $r->expect(class_exists(\Symfony\Component\Yaml\Yaml::class), 'symfony/yaml', 'present (nomeus.yml)', 'composer require symfony/yaml', 'warn');

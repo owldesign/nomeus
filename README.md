@@ -1,6 +1,6 @@
 # nomeus
 
-**Nomeus** (νομεύς, *herdsman*) — a self-hosted replacement for Laravel Herd Pro, built on Laravel Valet and Homebrew.
+**Nomeus** (νομεύς, *shepherd*) — a self-hosted replacement for Laravel Herd Pro, built on Laravel Valet and Homebrew.
 One Laravel app is both the CLI (`nomeus …`) and the dashboard (`https://nomeus.test`). MIT.
 
 Everything Herd Pro sells, from free parts you already run:
@@ -49,7 +49,7 @@ Then, per site, a `nomeus.yml` (see [docs/nomeus-yml.md](docs/nomeus-yml.md)) an
 
 ## Reference
 
-- [docs/commands.md](docs/commands.md) — every command (generated: `nomeus docs:commands`)
+- [docs/commands.md](docs/commands.md) — every command (generated: `nomeus docs:commands`) — including `nomeus new`, `nomeus rm`, `nomeus php:ext`
 - [docs/nomeus-yml.md](docs/nomeus-yml.md) — the manifest
 - [docs/layout.md](docs/layout.md) — where things live: `~/.nomeus`, ports, launchd labels, ini files, sudoers
 - [docs/runbooks.md](docs/runbooks.md) — the build history, slice by slice, with every trap met on a real machine

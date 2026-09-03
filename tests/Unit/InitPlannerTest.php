@@ -9,7 +9,8 @@ use Tests\Support\FakeServicesWorld;
 
 beforeEach(function () {
     $this->w = new FakeServicesWorld;
-    $this->planner = new InitPlanner($this->w->valet, $this->w->manager, new DriverRegistry, $this->w->brew, $this->w->shell);
+    $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, new \App\Services\Dumps\CaptureFlag($this->w->config), $this->w->shell, new \App\Services\Php\XdebugState($this->w->config));
+    $this->planner = new InitPlanner($this->w->valet, $this->w->manager, new DriverRegistry, $this->w->brew, $this->w->shell, new \App\Services\Php\PhpExtensions($this->w->brew, $this->w->shell, $prepend));
     $this->runner = new InitRunner($this->planner);
     $this->site = realpath($this->w->valetFs->parked('smoke', laravel: true));
     file_put_contents("{$this->site}/.env.example", "APP_NAME=Laravel\nAPP_URL=http://localhost\nMAIL_MAILER=log\n");
@@ -28,7 +29,7 @@ it('plans everything on a fresh machine', function () use ($ids) {
     $steps = $this->planner->plan(($this->manifest)(['domain' => 'fresh']));   // not parked → link
 
     expect($ids($steps))->toBe([
-        'site', 'secure', 'php', 'node', 'service:postgresql', 'service:redis', 'mail', 'client', 'env', 'post-init:0',
+        'site', 'secure', 'php', 'node', 'service:postgresql', 'service:redis', 'php-ext:redis:skip', 'mail', 'client', 'env', 'post-init:0',
     ]);
     expect(collect($steps)->firstWhere('id', 'site')->detail)->toBe("valet link fresh in {$this->site}");
 });
@@ -45,7 +46,7 @@ it('skips what is already in place', function () use ($ids) {
     $steps = $this->planner->plan(($this->manifest)());
 
     expect($ids($steps))->toBe([
-        'site:skip', 'secure:skip', 'php:skip', 'node:skip', 'service:postgresql:skip', 'db:pg17', 'service:redis:skip', 'mail:skip', 'client:skip', 'env', 'post-init:0',
+        'site:skip', 'secure:skip', 'php:skip', 'node:skip', 'service:postgresql:skip', 'db:pg17', 'service:redis:skip', 'php-ext:redis:skip', 'mail:skip', 'client:skip', 'env', 'post-init:0',
     ]);
 });
 
@@ -56,7 +57,7 @@ it('runs the plan: valet, services, database, env, scripts', function () {
     $result = $this->runner->run(($this->manifest)(), function (string $id, string $line) use (&$lines) { $lines[] = "$id $line"; });
 
     expect($result['ran'])->toBe(['secure', 'php', 'node', 'service:postgresql', 'mail', 'client', 'env', 'post-init:0'])
-        ->and($result['skipped'])->toBe(['site', 'service:redis'])
+        ->and($result['skipped'])->toBe(['site', 'service:redis', 'php-ext:redis'])
         ->and(file_get_contents("{$this->site}/.nvmrc"))->toBe("22\n")
         ->and($this->w->manager->find('pg17')?->type)->toBe('postgresql')
         ->and($this->w->manager->find('mailpit'))->not->toBeNull();
@@ -94,4 +95,11 @@ it('refuses an instance name that belongs to another type', function () {
     $this->w->manager->create('redis', null, 'pg17');
 
     expect(fn () => $this->planner->plan(($this->manifest)()))->toThrow(RuntimeException::class, 'Instance [pg17] is a redis');
+});
+
+it('installs the redis extension when a manifest wants redis and the php lacks it', function () {
+    Process::fake(["*php' '-m'*" => Process::result("[PHP Modules]\nCore\n")]);   // no redis ext
+    $steps = $this->planner->plan(($this->manifest)());
+    $step = collect($steps)->firstWhere('id', 'php-ext:redis');
+    expect($step->skip)->toBeNull()->and($step->detail)->toContain('shivammathur/extensions/redis@8.3');   // the manifest's php
 });

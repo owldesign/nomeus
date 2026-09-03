@@ -24,6 +24,7 @@ final class InitPlanner
         private readonly DriverRegistry $drivers,
         private readonly BrewBridge $brew,
         private readonly Shell $shell,
+        private readonly \App\Services\Php\PhpExtensions $extensions,
     ) {}
 
     /** @return list<Step> */
@@ -102,6 +103,19 @@ final class InitPlanner
                     }, "services:start {$instance->name}");
                 }
                 $this->planAfterService($steps, $driver, $instance, $svc, $env);
+            }
+        }
+
+        // ── php extensions the manifest implies (redis → phpredis) ────────────
+        $wantsRedis = in_array('redis', array_column($m->services, 'type'), true);
+        if ($wantsRedis) {
+            $phpVersion = $m->php ?? $site?->php ?? $this->brew->linkedPhp();
+            if ($phpVersion !== null) {
+                $steps[] = $this->extensions->has($phpVersion, 'redis')
+                    ? Step::skip('php-ext:redis', "php {$phpVersion} redis extension", 'loaded')
+                    : Step::run('php-ext:redis', "php {$phpVersion} redis extension", function ($log) use ($phpVersion) {
+                        $this->extensions->install($phpVersion, 'redis', $log);
+                    }, "brew install shivammathur/extensions/redis@{$phpVersion} + valet restart php — SESSION/CACHE/QUEUE on redis need it");
             }
         }
 

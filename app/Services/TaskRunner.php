@@ -83,7 +83,10 @@ final class TaskRunner
     {
         $env = [];
         foreach ($this->shell->env() as $k => $v) {
-            $env[] = $k.'='.escapeshellarg($v);
+            if ($v === false) {
+                continue;   // "unset in the child" markers — meaningless for `env K=V`, and the task re-reads nomeus's own .env
+            }
+            $env[] = $k.'='.escapeshellarg((string) $v);
         }
 
         return sprintf(

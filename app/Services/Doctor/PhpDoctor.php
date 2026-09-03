@@ -14,6 +14,8 @@ final class PhpDoctor implements Section
         private readonly PhpManager $php,
         private readonly PrependInstaller $prepend,
         private readonly XdebugManager $xdebug,
+        private readonly \App\Services\Php\PhpExtensions $extensions,
+        private readonly \App\Services\ValetBridge $valet,
     ) {}
 
     public function name(): string
@@ -52,6 +54,26 @@ final class PhpDoctor implements Section
                 $r->warn("xdebug php {$v}", "mode on with nothing listening on {$this->xdebug->port()} — ~200 ms per request; nomeus xdebug:mode trigger --php={$v}");
             } else {
                 $r->ok("xdebug php {$v}", "mode {$x['mode']}");
+            }
+        }
+
+        // sites whose .env leans on redis need the extension on the php they run
+        $loaded = [];
+        foreach ($this->valet->isInstalled() ? $this->valet->sites() : [] as $site) {
+            if ($site->type === 'proxy' || ! is_file("{$site->path}/.env")) {
+                continue;
+            }
+            $env = (string) file_get_contents("{$site->path}/.env");
+            if (! preg_match('/^(SESSION_DRIVER|CACHE_STORE|QUEUE_CONNECTION|BROADCAST_CONNECTION)=redis\s*$/m', $env) || preg_match('/^REDIS_CLIENT=predis/m', $env)) {
+                continue;
+            }
+            $v = $site->php ?? $linked;
+            if ($v === null) {
+                continue;
+            }
+            $loaded[$v] ??= $this->extensions->has($v, 'redis');
+            if (! $loaded[$v]) {
+                $r->warn("redis ext {$site->name}", "the site's .env uses redis but php {$v} has no redis extension — nomeus php:ext redis --php={$v}");
             }
         }
 

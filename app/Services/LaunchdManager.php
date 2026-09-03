@@ -55,6 +55,7 @@ final class LaunchdManager
     {
         $x = fn (string $s): string => htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
         $args = implode("\n", array_map(fn ($a) => "        <string>{$x($a)}</string>", $argv));
+        $env = array_filter($env, fn ($v) => is_string($v) || is_int($v));   // Shell::env()'s false markers mean "unset"; launchd starts clean anyway
         $envXml = '';
         if ($env !== []) {
             $pairs = implode("\n", array_map(fn ($k, $v) => "        <key>{$x($k)}</key>\n        <string>{$x($v)}</string>", array_keys($env), $env));

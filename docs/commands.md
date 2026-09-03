@@ -107,6 +107,35 @@ Open the Mailpit inbox (starts the mailpit instance if it is stopped)
 
 - `--create` — create the mailpit instance if there is none
 
+### `new [name] [--dir=] [--laravel] [--from=] [--empty] [--php=] [--db=] [--redis] [--service=*] [--mail] [--secure] [--no-scripts] [--open] [--edit] [--dry-run] [--yes]`
+
+Create a site: scaffold, nomeus.yml, init — interactive when run without flags
+
+- `name` — site name → <name>.test
+- `--dir` — where to create it (default: your parked directory + name)
+- `--laravel` — composer create-project laravel/laravel
+- `--from` — composer create-project <package[:constraint]> instead (e.g. laravel/laravel:^12, statamic/statamic)
+- `--empty` — use an empty/existing directory, no scaffold
+- `--php` — isolate to this version (default: linked)
+- `--db` — postgresql | mysql | mariadb | none
+- `--service` — extra types: meilisearch, typesense, seaweedfs
+- `--mail` — mailpit + client package
+- `--secure` — https
+- `--no-scripts` — write nomeus.yml but skip post-init (migrate)
+- `--open` — open the site in the browser when done
+- `--edit` — open the directory in the IDE when done
+- `--dry-run` — print the nomeus.yml and the init plan, create nothing
+- `--yes` — never prompt; take flags and defaults
+
+### `rm <site> [--db] [--keep-dir] [--yes]`
+
+Remove a site: unsecure, remove the directory (or unlink), optionally drop its database
+
+- `site` — site name (without the tld)
+- `--db` — also drop the database/bucket its nomeus.yml names, on the instance it names
+- `--keep-dir` — unlink/unsecure only; leave the directory in place
+- `--yes` — no confirmation
+
 ### `self-update [--check] [--no-build] [--no-git]`
 
 Pull, install dependencies, rebuild the dashboard, regenerate the php ini, then run the doctor
@@ -145,7 +174,27 @@ Recent background tasks (dashboard actions) and their outcome
 
 Xdebug per PHP version: installed, mode, and whether the IDE is listening
 
+## migrate
+
+### `migrate:devkit [--from=] [--dry-run] [--resume] [--yes]`
+
+Move a devkit-era installation to nomeus: ~/.devkit → ~/.nomeus, launchd agents, php ini, dashboard link, shim
+
+- `--from` — the old config dir (default ~/.devkit)
+- `--dry-run` — show the plan and change nothing
+- `--resume` — ~/.nomeus already holds the moved data; redo the ini, agents (starting all), dashboard and shim
+- `--yes` — no confirmation
+
 ## php
+
+### `php:ext [name] [--php=] [--all] [--no-restart]`
+
+List PHP extensions per version, or install one from the shivammathur/extensions tap
+
+- `name` — extension to install (redis, imagick, swoole, …); omit to list what each version has
+- `--php` — which version (default: linked)
+- `--all` — every installed version
+- `--no-restart` — do not restart php-fpm afterwards
 
 ### `php:install <version>`
 

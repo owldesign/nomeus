@@ -127,6 +127,7 @@ final class FakeServicesWorld
 
                 return Process::result('');
             },
+            "*php' '-m'*" => Process::result("[PHP Modules]\nCore\njson\nredis\n\n[Zend Modules]\n"),   // redis ext present
             '*--version*' => Process::result("stub 1.0\n"),   // driver binary pre-flight
             "*weed' 'version*" => Process::result("weed version 30GB 4.45\n"),
             "*mailpit' 'version*" => Process::result("mailpit v1.31.0\n"),

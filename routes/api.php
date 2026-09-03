@@ -22,6 +22,7 @@ Route::post('/sites/{name}/unsecure', [SitesController::class, 'unsecure'])->nam
 Route::post('/sites/{name}/isolate', [SitesController::class, 'isolate'])->name('api.sites.isolate');
 Route::post('/sites/{name}/unisolate', [SitesController::class, 'unisolate'])->name('api.sites.unisolate');
 Route::post('/sites/{name}/init', [SitesController::class, 'init'])->name('api.sites.init');
+Route::post('/sites/new', [SitesController::class, 'create'])->name('api.sites.new');
 Route::delete('/sites/{name}/link', [SitesController::class, 'unlink'])->name('api.sites.unlink');
 
 Route::get('/tasks', [TasksController::class, 'index'])->name('api.tasks.index');

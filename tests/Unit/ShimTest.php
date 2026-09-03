@@ -27,7 +27,7 @@ it('passes every valet command through the shim', function () {
 });
 
 it('never lists a nomeus command as valet passthrough', function () {
-    $nomeus = ['status', 'sites', 'site-information', 'tasks', 'php:list', 'php:install', 'php:update', 'ini', 'db', 'edit', 'config:get', 'config:set', 'services:create', 'services:list', 'services:upgrade', 'services:adopt', 'mail', 'init', 'logs', 'dumps', 'dumps:install', 'xdebug', 'xdebug:mode', 'doctor', 'self-update', 'migrate:devkit'];
+    $nomeus = ['status', 'sites', 'site-information', 'tasks', 'php:list', 'php:install', 'php:update', 'ini', 'db', 'edit', 'config:get', 'config:set', 'services:create', 'services:list', 'services:upgrade', 'services:adopt', 'mail', 'init', 'logs', 'dumps', 'dumps:install', 'xdebug', 'xdebug:mode', 'doctor', 'self-update', 'migrate:devkit', 'new', 'rm', 'php:ext'];
 
     expect(array_values(array_intersect($nomeus, shimPassthrough())))->toBe([]);
 });

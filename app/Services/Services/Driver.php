@@ -66,6 +66,9 @@ interface Driver
      */
     public function createDatabasePlan(ServiceInstance $instance, string $binDir, string $name): ?array;
 
+    /** Idempotent drop (IF EXISTS), or null when the type has no databases. Same shape as createDatabasePlan. */
+    public function dropDatabasePlan(ServiceInstance $instance, string $binDir, string $name): ?array;
+
     /**
      * Lock/identity files the server writes while running and removes on clean shutdown.
      * clone waits for them to vanish from the source, then strips them from the copy;

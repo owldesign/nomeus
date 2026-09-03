@@ -19,6 +19,11 @@ abstract class AbstractDriver implements Driver
         return null;
     }
 
+    public function dropDatabasePlan(\App\Support\ServiceInstance $instance, string $binDir, string $name): ?array
+    {
+        return null;
+    }
+
     public function defaultOptions(): array
     {
         return [];

@@ -10,6 +10,7 @@ use App\Services\ValetBridge;
 use App\Support\Site;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use RuntimeException;
 
@@ -69,6 +70,53 @@ class SitesController extends Controller
         ]);
 
         return $this->enqueue('link', null, ['path' => $data['path']], name: $data['name']);
+    }
+
+    /** `nomeus new <name> …` as a task: composer create-project and init stream into the task log. */
+    public function create(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'regex:/^[a-z0-9][a-z0-9.-]*$/'],
+            'dir' => ['nullable', 'string'],
+            'starter' => ['nullable', Rule::in(['laravel', 'empty', 'from'])],
+            'from' => ['nullable', 'string', 'regex:#^[a-z0-9_.-]+/[a-z0-9_.-]+(:.+)?$#i'],
+            'php' => ['nullable', 'string', 'regex:/^\d+\.\d+$/'],
+            'db' => ['nullable', Rule::in(['postgresql', 'mysql', 'mariadb', 'none'])],
+            'redis' => ['nullable', 'boolean'],
+            'services' => ['nullable', 'array'],
+            'services.*' => ['string', Rule::in(['meilisearch', 'typesense', 'seaweedfs'])],
+            'mail' => ['nullable', 'boolean'],
+            'secure' => ['nullable', 'boolean'],
+            'skip_scripts' => ['nullable', 'boolean'],
+        ]);
+        $args = ['new', $data['name'], '--yes'];
+        $starter = $data['starter'] ?? 'laravel';
+        if ($starter === 'from' && ! empty($data['from'])) {
+            $args[] = '--from='.$data['from'];
+        } elseif ($starter === 'empty') {
+            $args[] = '--empty';
+        } else {
+            $args[] = '--laravel';
+        }
+        foreach (['dir', 'php', 'db'] as $k) {
+            if (! empty($data[$k])) {
+                $args[] = "--{$k}=".$data[$k];
+            }
+        }
+        foreach (['redis', 'mail', 'secure'] as $flag) {
+            if (! empty($data[$flag])) {
+                $args[] = "--{$flag}";
+            }
+        }
+        foreach ($data['services'] ?? [] as $svc) {
+            $args[] = '--service='.$svc;
+        }
+        if (! empty($data['skip_scripts'])) {
+            $args[] = '--no-scripts';
+        }
+        $task = $this->tasks->spawn($this->tasks->artisanPlan("new {$data['name']}", $args, timeout: 3600));
+
+        return response()->json(['task' => $task->toArray()], 202);
     }
 
     /** `nomeus init <path>` as a task — it links, isolates, creates services and runs scripts, none of which fits in a request. */

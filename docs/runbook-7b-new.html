@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nomeus · runbook 7b · new</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>nomeus <small>· runbook 7b · nomeus new</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~15 min · phases 0–4</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>one command (or one form) goes from nothing to a served, secured Laravel app wired to your postgres, redis and mailpit, with its migrations run</b> — the last Herd feature. Plus the two Claude Design briefs, as files.
+  Precondition: 7a committed.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test, build <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-7b.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; chmod +x bin/nomeus install/*.sh &amp;&amp; vendor/bin/pest &amp;&amp; npm run build &amp;&amp; nomeus status | head -2</pre>
+<pre class="out">Tests: 189 passed — +ManifestBuilder 2 · SiteScaffolder 2 · NewCli 4 · nomeus 1.2.0</pre>
+    </div>
+    <div class="callout gold">From this slice on the zip is <code>nomeus-&lt;slice&gt;.zip</code> with a <code>nomeus/</code> top folder, so the overlay is the plain <code>unzip -o … -d ~/Code/</code> again.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>The wizard <span class="t">~6 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Dry run first</span></label>
+    <div class="body">
+<pre class="cmd">nomeus new shop --laravel --db=postgresql --redis --mail --secure --yes --dry-run</pre>
+<pre class="out">/Users/owldesign/Sites/shop/nomeus.yml
+# nomeus.yml — generated by `nomeus new`; edit freely, then `nomeus init`
+name: shop
+domain: shop
+secure: true
+mail: true
+env: { CACHE_STORE: redis, QUEUE_CONNECTION: redis, SESSION_DRIVER: redis }
+post-init: [php artisan migrate --force]
+services:
+  - { type: postgresql, instance: pg17, database: shop }      ← your existing instance, not a new cluster
+  - { type: redis, instance: redis }
+would run: composer create-project laravel/laravel, then init:
+step | action | … (link shop.test run · secure run · db:pg17 run · mail skip · client run · env run · post-init run)</pre>
+    </div>
+    <div class="callout gold">Every flag has an interactive twin: run <code>nomeus new</code> with no flags and it asks (name, starter, PHP, database, extras, mail, https) with Laravel Prompts; <code>--yes</code> takes flags and defaults. <code>--from=laravel/laravel:^12</code> if you need Reverb on the new app (see runbook 2d's note on psr7).</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">For real</span></label>
+    <div class="body">
+<pre class="cmd">nomeus new shop --laravel --db=postgresql --redis --mail --secure --yes --open</pre>
+<pre class="out">▶ scaffold · composer create-project laravel/laravel shop (a minute) · nomeus.yml written
+▶ init · link shop.test · secure · pg17: createdb shop: ok · redis skip · mail skip · require nomeus/client · .env: set N, added M · php artisan migrate --force → migrations run against pg17/shop
+https://shop.test — 6 step(s) run, 3 already in place · the browser opens on the Laravel welcome page</pre>
+<pre class="cmd">grep -E '^(DB_|REDIS_PORT|MAIL_PORT|SESSION_DRIVER)' ~/Sites/shop/.env &amp;&amp; /opt/homebrew/opt/postgresql@17/bin/psql -h 127.0.0.1 -p 5433 -U postgres -d shop -c '\dt' | head -5</pre>
+<pre class="out">DB_CONNECTION=pgsql … DB_PORT=5433 DB_DATABASE=shop · REDIS_PORT=6379 · MAIL_PORT=1025 · SESSION_DRIVER=redis · the migrations, users, cache, jobs tables</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">The same from the dashboard</span></label>
+    <div class="body">
+<pre class="cmd">open https://nomeus.test/sites</pre>
+<pre class="out">"+ new site" → name shop2 · Laravel · database shows "postgresql (→ pg17)" · redis (redis) · mail · https → create shop2.test → task "new shop2" streams composer and the init log → the row appears when it finishes</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.4"><label><input type="checkbox"><span class="id">1.4</span><span class="title">Clean up the test sites</span></label>
+    <div class="body">
+<pre class="cmd">rm -rf ~/Sites/shop ~/Sites/shop2 &amp;&amp; valet unsecure shop &amp;&amp; valet unsecure shop2; /opt/homebrew/opt/postgresql@17/bin/psql -h 127.0.0.1 -p 5433 -U postgres -c 'drop database shop' -c 'drop database shop2'</pre>
+    </div>
+    <div class="callout blue">Directories under a parked path <em>are</em> the site; removing the directory removes the site. init never drops databases, hence the manual drop.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>The design briefs <span class="t">~2 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Two files, ready to paste</span></label>
+    <div class="body">
+<pre class="cmd">ls docs/design/ &amp;&amp; wc -w docs/design/*.md</pre>
+<pre class="out">dashboard-brief.md   landing-brief.md</pre>
+    </div>
+    <div class="callout gold"><b>dashboard-brief.md</b> is the Claude Design session for the UI: it fixes the information architecture (the seven pages, the strip, tasks, the LED states), asks for Tailwind v4 tokens → component specs with states → four page mocks, and names the constraints (no component library, local fonts, 12–13 px data, inline confirms). Attach screenshots of every page before sending. <b>landing-brief.md</b> is nomeus.dev: six sections, the one-liner as the hero, an honesty block, static HTML/CSS, <code>/install</code> served from the same host. Run the dashboard brief first; the landing brief asks to reuse its tokens.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>Commit</h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Commit, push, tag</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "nomeus new: scaffold → nomeus.yml → init; sites form; design briefs" &amp;&amp; git push &amp;&amp; git tag -a v1.2.0 -m "nomeus 1.2.0 — nomeus new" &amp;&amp; git push --tags</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">Hand-off</span></label>
+    <div class="body"><p>Paste 1.2's last line. Next: 7c installer visuals (the one-liner's experience) · 7d MCP server · 7e xdebug detect · 7f node · 7g linux — and whenever Claude Design returns, the integration slice for the tokens.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>"No parked directory — pass --dir"</b> — Valet has no parked path (only linked sites). <code>--dir=~/Sites/shop</code> works; init links it.</div>
+  <div class="callout red"><b>composer create-project fails on a name</b> — the package or constraint doesn't exist (<code>--from=vendor/pkg:^x</code>). Nothing was created; fix the flag and re-run.</div>
+  <div class="callout red"><b>init stops at db:pg17 "role postgres does not exist"</b> — an adopted cluster without the role; runbook 3b's troubleshooting has the one-liner.</div>
+  <div class="callout red"><b>Dashboard form: task fails immediately with "already exists"</b> — a site of that name is parked or linked; the CLI's <code>--empty</code> is the only way to init an existing one, on purpose.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'nomeus-runbook-7b';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

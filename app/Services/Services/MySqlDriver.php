@@ -84,6 +84,13 @@ final class MySqlDriver extends AbstractDriver
         ];
     }
 
+    public function dropDatabasePlan(ServiceInstance $i, string $binDir, string $name): ?array
+    {
+        $safe = str_replace('`', '', $name);
+
+        return ['label' => "drop database {$name}", 'argv' => ["{$binDir}/mysql", '-h', '127.0.0.1', '-P', (string) $i->port, '-u', 'root', '-e', "DROP DATABASE IF EXISTS `{$safe}`"], 'cwd' => null, 'timeout' => 60];
+    }
+
     public function env(ServiceInstance $i): array
     {
         return [

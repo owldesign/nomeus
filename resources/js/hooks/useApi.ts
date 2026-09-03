@@ -394,3 +394,21 @@ export function useSelfUpdate() {
     mutationFn: (opts: { check?: boolean; noBuild?: boolean } = {}) => post<Enqueued>('/update', { check: !!opts.check, no_build: !!opts.noBuild }),
   });
 }
+
+export interface NewSiteRequest {
+  name: string;
+  dir?: string;
+  starter: 'laravel' | 'empty' | 'from';
+  from?: string;
+  php?: string;
+  db?: 'postgresql' | 'mysql' | 'mariadb' | 'none';
+  redis?: boolean;
+  services?: string[];
+  mail?: boolean;
+  secure?: boolean;
+  skip_scripts?: boolean;
+}
+
+export function useNewSite() {
+  return useMutation({ mutationFn: (body: NewSiteRequest) => post<Enqueued>('/sites/new', body) });
+}

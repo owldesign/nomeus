@@ -114,7 +114,37 @@ final class Shell
             'HOMEBREW_NO_ENV_HINTS' => '1',
             'HOMEBREW_NO_INSTALL_CLEANUP' => '1',
             'NONINTERACTIVE' => '1',   // brew inside a task has no tty to ask on
-        ];
+        ] + $this->unsetOwnEnv();
+    }
+
+    /**
+     * Symfony Process hands $_ENV to every child, and Laravel has loaded nomeus's own .env into it —
+     * so a site's `php artisan` would run with nomeus's APP_KEY, DB_CONNECTION, APP_NAME… overriding
+     * its own .env (key:generate then fails with "No APP_KEY variable was found"). A value of false
+     * removes the variable from the child. Explicit keys in env() win over this list.
+     *
+     * @return array<string, false>
+     */
+    public function unsetOwnEnv(): array
+    {
+        $keys = [];
+        $own = base_path('.env');
+        if (is_file($own)) {
+            foreach (preg_split('/\R/', (string) file_get_contents($own)) as $line) {
+                if (preg_match('/^\s*(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*=/', $line, $m)) {
+                    $keys[] = $m[1];
+                }
+            }
+        }
+        // …and whatever else Laravel-shaped is in the environment (phpunit.xml, a shell profile)
+        foreach (array_keys($_ENV + $_SERVER) as $k) {
+            if (is_string($k) && preg_match('/^(APP|DB|CACHE|SESSION|QUEUE|MAIL|REDIS|LOG|BROADCAST|FILESYSTEM|VITE|VAR_DUMPER|MEMCACHED|AWS|PUSHER|REVERB|SCOUT|MEILISEARCH|TYPESENSE|XDEBUG)_/', $k)) {
+                $keys[] = $k;
+            }
+        }
+        $keys = array_diff(array_unique($keys), ['XDEBUG_MODE', 'XDEBUG_TRIGGER', 'XDEBUG_CONFIG', 'XDEBUG_SESSION']);   // a user's deliberate xdebug env stays
+
+        return array_fill_keys(array_values($keys), false);
     }
 
     /** @param  array<int, string>|string  $command */

@@ -20,7 +20,8 @@ beforeEach(function () {
     $this->valetFs = new FakeValet;
     config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
     config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
-    $this->valetFs->parked('smoke', laravel: true);
+    $smoke = $this->valetFs->parked('smoke', laravel: true);
+    file_put_contents("$smoke/.env", "SESSION_DRIVER=redis\n");   // wants phpredis; the fake php has none
     touch("{$this->valetFs->configDir}/valet.sock");
 
     $this->mock(Probe::class, function ($m) {
@@ -39,6 +40,7 @@ beforeEach(function () {
         '*pgrep*' => Process::result('', '', 1),
         '*which*' => Process::result(''),                         // no nomeus shim on PATH → warn
         '*brew*outdated*' => Process::result(json_encode(['formulae' => []])),
+        "*php' '-m'*" => Process::result("[PHP Modules]\nCore\n"),
         '*--version*' => Process::result("stub 1.0\n"),
         '*php*-r*' => Process::result('8.4.25'),
         '*git*rev-parse*' => Process::result("origin/main\n"),
@@ -68,6 +70,7 @@ it('reports every section with a fix for what is missing', function () {
         ->and($rows['php|99-nomeus.ini php 8.4']['level'])->toBe('warn')
         ->and($rows['nomeus|config']['level'])->toBe('ok')
         ->and($rows['nomeus|bin/nomeus']['level'])->toBe('warn')
+        ->and($rows['php|redis ext smoke']['detail'])->toContain('php:ext redis --php=8.4')
         ->and($rows['dumps|server']['detail'])->toContain('services:create dumps')
         ->and($rows['mail|mailpit']['detail'])->toContain('nomeus mail --create')
         ->and($rows['retention|tasks']['level'])->toBe('ok')
