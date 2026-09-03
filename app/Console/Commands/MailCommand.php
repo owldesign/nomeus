@@ -41,7 +41,7 @@ class MailCommand extends Command
             }
         }
 
-        $shell->run(['open', $mail->baseUrl()], timeout: 10);
+        $shell->open($mail->baseUrl());
         $this->info("{$mail->baseUrl()}   ·   SMTP 127.0.0.1:{$mail->smtpPort()}   ·   .env: nomeus services:env {$i->name}");
 
         return self::SUCCESS;

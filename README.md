@@ -63,4 +63,4 @@ npm run build            # dashboard (React, Tailwind v4, TanStack Query)
 nomeus self-update       # pull, deps, build, ini, doctor — also a button on the Status page
 ```
 
-Vertical slices, each with a runbook: see `docs/runbooks.md`. Linux is not supported yet (launchd, Valet).
+Vertical slices, each with a runbook: see `docs/runbooks.md`. Linux: in progress — see [docs/linux.md](docs/linux.md).

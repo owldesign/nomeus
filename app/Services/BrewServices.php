@@ -65,6 +65,9 @@ final class BrewServices
     /** Brew services nomeus knows how to take over: a driver exists and brew's data dir is present. */
     public function adoptable(): array
     {
+        if (! \App\Support\Platform::isMac()) {
+            return [];   // brew services on Linux is systemd-based; adoption there is 7g-2's job
+        }
         return array_values(array_filter($this->list(), fn ($s) => $s['type'] !== null && $s['has_data']));
     }
 

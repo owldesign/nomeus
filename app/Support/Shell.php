@@ -21,13 +21,13 @@ final class Shell
         if (is_string($configured) && is_executable("$configured/bin/brew")) {
             return $configured;
         }
-        foreach (['/opt/homebrew', '/usr/local'] as $prefix) {
+        foreach (Platform::defaultBrewPrefixes() as $prefix) {
             if (is_executable("$prefix/bin/brew")) {
                 return $prefix;
             }
         }
 
-        return '/opt/homebrew';
+        return Platform::defaultBrewPrefixes()[0];
     }
 
     public function composerBinDir(): string
@@ -170,6 +170,12 @@ final class Shell
     /** True when a process with exactly this name is running. */
     public function running(string $processName): bool
     {
-        return $this->run(['pgrep', '-x', $processName], timeout: 10)->successful();
+        return $this->run(['pgrep', '-x', $processName], timeout: 10)->successful();   // pgrep is procps on Linux, BSD on macOS: same flag
+    }
+
+    /** Open a URL or path with the desktop's default handler (open / xdg-open). */
+    public function open(string $target): void
+    {
+        $this->run([Platform::openCommand(), $target], timeout: 10);
     }
 }

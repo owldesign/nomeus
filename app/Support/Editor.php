@@ -35,12 +35,12 @@ final class Editor
         $at = $line ? ":{$line}" : '';
 
         return match ($this->ide()) {
-            'phpstorm' => ['open', 'phpstorm://open?file='.rawurlencode($path).($line ? "&line={$line}" : '')],
-            'vscode' => ['open', 'vscode://file'.$path.$at],
-            'cursor' => ['open', 'cursor://file'.$path.$at],
+            'phpstorm' => [Platform::openCommand(), 'phpstorm://open?file='.rawurlencode($path).($line ? "&line={$line}" : '')],
+            'vscode' => [Platform::openCommand(), 'vscode://file'.$path.$at],
+            'cursor' => [Platform::openCommand(), 'cursor://file'.$path.$at],
             'sublime' => $this->cli('subl', 'Sublime Text', $path.$at, $path),
             'zed' => $this->cli('zed', 'Zed', $path.$at, $path),
-            default => ['open', '-t', $path],
+            default => Platform::isMac() ? ['open', '-t', $path] : ['xdg-open', $path],
         };
     }
 

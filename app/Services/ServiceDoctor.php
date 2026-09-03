@@ -11,7 +11,7 @@ final class ServiceDoctor
 {
     public function __construct(
         private readonly ServiceManager $services,
-        private readonly LaunchdManager $launchd,
+        private readonly ProcessManager $launchd,
         private readonly BrewBridge $brew,
         private readonly BrewServices $brewServices,
         private readonly Shell $shell,

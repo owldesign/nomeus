@@ -10,9 +10,9 @@ use RuntimeException;
  * domain. Stop is bootout + disable so it sticks across logins; start is enable + bootstrap.
  * brew's own homebrew.mxcl.* agents are never touched.
  */
-final class LaunchdManager
+final class LaunchdManager implements ProcessManager
 {
-    public const PREFIX = 'dev.nomeus.svc.';
+    public const PREFIX = ProcessManager::PREFIX;
 
     public function __construct(
         private readonly Shell $shell,

@@ -162,7 +162,7 @@ class NewCommand extends Command
         $url = ($secure ? 'https' : 'http')."://{$name}.{$valet->tld()}";
         $this->info("{$url} — ".count($result['ran']).' step(s) run, '.count($result['skipped']).' already in place');
         if ($this->option('open')) {
-            $shell->run(['open', $url], timeout: 10);
+            $shell->open($url);
         }
         if ($this->option('edit')) {
             $editor->openDir($dir);

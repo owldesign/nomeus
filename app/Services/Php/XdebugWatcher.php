@@ -2,7 +2,6 @@
 
 namespace App\Services\Php;
 
-use App\Services\LaunchdManager;
 use App\Support\NomeusConfig;
 use App\Support\Shell;
 
@@ -16,7 +15,7 @@ class XdebugWatcher
     public const NAME = 'xdebug-detect';
 
     public function __construct(
-        private readonly LaunchdManager $launchd,
+        private readonly \App\Services\ProcessManager $launchd,
         private readonly NomeusConfig $config,
         private readonly Shell $shell,
     ) {}

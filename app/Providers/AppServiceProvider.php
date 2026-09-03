@@ -28,14 +28,22 @@ class AppServiceProvider extends ServiceProvider
             $app->make(BrewBridge::class),
             $app->make(DriverRegistry::class),
             $app->make(Probe::class),
-            (string) (config('nomeus.launch_agents_dir') ?: NomeusConfig::homeDir().'/Library/LaunchAgents'),
+            (string) (config('nomeus.launch_agents_dir') ?: \App\Support\Platform::unitsDir()),
         ));
 
         $this->app->singleton(LaunchdManager::class, fn ($app) => new LaunchdManager(
             $app->make(Shell::class),
-            (string) (config('nomeus.launch_agents_dir') ?: NomeusConfig::homeDir().'/Library/LaunchAgents'),
+            (string) (config('nomeus.launch_agents_dir') ?: \App\Support\Platform::unitsDir()),
             (int) (config('nomeus.uid') ?: (function_exists('posix_getuid') ? posix_getuid() : 501)),
         ));
+        $this->app->singleton(\App\Services\SystemdManager::class, fn ($app) => new \App\Services\SystemdManager(
+            $app->make(Shell::class),
+            (string) (config('nomeus.launch_agents_dir') ?: \App\Support\Platform::unitsDir()),
+        ));
+        // the supervisor everyone else asks for: launchd on macOS, systemd --user on Linux
+        $this->app->singleton(\App\Services\ProcessManager::class, fn ($app) => \App\Support\Platform::isMac()
+            ? $app->make(LaunchdManager::class)
+            : $app->make(\App\Services\SystemdManager::class));
     }
 
     public function boot(): void {}

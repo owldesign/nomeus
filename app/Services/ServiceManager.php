@@ -24,7 +24,7 @@ final class ServiceManager
         private readonly NomeusConfig $config,
         private readonly BrewBridge $brew,
         private readonly DriverRegistry $drivers,
-        private readonly LaunchdManager $launchd,
+        private readonly ProcessManager $launchd,
         private readonly Shell $shell,
         private readonly Probe $probe,
         private readonly BrewServices $brewServices,
