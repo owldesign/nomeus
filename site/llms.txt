@@ -1,0 +1,37 @@
+# Nomeus
+
+> Nomeus (νομεύς, "shepherd") is a free, MIT-licensed, self-hosted alternative to Laravel Herd Pro for macOS. It is one Laravel application that is both a CLI (`nomeus …`) and a dashboard at https://nomeus.test, built on Laravel Valet (sites, PHP versions, TLS) and Homebrew (binaries). Everything Herd Pro charges for is provided from free parts, plus things Herd does not have.
+
+Install (macOS with Xcode Command Line Tools and Homebrew):
+
+    curl -fsSL https://nomeus.dev/install | bash
+
+Source: https://github.com/owldesign/nomeus — the one-liner clones it to ~/.nomeus/app and runs install/install.sh, ending with `nomeus doctor`.
+
+## What it does
+
+- Sites: Valet-served, `nomeus sites`, `nomeus new <name>` (scaffold → nomeus.yml → init), `nomeus rm`, PHP isolation per site, TLS.
+- PHP: versions from Homebrew (shivammathur/php), `php:install`, `php:use`, `php:ext` (extensions such as redis from shivammathur/extensions), one generated ini per version.
+- Services: PostgreSQL, MySQL, MariaDB, Redis, Meilisearch, Typesense, SeaweedFS (S3), Laravel Reverb, Mailpit — as native Homebrew binaries under nomeus-owned launchd agents; multiple instances, clone, adopt from `brew services`, `services:doctor`.
+- Mail: a Mailpit instance with one inbox per app (tags via the optional nomeus/client package).
+- Manifest: `nomeus.yml` per site (domain, secure, php, node, services with databases, mail, env, post-init scripts); `nomeus init` is idempotent.
+- Logs: every site's Laravel logs plus nginx and php-fpm, parsed, with file:line links into PhpStorm/VS Code/Cursor.
+- Dumps: a dump server that receives dump()/dd() from any site through an auto_prepend_file (no package needed), plus queries, jobs, views, HTTP requests and logs per request via nomeus/client.
+- Xdebug: per PHP version, modes off / on / trigger / detect (detect follows whether the IDE is listening).
+- Node: versions through fnm, `.nvmrc` pins honoured by init.
+- Doctor: `nomeus doctor` checks every layer and prints the exact fix for each problem; the dashboard can run the fix.
+- MCP: `nomeus mcp` exposes the stack to Claude Desktop, Claude Code and Cursor as tools (`nomeus mcp:install claude|code|cursor`).
+- Self-update: `nomeus self-update` (git pull, dependencies, build, ini, doctor).
+
+## What it is not
+
+- Not a menubar app (PHP Monitor is recommended alongside).
+- Not on Windows; Linux support is in progress (Ubuntu via apt PHP + Linuxbrew + systemd).
+- Not backed by a company; issues and pull requests on GitHub. 220+ tests; every feature slice has a runbook.
+
+## Links
+
+- Site: https://nomeus.dev/
+- Repository: https://github.com/owldesign/nomeus
+- Docs: https://github.com/owldesign/nomeus/tree/main/docs (commands.md, nomeus-yml.md, layout.md, mcp.md, linux.md, runbooks.md)
+- License: MIT

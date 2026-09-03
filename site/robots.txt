@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://nomeus.dev/sitemap.xml

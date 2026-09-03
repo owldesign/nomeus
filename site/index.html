@@ -1,46 +1,276 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nomeus — Herd Pro, without the subscription</title>
-<meta name="description" content="Nomeus is a free, open-source, self-hosted replacement for Laravel Herd Pro on macOS, built on Laravel Valet and Homebrew.">
+<meta name="color-scheme" content="dark">
+<title>Nomeus — Herd Pro, without the subscription. Free, self-hosted, on Valet and Homebrew</title>
+<meta name="description" content="Nomeus is a free, MIT-licensed, self-hosted Laravel Herd Pro alternative for macOS: multi-instance Postgres/MySQL/Redis services, per-app mail, a dump server, log tailing, Xdebug, Node versions and an MCP server — built on Laravel Valet and Homebrew. One command installs it.">
+<link rel="canonical" href="https://nomeus.dev/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#121722">
+<meta name="author" content="Vadim Goncharov, ZHUK LLC / Owl Design">
+<meta name="keywords" content="Laravel Herd alternative, Herd Pro alternative, Laravel Valet, Homebrew, local development environment, macOS, PHP, Postgres, MySQL, Redis, Mailpit, Xdebug, dump server, MCP server, self-hosted, open source">
+<!-- social previews -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nomeus">
+<meta property="og:title" content="Nomeus — Herd Pro, without the subscription">
+<meta property="og:description" content="A free, self-hosted Laravel Herd Pro alternative for macOS: services, mail, dumps, logs, Xdebug and an MCP server on Valet and Homebrew. curl -fsSL https://nomeus.dev/install | bash">
+<meta property="og:url" content="https://nomeus.dev/">
+<meta property="og:image" content="https://nomeus.dev/assets/hero-services.png">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="1000">
+<meta property="og:image:alt" content="The Nomeus dashboard: the Services page with star-shaped status LEDs, one row expanded">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Nomeus — Herd Pro, without the subscription">
+<meta name="twitter:description" content="Free, self-hosted, MIT. Multi-instance services, per-app mail, dumps, logs, Xdebug, Node, MCP — on Laravel Valet and Homebrew.">
+<meta name="twitter:image" content="https://nomeus.dev/assets/hero-services.png">
+<!-- structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nomeus",
+  "alternateName": "nomeus",
+  "url": "https://nomeus.dev/",
+  "description": "A free, self-hosted Laravel Herd Pro alternative for macOS: multi-instance services (PostgreSQL, MySQL, MariaDB, Redis, Meilisearch, Typesense, SeaweedFS), per-app mail via Mailpit, a dump server, log tailing with IDE links, Xdebug (off/on/trigger/detect), Node versions via fnm, and an MCP server — built on Laravel Valet and Homebrew.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS",
+  "softwareVersion": "1.12.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "downloadUrl": "https://nomeus.dev/install",
+  "installUrl": "https://nomeus.dev/install",
+  "codeRepository": "https://github.com/owldesign/nomeus",
+  "programmingLanguage": ["PHP", "TypeScript", "Shell"],
+  "author": { "@type": "Organization", "name": "ZHUK LLC / Owl Design" },
+  "keywords": "Laravel Herd alternative, Laravel Valet, Homebrew, local development, PHP, macOS, Xdebug, MCP"
+}
+</script>
 <style>
-  :root { color-scheme: dark light; --bg:#0f1115; --panel:#161920; --line:#262a33; --fg:#e6e6e6; --dim:#8b909a; --gold:#e3b341; --blue:#79b8ff; --green:#3fb950; }
-  @media (prefers-color-scheme: light) { :root { --bg:#fbfaf7; --panel:#fff; --line:#e6e2d8; --fg:#1b1d22; --dim:#6a6f78; --gold:#9a6b00; --blue:#0b5fb3; --green:#1a7f37; } }
-  * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--fg); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, sans-serif; }
-  main { max-width:44rem; margin:0 auto; padding:4rem 1.25rem 5rem } h1 { font-size:2.25rem; letter-spacing:-.02em; margin:0 0 .25rem } .sub { color:var(--dim); margin:0 0 2rem }
-  pre { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:.9rem 1rem; overflow:auto; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .cmd { display:flex; gap:.5rem; align-items:center } .cmd pre { flex:1; margin:0 } button { font:inherit; border:1px solid var(--line); background:var(--panel); color:var(--fg); border-radius:6px; padding:.6rem .9rem; cursor:pointer } button:hover { border-color:var(--gold) }
-  table { border-collapse:collapse; width:100%; margin:1.5rem 0; font-size:.95rem } th, td { text-align:left; padding:.45rem .5rem; border-bottom:1px solid var(--line); vertical-align:top } th { color:var(--dim); font-weight:500 }
-  a { color:var(--blue) } .k { color:var(--gold) } h2 { font-size:1.15rem; margin:2.5rem 0 .75rem } .dim { color:var(--dim) } footer { color:var(--dim); font-size:.9rem; margin-top:3rem }
+/* Local fonts — place the two woff2 files in site/fonts/ (both OFL-licensed).
+   Until they exist, the stacks fall back to system fonts. */
+@font-face{font-family:"Geist Mono";src:url(fonts/GeistMono-Variable.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Public Sans";src:url(fonts/PublicSans-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Public Sans";src:url(fonts/PublicSans-Medium.woff2) format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Public Sans";src:url(fonts/PublicSans-SemiBold.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Public Sans";src:url(fonts/PublicSans-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
+
+:root{
+  color-scheme:dark;
+  --bg:oklch(0.15 0.01 255);--panel:oklch(0.185 0.012 255);--raised:oklch(0.23 0.014 255);--inset:oklch(0.12 0.01 255);
+  --line:oklch(0.29 0.014 255);--line-strong:oklch(0.38 0.016 255);
+  --text:oklch(0.93 0.006 85);--mid:oklch(0.74 0.01 250);--dim:oklch(0.56 0.012 250);--faint:oklch(0.43 0.012 250);
+  --lantern:oklch(0.79 0.14 68);--ok:oklch(0.76 0.16 150);--warn:oklch(0.82 0.15 95);--fail:oklch(0.66 0.19 25);--info:oklch(0.73 0.11 235);
+  --mono:"Geist Mono",ui-monospace,"SF Mono",monospace;--sans:"Public Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--info);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:oklch(0.79 0.14 68 / 0.3)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:28px;padding-right:28px}
+h1,h2,h3{margin:0;text-wrap:pretty}
+h2{font-size:22px;font-weight:700}
+h3{font-size:15px;font-weight:600}
+p{margin:0;text-wrap:pretty}
+pre{margin:0;background:var(--inset);border:1px solid var(--line);border-radius:5px;padding:12px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--mid);overflow-x:auto}
+code{font-family:var(--mono)}
+.m{font-family:var(--mono)}
+.dim{color:var(--dim)}.mid{color:var(--mid)}.faint{color:var(--faint)}.ok{color:var(--ok)}.warn{color:var(--warn)}.lantern{color:var(--lantern)}
+.star{filter:drop-shadow(0 0 5px oklch(0.79 0.14 68 / 0.5))}
+.nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:22px;padding-bottom:22px}
+.nav-links{display:flex;gap:22px;font-family:var(--mono);font-size:13px;margin-left:auto}
+.nav-links a{color:var(--mid)}
+.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:48px;align-items:center;padding-top:64px;padding-bottom:72px}
+.hero h1{font-size:clamp(28px,4vw,38px);font-weight:700;letter-spacing:-0.015em;line-height:1.15;max-width:16ch;margin-bottom:16px}
+.cmd{display:flex;align-items:stretch;max-width:560px;background:var(--inset);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.cmd code{flex:1;font-size:13px;padding:13px 16px;color:var(--text);white-space:nowrap;overflow-x:auto}
+.cmd button{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--lantern);background:oklch(0.79 0.14 68 / 0.1);border:none;border-left:1px solid var(--line);padding:0 18px;cursor:pointer;flex-shrink:0}
+.cmd button:hover{background:oklch(0.79 0.14 68 / 0.18)}
+.shot{border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 8px 24px oklch(0 0 0 / 0.35)}
+.shot-bar{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--inset);border-bottom:1px solid var(--line)}
+.shot-bar i{width:9px;height:9px;border-radius:50%;background:var(--line-strong)}
+.shot img{display:block;width:100%;height:auto}
+.band{border-top:1px solid var(--line)}
+.band.tint{background:oklch(0.185 0.012 255 / 0.5)}
+.sec{padding-top:64px;padding-bottom:64px}
+.table{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.trow{display:grid;grid-template-columns:minmax(180px,0.8fr) 1.6fr;gap:0 20px;padding:11px 20px;border-bottom:1px solid oklch(0.29 0.014 255 / 0.55);font-size:13.5px;align-items:baseline}
+.trow:hover{background:oklch(0.23 0.014 255 / 0.4)}
+.trow b{color:var(--mid);font-weight:500}
+.trow span{font-family:var(--mono);font-size:12.5px;color:var(--mid);line-height:1.6}
+.thead{display:grid;grid-template-columns:minmax(180px,0.8fr) 1.6fr;gap:0 20px;padding:10px 20px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:24px}
+.card p{font-size:13.5px;color:var(--dim);max-width:58ch;margin:8px 0 16px}
+.card .im{font-size:12.5px;color:var(--mid)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:48px}
+.notlist{display:flex;flex-direction:column;gap:12px;font-size:14px;color:var(--mid);max-width:58ch;margin-top:16px}
+.notlist>div{display:flex;gap:12px}
+.notlist svg{flex-shrink:0;margin-top:4px}
+footer .wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap;padding-top:32px;padding-bottom:32px;font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+footer a{color:var(--mid)}
+@media (max-width:460px){.hero,.cards,.cols{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<main>
-  <h1>Nomeus</h1>
-  <p class="sub">νομεύς, <em>shepherd</em> — Herd Pro, without the subscription. On Laravel Valet and Homebrew, for macOS.</p>
 
-  <div class="cmd"><pre id="install">curl -fsSL https://nomeus.dev/install | bash</pre><button type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('install').textContent).then(()=>{this.textContent='copied'})">copy</button></div>
-  <p class="dim">Needs Xcode Command Line Tools and Homebrew. Clones <a href="https://github.com/owldesign/nomeus">github.com/owldesign/nomeus</a> to <code>~/.nomeus/app</code>, installs the Brewfile, Valet, the dashboard, and ends with <code>nomeus doctor</code>. Re-running is a no-op.</p>
+<nav class="wrap nav">
+  <svg class="star" width="16" height="16" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="oklch(0.79 0.14 68)"/></svg>
+  <span class="m lantern" style="font-size:15px;font-weight:600">nomeus</span>
+  <div class="nav-links">
+    <a href="#table">vs herd pro</a>
+    <a href="#install">install</a>
+    <a href="https://github.com/owldesign/nomeus">github</a>
+  </div>
+</nav>
 
-  <table>
-    <tr><th>Herd Pro</th><th>Nomeus</th></tr>
-    <tr><td>Sites, PHP versions, isolation, TLS</td><td>Valet, through <span class="k">nomeus sites</span> / <span class="k">php:*</span> and the dashboard</td></tr>
-    <tr><td>Services</td><td>Postgres, MySQL, MariaDB, Redis, Meilisearch, Typesense, SeaweedFS (S3) — multiple instances, clone, adopt from <span class="k">brew services</span></td></tr>
-    <tr><td>Mail</td><td>a Mailpit instance, one inbox per app</td></tr>
-    <tr><td><span class="k">herd init</span> / herd.yml</td><td><span class="k">nomeus init</span> / nomeus.yml, and <span class="k">nomeus new</span></td></tr>
-    <tr><td>Log viewer</td><td>every site's logs, nginx, php-fpm; file:line into your IDE</td></tr>
-    <tr><td>Dumps</td><td>dump()/dd(), queries, jobs, views, requests, logs — no package needed for dumps</td></tr>
-    <tr><td>Xdebug</td><td>per PHP version: off / on / trigger</td></tr>
-  </table>
+<header class="wrap hero">
+  <div>
+    <h1>Herd Pro, without the subscription — on Valet and Homebrew.</h1>
+    <p class="mid" style="max-width:52ch;margin-bottom:28px">Nomeus is a free, self-hosted local environment for macOS: multi-instance services, per-app mail, a dump server, log tailing and Xdebug — one Laravel app that is both a CLI and a dashboard at <span class="m" style="font-size:13.5px;color:var(--text)">nomeus.test</span>. MIT.</p>
+    <div class="cmd">
+      <code><span class="faint">$ </span>curl -fsSL https://nomeus.dev/install | bash</code>
+      <button data-copy="curl -fsSL https://nomeus.dev/install | bash">copy</button>
+    </div>
+    <div class="m dim" style="margin-top:14px;font-size:12.5px">or read it first: <a href="https://github.com/owldesign/nomeus">github.com/owldesign/nomeus</a> · macOS today, Linux in progress</div>
+  </div>
+  <div class="shot">
+    <div class="shot-bar"><i></i><i></i><i></i><span class="m dim" style="font-size:11.5px;margin-left:8px">https://nomeus.test/services</span></div>
+    <img src="assets/hero-services.png" onerror="this.style.display='none'" alt="The Nomeus Services page: a table of running service instances with star-shaped status LEDs, one row expanded to its .env block and log tail" width="1600" height="1000">
+  </div>
+</header>
 
-  <h2>What it is not</h2>
-  <p>No menubar app (<a href="https://phpmon.app">PHP Monitor</a> is recommended), no Windows or Linux yet, no support contract. It costs nothing: MIT.</p>
+<section id="table" class="band tint">
+<div class="wrap sec">
+  <h2>What Herd Pro sells, from parts you already run</h2>
+  <p class="dim" style="max-width:64ch;margin:8px 0 28px">Valet serves the sites. Homebrew provides the binaries. Nomeus is the shepherd that keeps them accounted for.</p>
+  <div class="table">
+    <div class="thead"><span>herd pro</span><span>nomeus</span></div>
+    <div class="trow"><b>Sites, PHP versions, isolation, TLS</b><span>Valet, driven through nomeus sites / php:* and the Sites and PHP pages</span></div>
+    <div class="trow"><b>Services (Postgres, MySQL, Redis, …)</b><span>native Homebrew binaries under nomeus-owned launchd agents — multiple instances, clone, adopt from brew services, doctor</span></div>
+    <div class="trow"><b>Mail</b><span>a Mailpit instance; one inbox per app via X-Tags from nomeus/client</span></div>
+    <div class="trow"><b>herd init / herd.yml</b><span>nomeus init / nomeus.yml — link, tls, php, node, services, databases, mail, .env, scripts; idempotent</span></div>
+    <div class="trow"><b>Log viewer</b><span>every site's storage/logs, nginx and php-fpm logs; offset-based tail; file:line into the IDE</span></div>
+    <div class="trow"><b>Dumps (dump(), queries, jobs, views, …)</b><span>nomeus's own dump server (VarDumper's server protocol through an auto_prepend_file); request tabs via the client package</span></div>
+    <div class="trow" style="border-bottom:none"><b>Xdebug</b><span>per PHP version: off / on / trigger / detect (follows the IDE), from the CLI or the Debug page</span></div>
+    <div class="m dim" style="padding:11px 20px;font-size:12px;border-top:1px solid oklch(0.29 0.014 255 / 0.55)">also: node versions via fnm (nomeus node:*) · menubar: PHP Monitor (free) · databases: TablePlus through nomeus db</div>
+  </div>
+</div>
+</section>
 
-  <footer>
-    <a href="https://github.com/owldesign/nomeus">GitHub</a> · <a href="https://github.com/owldesign/nomeus/tree/main/docs">docs</a> · ZHUK LLC / Owl Design
-  </footer>
-</main>
+<section class="wrap sec">
+  <h2 style="margin-bottom:28px">How it works</h2>
+  <div class="cards">
+    <div class="card">
+      <h3>One file per site, one command</h3>
+      <p>A <span class="m im">nomeus.yml</span> declares link, tls, php, node, services, databases, mail, .env and scripts. <span class="m im">nomeus init</span> is idempotent — re-running changes nothing.</p>
+      <div style="display:grid;gap:10px">
+<pre><span class="faint"># nomeus.yml</span>
+domain: shopvault
+php: "8.4"
+secure: true
+services:
+  - { type: postgresql, instance: pg17, database: shopvault }
+  - { type: redis }
+mail: true
+post-init: [php artisan migrate --force]</pre>
+<pre><span class="faint">$ </span>nomeus init
+<span class="ok">✓</span> link shopvault.test · secure · isolate php 8.4
+<span class="ok">✓</span> db:pg17 createdb shopvault · redis: already running
+<span class="ok">✓</span> mail: tagged shopvault · client package
+<span class="ok">✓</span> .env: set 9, added 4 · migrate
+<span class="faint">$ </span>nomeus init          <span class="faint"># again: every step "skip"</span></pre>
+      </div>
+    </div>
+    <div class="card">
+      <h3>It adopts what you already have</h3>
+      <p>Services are native Homebrew binaries under nomeus-owned launchd agents, data under <span class="m im">~/.nomeus/services/</span>. Existing <span class="m im">brew services</span> come along; ports are kept.</p>
+<pre><span class="faint">$ </span>nomeus services:doctor
+<span class="warn">WARN</span> postgresql@17 runs under brew services — nomeus services:adopt postgresql@17
+<span class="faint">$ </span>nomeus services:adopt postgresql@17 --name=pg17
+<span class="ok">✓</span> brew services stop · data copied · role postgres · port 5432 kept
+<span class="ok">✓</span> pg17 running under dev.nomeus.svc.pg17
+a second postgres on 5433?
+  <span class="lantern">nomeus services:clone pg17 pg17-test</span></pre>
+    </div>
+    <div class="card">
+      <h3>dump() with the request beside it — no package required</h3>
+      <p>An <span class="m im">auto_prepend_file</span> speaks VarDumper's server protocol, so dumps arrive from any site with nothing installed in it. The optional client package adds queries, jobs, views, requests and logs per request.</p>
+      <div style="border:1px solid var(--line);border-radius:5px;overflow:hidden">
+        <img src="assets/fact-debug.png" onerror="this.style.display='none'" alt="The Nomeus Debug page: a dump row open with its var-dumper output, the Queries tab showing a count of 3" width="1200" height="660" style="display:block;width:100%;height:auto">
+      </div>
+    </div>
+    <div class="card">
+      <h3>The doctor tells you the fix, not just the problem</h3>
+      <p>Sixty-odd checks across Valet, PHP, launchd, ports, ini files and retention. Every warning names the command that clears it; the dashboard offers the same fix as a button.</p>
+<pre><span class="faint">$ </span>nomeus doctor
+<span class="ok">59 ok</span> · <span class="warn">2 warn</span> · 0 fail
+<span class="warn">WARN</span> xdebug php 8.4  mode on but nothing listens on 9003
+     fix: nomeus xdebug:mode trigger --php=8.4
+<span class="warn">WARN</span> redis ext shop   .env uses redis, php 8.4 lacks the extension
+     fix: nomeus php:ext redis --php=8.4</pre>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+<div class="wrap sec cols">
+  <div>
+    <h2>What it is not</h2>
+    <div class="notlist">
+      <div><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="none" stroke="var(--faint)" stroke-width="1.5"/></svg><span>Not a menubar app. <a href="https://phpmon.app">PHP Monitor</a> is free and good; use it alongside.</span></div>
+      <div><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="none" stroke="var(--faint)" stroke-width="1.5"/></svg><span>Not on Windows, and Linux is still in progress. macOS with Valet is the supported machine today.</span></div>
+      <div><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="none" stroke="var(--faint)" stroke-width="1.5"/></svg><span>Not supported by a company. Issues and PRs on GitHub; 220+ tests and per-slice runbooks are the safety net.</span></div>
+    </div>
+  </div>
+  <div>
+    <h2 style="margin-bottom:16px">What it costs</h2>
+    <p class="mid" style="font-size:14px;max-width:58ch">Nothing. MIT-licensed, self-hosted, no account, no telemetry. Herd Pro is $99/year per seat; Nomeus is the same jobs on software you already trust — Valet, Homebrew, launchd — arranged so you can read every line that touches your machine.</p>
+  </div>
+</div>
+</section>
+
+<section id="install" class="band tint">
+<div class="wrap sec">
+  <h2>Install</h2>
+  <p class="dim" style="font-size:14px;max-width:64ch;margin:8px 0 24px">Prerequisites: Xcode Command Line Tools (for git) and <a href="https://brew.sh">Homebrew</a>. The script refuses to run without them.</p>
+  <div class="cmd" style="max-width:640px;margin-bottom:20px">
+    <code><span class="faint">$ </span>curl -fsSL https://nomeus.dev/install | bash -s -- --trust</code>
+    <button data-copy="curl -fsSL https://nomeus.dev/install | bash -s -- --trust">copy</button>
+  </div>
+  <div class="mid" style="max-width:64ch;font-size:14px">
+    <p style="margin-bottom:12px">What it does: clones <span class="m" style="font-size:13px">github.com/owldesign/nomeus</span> to <span class="m" style="font-size:13px">~/.nomeus/app</span> and runs <span class="m" style="font-size:13px">install/install.sh</span>: Homebrew bundle, Valet, dependencies, the dashboard build, <span class="m" style="font-size:13px">nomeus.test</span>, the php ini — ending with <span class="m" style="font-size:13px">nomeus doctor</span>. Re-running is a no-op. <span class="m" style="font-size:13px">--trust</span> runs <span class="m" style="font-size:13px">valet trust</span> so the dashboard can act without password prompts; leave it off to be asked.</p>
+    <p class="dim" style="font-size:13px"><span class="m">/install</span> on this domain serves the raw <a href="https://github.com/owldesign/nomeus/blob/main/install/bootstrap.sh">install/bootstrap.sh</a> from the repo — read it before you pipe it.</p>
+  </div>
+</div>
+</section>
+
+<footer class="band">
+<div class="wrap">
+  <span style="display:flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="var(--lantern)"/></svg>nomeus — νομεύς, shepherd</span>
+  <span style="flex:1"></span>
+  <a href="https://github.com/owldesign/nomeus">github</a>
+  <a href="https://github.com/owldesign/nomeus/tree/main/docs">docs</a>
+  <a href="https://github.com/owldesign/nomeus/blob/main/docs/runbooks.md">the build log</a>
+  <span>MIT · ZHUK LLC / Owl Design</span>
+</div>
+</footer>
+
+<script>
+/* The page's only JavaScript: the copy buttons. Everything else works without it. */
+document.querySelectorAll('[data-copy]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    navigator.clipboard.writeText(btn.dataset.copy).then(function(){
+      btn.textContent='copied';
+      setTimeout(function(){btn.textContent='copy'},1600);
+    });
+  });
+});
+</script>
 </body>
 </html>

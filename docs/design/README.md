@@ -28,3 +28,9 @@ One accent (lantern amber). Mono for anything a machine produced; sans for anyth
 
 Class map: `text-gold → text-lantern`, `bg-green → bg-ok`, `bg-red → bg-fail`, `text-blue → text-info`, `text-mute → text-faint`, `text-fg → text-text`.
 After 8b no page uses the old names and the aliases are gone from the `@theme` — `grep -rn 'text-gold' resources/js` is the test.
+
+## The site
+
+`site/index.html` is Claude Design's landing page from `landing-brief.md` (`site-README.md`, `nomeus-site-assets.md` are its notes),
+with the examples corrected to the real manifest format and commands. Static HTML + CSS, one inline script for the copy buttons,
+dark only (the light variant was removed on purpose), the same fonts self-hosted under `site/fonts/`. Screenshots go in `site/assets/`.
