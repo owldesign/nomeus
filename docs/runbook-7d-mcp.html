@@ -175,6 +175,7 @@ a table of 20 tools with descriptions</pre>
   <h2><span class="n">!</span>Troubleshooting</h2>
 
   <div class="callout red"><b>Claude Desktop: "nomeus" missing or "server disconnected"</b> — Claude's log (<code>~/Library/Logs/Claude/mcp-server-nomeus.log</code>) shows what nomeus printed. Usually the shim path: the config must name <code>/opt/homebrew/bin/nomeus</code> (or the full path to <code>bin/nomeus</code>), since Claude Desktop's PATH is not your shell's.</div>
+  <div class="callout red"><b>Claude Desktop: works, then "Server transport closed unexpectedly" a minute after the last call</b> — the client hands the process a socketpair, and PHP's <code>default_socket_timeout</code> (60 s) made an idle STDIN look like EOF. Fixed in 1.4.0: idle is not EOF. If you see it, you're on an older build.</div>
   <div class="callout red"><b>A tool returns "Internal error: …"</b> — a PHP exception inside the handler; <code>nomeus mcp --call=&lt;tool&gt; --args='…'</code> reproduces it in the terminal with the full message.</div>
   <div class="callout red"><b>Claude sees the tools but calls nothing</b> — the client sends <code>initialize</code> with a protocol version nomeus doesn't know; nomeus answers with its own (2025-06-18) and current clients accept that. Older clients may need the 2024-11-05 shape — paste the log line.</div>
 </section>

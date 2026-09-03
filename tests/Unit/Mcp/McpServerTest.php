@@ -70,3 +70,29 @@ it('serves a stream: one line in, one line out, notifications silent', function 
         ->and(json_decode($lines[0], true)['id'])->toBe(1)
         ->and(json_decode($lines[1], true)['result']['tools'][0]['name'])->toBe('echo');
 });
+
+it('does not treat an idle read timeout as EOF', function () {
+    // php://memory can't time out; a socketpair can: nothing written for the timeout window, then a message.
+    if (! function_exists('stream_socket_pair')) {
+        $this->markTestSkipped('no stream_socket_pair');
+    }
+    [$client, $serverSide] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+    $out = fopen('php://memory', 'r+');
+    $served = null;
+    $pid = pcntl_fork();
+    if ($pid === 0) {                                             // child: the server, on the socket end
+        fclose($client);
+        stream_set_timeout($serverSide, 1);                       // a 1-second "default_socket_timeout"
+        $this->server->run($serverSide, $out);                    // must survive the idle second below
+        rewind($out);
+        $lines = array_values(array_filter(explode("\n", stream_get_contents($out))));
+        exit(count($lines) === 1 && json_decode($lines[0], true)['id'] === 7 ? 0 : 1);
+    }
+    fclose($serverSide);
+    sleep(2);                                                     // longer than the child's read timeout
+    fwrite($client, json_encode(['jsonrpc' => '2.0', 'id' => 7, 'method' => 'ping'])."\n");
+    fclose($client);                                              // now a real EOF
+    pcntl_waitpid($pid, $status);
+
+    expect(pcntl_wexitstatus($status))->toBe(0);
+})->skip(! function_exists('pcntl_fork'), 'pcntl not available');

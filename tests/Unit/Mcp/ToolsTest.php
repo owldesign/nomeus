@@ -24,7 +24,7 @@ beforeEach(function () {
     $smoke = $this->valetFs->parked('smoke', laravel: true);
     File::ensureDirectoryExists("$smoke/storage/logs");
     file_put_contents("$smoke/storage/logs/laravel.log", "[2026-09-03 10:00:00] local.INFO: hello\n[2026-09-03 10:00:01] local.ERROR: it broke\n#0 /x.php(1): y()\n");
-    file_put_contents("$smoke/.env", "APP_KEY=secret\nDB_CONNECTION=pgsql\n");
+    file_put_contents("$smoke/.env", "APP_KEY=secret\nDB_CONNECTION=pgsql\nSESSION_DRIVER=redis\nDB_PASSWORD=hunter2\n");
     file_put_contents("$smoke/nomeus.yml", "services:\n  - { type: redis }\n");
     touch("{$this->valetFs->configDir}/valet.sock");
 
@@ -73,7 +73,14 @@ it('exposes the read tools against the fake world', function () {
 
     $sites = ($this->call)('list_sites');
     expect($sites[0]['name'])->toBe('smoke')->and($sites[0]['manifest'])->toBeTrue();
-    expect(($this->call)('site_env_keys', ['name' => 'smoke']))->toBe(['env' => true, 'keys' => ['APP_KEY', 'DB_CONNECTION']]);   // keys, never values
+    expect(($this->call)('site_env_keys', ['name' => 'smoke']))->toBe([
+        'env' => true,
+        'keys' => ['APP_KEY', 'DB_CONNECTION', 'SESSION_DRIVER', 'DB_PASSWORD'],
+        'drivers' => ['DB_CONNECTION' => 'pgsql', 'SESSION_DRIVER' => 'redis'],    // driver names only; APP_KEY and DB_PASSWORD never appear as values
+    ]);
+    Process::fake(['*artisan*about*' => Process::result('', 'boom: no database', 1)]);
+    expect(($this->call)('site_info', ['name' => 'smoke']))->toMatchArray(['about' => null, 'about_error' => 'boom: no database'])
+        ->and(($this->call)('site_info', ['name' => 'smoke'])['manifest_yaml'])->toContain('type: redis');
     expect(fn () => ($this->call)('site_info', ['name' => 'nope']))->toThrow(RuntimeException::class, 'No site [nope]');
 
     $log = ($this->call)('tail_log', ['source' => 'smoke', 'level' => 'error']);

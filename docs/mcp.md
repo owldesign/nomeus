@@ -18,7 +18,7 @@ Without `--write` the command prints the snippet. Restart the client; "nomeus" s
 
 | tool | what it answers |
 |---|---|
-| `list_sites`, `site_info(name)`, `site_env_keys(name)` | sites, one site with `artisan about`, a site's `.env` **keys** (never values) |
+| `list_sites`, `site_info(name)`, `site_env_keys(name)` | sites; one site with `artisan about` and its manifest; a site's `.env` **keys** plus the values of the driver keys only (`SESSION_DRIVER`, `CACHE_STORE`, …) — never secrets |
 | `list_services`, `service_status(name)`, `service_logs(name, lines)`, `whats_on_port(port)` | instances with live status and the `.env` lines to use them; what listens on a port |
 | `start_service`, `stop_service`, `restart_service` (name) | the launchd agent |
 | `php_versions`, `xdebug_status`, `set_xdebug(version, mode)` | versions and isolation; Xdebug off / on / trigger (restarts php-fpm) |

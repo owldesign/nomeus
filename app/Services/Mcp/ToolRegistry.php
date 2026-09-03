@@ -26,6 +26,9 @@ use RuntimeException;
  */
 class ToolRegistry
 {
+    /** .env keys whose values are driver names, never secrets — safe to show. */
+    public const DRIVER_KEYS = ['DB_CONNECTION', 'SESSION_DRIVER', 'CACHE_STORE', 'QUEUE_CONNECTION', 'BROADCAST_CONNECTION', 'FILESYSTEM_DISK', 'MAIL_MAILER', 'REDIS_CLIENT', 'LOG_CHANNEL'];
+
     /** @var array<string, array{description:string, schema:array, handler:callable}> */
     private array $tools = [];
 
@@ -88,20 +91,32 @@ class ToolRegistry
         $this->add('site_info', 'One site in detail, including `php artisan about` for Laravel apps (environment, versions, drivers).', ['name' => $str('site name without the tld, e.g. "shop"')], ['name'],
             function ($a) {
                 $site = $this->site($a['name']);
-                $about = $this->app->make(\App\Services\SiteInformation::class)->about($site);
+                $info = $this->app->make(\App\Services\SiteInformation::class);
+                $about = $info->about($site);
 
-                return $site->toArray() + ['about' => $about, 'manifest' => Manifest::exists($site->path) ? file_get_contents(Manifest::find($site->path)) : null];
+                return $site->toArray() + [
+                    'about' => $about,
+                    'about_error' => $about === null ? $info->lastError : null,
+                    'manifest_yaml' => Manifest::exists($site->path) ? file_get_contents(Manifest::find($site->path)) : null,
+                ];
             });
-        $this->add('site_env_keys', 'The KEYS present in a site\'s .env (never the values) — enough to see what it is configured for.', ['name' => $str('site name')], ['name'],
+        $this->add('site_env_keys', 'The KEYS present in a site\'s .env (never secrets), plus the values of the driver keys only (DB_CONNECTION, SESSION_DRIVER, CACHE_STORE, QUEUE_CONNECTION, BROADCAST_CONNECTION, FILESYSTEM_DISK, MAIL_MAILER, REDIS_CLIENT, LOG_CHANNEL) — enough to see what the site runs on.', ['name' => $str('site name')], ['name'],
             function ($a) {
                 $site = $this->site($a['name']);
                 $file = "{$site->path}/.env";
                 if (! is_file($file)) {
-                    return ['env' => false, 'keys' => []];
+                    return ['env' => false, 'keys' => [], 'drivers' => []];
                 }
-                preg_match_all('/^\s*([A-Z_][A-Z0-9_]*)\s*=/m', (string) file_get_contents($file), $m);
+                $env = (string) file_get_contents($file);
+                preg_match_all('/^\s*([A-Z_][A-Z0-9_]*)\s*=/m', $env, $m);
+                $drivers = [];
+                foreach (self::DRIVER_KEYS as $key) {
+                    if (preg_match('/^\s*'.$key.'\s*=\s*"?([A-Za-z0-9_.-]*)"?\s*$/m', $env, $v)) {   // driver names only; a quoted/complex value is left out
+                        $drivers[$key] = $v[1];
+                    }
+                }
 
-                return ['env' => true, 'keys' => array_values(array_unique($m[1]))];
+                return ['env' => true, 'keys' => array_values(array_unique($m[1])), 'drivers' => $drivers];
             });
 
         // ── services ────────────────────────────────────────────────────────

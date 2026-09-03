@@ -16,10 +16,29 @@ final class McpServer
 
     public function __construct(private readonly ToolRegistry $tools, private readonly string $version = 'dev') {}
 
-    /** Loop until $in closes. Each line in, at most one line out. */
+    /**
+     * Loop until $in closes. Each line in, at most one line out.
+     *
+     * Clients built on Node/Electron (Claude Desktop, Cursor) hand the child a socketpair, not a pipe, so
+     * PHP applies default_socket_timeout (60 s) to STDIN: fgets returns false after a minute of silence and
+     * a naive loop would exit — "server transport closed unexpectedly". Idle is not EOF: only feof() is.
+     */
     public function run($in, $out): void
     {
-        while (($line = fgets($in)) !== false) {
+        @stream_set_timeout($in, 86400 * 365);
+        while (true) {
+            $line = fgets($in);
+            if ($line === false) {
+                if (feof($in)) {
+                    return;
+                }
+                $meta = @stream_get_meta_data($in);
+                if (! empty($meta['timed_out'])) {
+                    continue;   // idle client; keep waiting
+                }
+                usleep(50_000);
+                continue;
+            }
             $line = trim($line);
             if ($line === '') {
                 continue;
