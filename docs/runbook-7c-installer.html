@@ -181,11 +181,12 @@ brew trust shivammathur/extensions · brew install shivammathur/extensions/redis
 
   <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">GitHub Pages + DNS</span></label>
     <div class="body">
-<pre class="out">github.com/owldesign/nomeus → Settings → Pages → Source: Deploy from a branch · Branch: main · Folder: /site → Save
+<pre class="out">github.com/owldesign/nomeus → Settings → Pages → Build and deployment → Source: GitHub Actions   (branch deploys only allow / or /docs; the workflow publishes site/)
+Actions tab → "pages" runs on the push from 3.1 (or Run workflow) → green
 Custom domain: nomeus.dev (site/CNAME already says so) → wait for the DNS check → Enforce HTTPS
-DNS at your registrar: CNAME  nomeus.dev → owldesign.github.io   (apex: A records 185.199.108.153 · .109 · .110 · .111 + the CNAME on www)</pre>
+DNS at your registrar — apex: A records 185.199.108.153 · 185.199.109.153 · 185.199.110.153 · 185.199.111.153 · www: CNAME → owldesign.github.io</pre>
     </div>
-    <div class="callout gold">GitHub Pages serves <code>site/install</code> (a copy of <code>install/bootstrap.sh</code>, kept identical by a test and <code>install/sync-site.sh</code>) at <code>https://nomeus.dev/install</code> as plain text — exactly what <code>curl | bash</code> needs. The placeholder <code>site/index.html</code> is the honest version of the landing page until Claude Design's replaces it.</div>
+    <div class="callout gold"><code>.github/workflows/pages.yml</code> uploads <code>site/</code> as the Pages artifact on every push that touches it, after checking that <code>site/install</code> still equals <code>install/bootstrap.sh</code>. GitHub Pages then serves <code>site/install</code> (a copy of <code>install/bootstrap.sh</code>, kept identical by a test and <code>install/sync-site.sh</code>) at <code>https://nomeus.dev/install</code> as plain text — exactly what <code>curl | bash</code> needs. The placeholder <code>site/index.html</code> is the honest version of the landing page until Claude Design's replaces it.</div>
   </div>
 
   <div class="step" data-step="3.3"><label><input type="checkbox"><span class="id">3.3</span><span class="title">The one-liner, for real</span></label>
