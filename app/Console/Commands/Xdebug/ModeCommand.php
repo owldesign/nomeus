@@ -12,7 +12,7 @@ use RuntimeException;
 class ModeCommand extends Command
 {
     protected $signature = 'xdebug:mode
-        {mode : off | on | trigger}
+        {mode : off | on | trigger | detect (follows the IDE: on while it listens)}
         {--php= : which version; defaults to the linked php}
         {--all : every version that has xdebug}
         {--no-restart : write the ini only (php-fpm keeps the old mode until valet restart php)}';
@@ -23,7 +23,7 @@ class ModeCommand extends Command
     {
         $mode = (string) $this->argument('mode');
         if (! in_array($mode, XdebugState::MODES, true)) {
-            $this->error('off, on or trigger');
+            $this->error('off, on, trigger or detect');
 
             return self::FAILURE;
         }
@@ -45,7 +45,10 @@ class ModeCommand extends Command
 
                 return self::FAILURE;
             }
-            $this->line("php {$v}: xdebug <fg=".($mode === 'off' ? 'gray' : ($mode === 'on' ? 'yellow' : 'blue')).">{$mode}</>".($changed ? '' : ' (unchanged)'));
+            $effective = $xdebug->status()[$v]['effective'] ?? $mode;
+            $this->line("php {$v}: xdebug <fg=".($mode === 'off' ? 'gray' : ($mode === 'on' ? 'yellow' : ($mode === 'detect' ? 'green' : 'blue'))).">{$mode}</>"
+                .($mode === 'detect' ? " → {$effective} (IDE ".($effective === 'on' ? 'listening' : 'not listening').')' : '')
+                .($changed ? '' : ' (ini unchanged)'));
             $restart = $restart || $changed;
         }
 
@@ -65,6 +68,12 @@ class ModeCommand extends Command
         }
         if ($mode === 'trigger') {
             $this->line('<fg=gray>start a session with the browser helper (Xdebug helper), ?XDEBUG_TRIGGER=1, or XDEBUG_TRIGGER=1 php artisan …</>');
+        }
+        if ($mode === 'detect') {
+            $w = $xdebug->watcher();
+            $this->line($w['running']
+                ? "<fg=gray>watcher running (pid {$w['pid']}) — the ini follows your IDE, php-fpm restarts on each change</>"
+                : '<fg=yellow>watcher not running</> — nomeus xdebug:watch --once syncs by hand; nomeus doctor names the cause');
         }
 
         return self::SUCCESS;

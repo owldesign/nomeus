@@ -50,10 +50,12 @@ final class PhpDoctor implements Section
             }
             if ($x['tap_ini']) {
                 $r->warn("xdebug php {$v}", "the formula's 20-xdebug.ini is back (brew upgrade?) — nomeus xdebug:mode {$x['mode']} --php={$v} re-quarantines it");
+            } elseif ($x['mode'] === 'detect' && ! $this->xdebug->watcher()['running']) {
+                $r->warn("xdebug php {$v}", "detect mode but the watcher agent is not running — nomeus xdebug:mode detect --php={$v} re-installs it (log: ~/.nomeus/php/xdebug-detect.log)");
             } elseif ($x['mode'] === 'on' && ! $ide) {
                 $r->warn("xdebug php {$v}", "mode on with nothing listening on {$this->xdebug->port()} — ~200 ms per request; nomeus xdebug:mode trigger --php={$v}");
             } else {
-                $r->ok("xdebug php {$v}", "mode {$x['mode']}");
+                $r->ok("xdebug php {$v}", "mode {$x['mode']}".($x['mode'] === 'detect' ? " → {$x['effective']}" : ''));
             }
         }
 

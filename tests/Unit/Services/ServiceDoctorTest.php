@@ -9,7 +9,7 @@ beforeEach(function () {
     $flag = new \App\Services\Dumps\CaptureFlag($this->w->config);
     $state = new \App\Services\Php\XdebugState($this->w->config);
     $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, $flag, $this->w->shell, $state);
-    $xdebug = new \App\Services\Php\XdebugManager($this->w->config, $this->w->brew, $this->w->shell, $this->w->probe, $state, $prepend);
+    $xdebug = new \App\Services\Php\XdebugManager($this->w->config, $this->w->brew, $this->w->shell, $this->w->probe, $state, $prepend, new \App\Services\Php\XdebugWatcher($this->w->launchd, $this->w->config, $this->w->shell));
     $this->doctor = new ServiceDoctor($this->w->manager, $this->w->launchd, $this->w->brew, $this->w->brewServices, $this->w->shell, $this->w->probe, $prepend, $xdebug);
 });
 

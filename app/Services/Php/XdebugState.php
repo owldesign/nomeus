@@ -7,7 +7,10 @@ use App\Support\NomeusConfig;
 /** ~/.nomeus/php/xdebug.json — per PHP version: where xdebug.so is and which mode we last wrote. */
 final class XdebugState
 {
-    public const MODES = ['off', 'on', 'trigger'];
+    public const MODES = ['off', 'on', 'trigger', 'detect'];
+
+    /** What detect resolves to at any moment. */
+    public const EFFECTIVE = ['off', 'on'];
 
     public function __construct(private readonly NomeusConfig $config) {}
 
@@ -16,7 +19,7 @@ final class XdebugState
         return $this->config->dir().'/php/xdebug.json';
     }
 
-    /** @return array<string, array{so:string, mode:string}> */
+    /** @return array<string, array{so:string, mode:string, effective?:string}> */
     public function all(): array
     {
         if (! is_file($this->path())) {
@@ -26,16 +29,16 @@ final class XdebugState
         return (array) json_decode((string) file_get_contents($this->path()), true);
     }
 
-    /** @return array{so:string, mode:string}|null */
+    /** @return array{so:string, mode:string, effective?:string}|null */
     public function get(string $version): ?array
     {
         return $this->all()[$version] ?? null;
     }
 
-    public function set(string $version, string $so, string $mode): void
+    public function set(string $version, string $so, string $mode, ?string $effective = null): void
     {
         $all = $this->all();
-        $all[$version] = ['so' => $so, 'mode' => $mode];
+        $all[$version] = ['so' => $so, 'mode' => $mode] + ($mode === 'detect' ? ['effective' => $effective ?? 'off'] : []);
         $dir = dirname($this->path());
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);

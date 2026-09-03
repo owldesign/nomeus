@@ -13,6 +13,9 @@ beforeEach(function () {
     $this->brewFs = (new FakeBrew)->installed('8.4', '8.4.25')->linked('8.4');
     file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
     config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
+    mkdir("{$this->root}/agents", 0755, true);
+    config()->set('nomeus.launch_agents_dir', "{$this->root}/agents");   // the detect watcher's plist — never the real ~/Library/LaunchAgents
+    config()->set('nomeus.uid', 501);
     $this->valetFs = new FakeValet;
     config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
     config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
@@ -32,6 +35,9 @@ beforeEach(function () {
         '*bin/valet*' => Process::result("ok\n"),
         '*pgrep*' => Process::result('', '', 1),
         '*php*-r*' => Process::result('8.4.25'),
+        '*launchctl*print-disabled*' => Process::result(''),
+        '*launchctl*print*' => Process::result('', '', 113),
+        '*launchctl*' => Process::result(''),
     ]);
 });
 
@@ -74,8 +80,41 @@ it('drives it from the cli: install adopts the tap ini, mode switches and restar
     Process::assertRan(fn ($p) => $p->command === [$this->valetFs->valetBin(), 'restart', 'php']);
     expect(file_get_contents($this->brewFs->root.'/etc/php/8.4/conf.d/99-nomeus.ini'))->toContain('xdebug.start_with_request=yes');
 
-    $this->artisan('xdebug:mode on --no-restart')->expectsOutputToContain('(unchanged)')->assertSuccessful();
+    $this->artisan('xdebug:mode on --no-restart')->expectsOutputToContain('(ini unchanged)')->assertSuccessful();
     $this->artisan('xdebug:mode trigger --all --no-restart')->expectsOutputToContain('still runs the previous mode')->assertSuccessful();
     $this->artisan('xdebug')->expectsOutputToContain('trigger')->assertSuccessful();
     $this->artisan('xdebug:mode loud')->assertFailed();
+});
+
+it('runs detect from the cli: mode, the watcher agent, and xdebug:watch --once', function () {
+    $this->artisan('xdebug:install')->assertSuccessful();
+    touch("{$this->valetFs->configDir}/valet.sock");
+
+    $this->artisan('xdebug:mode detect --no-restart')
+        ->expectsOutputToContain('php 8.4: xdebug detect → off (IDE not listening)')
+        ->assertSuccessful();
+    $plist = "{$this->root}/agents/dev.nomeus.svc.xdebug-detect.plist";
+    expect(is_file($plist))->toBeTrue()->and(file_get_contents($plist))->toContain('xdebug:watch');
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootstrap', 'gui/501', $plist]);
+
+    // --once with the IDE now listening: the ini flips to on and fpm restarts
+    $this->mock(Probe::class, function ($m) {
+        $m->shouldReceive('tcp')->andReturnUsing(fn ($h, $p) => $p === 9003);
+        $m->shouldReceive('unix')->andReturn(true);
+    });
+    $this->artisan('xdebug:watch --once')
+        ->expectsOutputToContain('xdebug → on (IDE listening)')
+        ->expectsOutputToContain('valet restart php')
+        ->assertSuccessful();
+    expect(file_get_contents($this->brewFs->root.'/etc/php/8.4/conf.d/99-nomeus.ini'))->toContain('xdebug.start_with_request=yes');
+    $this->artisan('xdebug:watch --once')->expectsOutputToContain('in sync: IDE listening')->assertSuccessful();
+    $this->artisan('xdebug')->expectsOutputToContain('detect')->assertSuccessful();
+    $v = $this->getJson('/api/xdebug')->assertOk()->json('data.versions')['8.4'];   // "8.4" has a dot: no json-path here
+    expect($v)->toMatchArray(['mode' => 'detect', 'effective' => 'on']);
+
+    // any other mode removes the agent
+    $this->artisan('xdebug:mode off --no-restart')->assertSuccessful();
+    expect(is_file($plist))->toBeFalse();
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootout', 'gui/501/dev.nomeus.svc.xdebug-detect']);
+    $this->artisan('xdebug:watch --once')->expectsOutputToContain('no version in detect mode')->assertSuccessful();
 });

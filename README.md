@@ -13,7 +13,7 @@ Everything Herd Pro sells, from free parts you already run:
 | `herd init` / `herd.yml` | `nomeus init` / `nomeus.yml` — link, tls, php, node, services, databases, mail, `.env`, scripts; idempotent |
 | Log viewer | every site's `storage/logs`, nginx and php-fpm logs; offset-based tail; file:line into the IDE |
 | Dumps (dump(), queries, jobs, views, requests, logs) | nomeus's own dump server (VarDumper's server protocol through an `auto_prepend_file`); the request tabs via the client package |
-| Xdebug | per PHP version: off / on / trigger, from the CLI or the Debug page |
+| Xdebug | per PHP version: off / on / trigger / detect (follows the IDE), from the CLI or the Debug page |
 
 Menubar: PHP Monitor (free). Databases: TablePlus (free tier) through `nomeus db`.
 

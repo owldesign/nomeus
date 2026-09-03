@@ -28,12 +28,16 @@ class StatusCommand extends Command
         $this->table(['php', 'xdebug', 'mode', 'notes'], array_map(fn ($v, $s) => [
             $v,
             $s['installed'] ? '<fg=green>installed</>' : '<fg=gray>— (nomeus xdebug:install '.$v.')</>',
-            $s['installed'] ? match ($s['mode']) { 'on' => '<fg=yellow>on</>', 'trigger' => '<fg=blue>trigger</>', default => 'off' } : '',
+            $s['installed'] ? match ($s['mode']) { 'on' => '<fg=yellow>on</>', 'trigger' => '<fg=blue>trigger</>', 'detect' => '<fg=green>detect</> → '.$s['effective'], default => 'off' } : '',
             implode(' · ', array_filter([
                 $s['tap_ini'] ? '<fg=red>formula ini reappeared — nomeus xdebug:mode '.$s['mode'].' --php='.$v.'</>' : null,
                 $s['installed'] && ! $s['ini_current'] ? '<fg=yellow>ini outdated — nomeus dumps:install</>' : null,
             ])),
         ], array_keys($status), $status));
+        if ($xdebug->detecting() !== []) {
+            $w = $xdebug->watcher();
+            $this->line($w['running'] ? "<fg=green>detect watcher running</> (pid {$w['pid']})" : '<fg=red>detect watcher not running</> — nomeus xdebug:mode detect re-installs it');
+        }
         $this->line($ide
             ? "<fg=green>IDE listening on 127.0.0.1:{$xdebug->port()}</>"
             : "<fg=gray>nothing listening on 127.0.0.1:{$xdebug->port()} — mode \"on\" would cost ~200 ms per request until it does</>");

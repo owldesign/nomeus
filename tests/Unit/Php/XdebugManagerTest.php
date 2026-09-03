@@ -26,7 +26,21 @@ beforeEach(function () {
     $probe = Mockery::mock(Probe::class);
     $probe->shouldReceive('tcp')->andReturnUsing(fn ($h, $p) => $p === 9003 && $this->listening);
     $this->prepend = new PrependInstaller($config, $brew, new CaptureFlag($config), $shell, $this->state);
-    $this->xdebug = new XdebugManager($config, $brew, $shell, $probe, $this->state, $this->prepend);
+    $this->watcher = Mockery::mock(\App\Services\Php\XdebugWatcher::class);
+    $this->watcher->shouldReceive('enable')->andReturnUsing(function () { $this->watcherOn = true; })->byDefault();
+    $this->watcher->shouldReceive('disable')->andReturnUsing(function () { $this->watcherOn = false; })->byDefault();
+    $this->watcher->shouldReceive('status')->andReturnUsing(fn () => ['installed' => $this->watcherOn, 'running' => $this->watcherOn, 'pid' => $this->watcherOn ? 42 : null])->byDefault();
+    $this->watcherOn = false;
+    $this->xdebug = new XdebugManager($config, $brew, $shell, $probe, $this->state, $this->prepend, $this->watcher);
+    // restartAndWait resolves PhpManager from the container: point it at this fake world too
+    $this->valetFs = new \Tests\Support\FakeValet;
+    touch("{$this->valetFs->configDir}/valet.sock");
+    config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    $this->mock(Probe::class, function ($m) {
+        $m->shouldReceive('tcp')->andReturn(false);
+        $m->shouldReceive('unix')->andReturn(true);
+    });
     $this->ini = fn (string $v) => file_get_contents($this->brewFs->root."/etc/php/{$v}/conf.d/99-nomeus.ini");
 
     // what the tap leaves behind after `brew install shivammathur/extensions/xdebug@8.4`
@@ -52,6 +66,7 @@ beforeEach(function () {
 afterEach(function () {
     File::deleteDirectory($this->root);
     $this->brewFs->destroy();
+    $this->valetFs->destroy();
 });
 
 it('installs from the tap, reads the .so path, quarantines the tap ini and writes ours with mode off', function () {
@@ -122,4 +137,34 @@ it('keeps dumps and xdebug sections independent through dumps:install', function
 
     $this->prepend->install();                       // the dumps side regenerating must not lose the xdebug block
     expect(($this->ini)('8.4'))->toContain('xdebug.start_with_request=yes')->and(($this->ini)('8.4'))->toContain('auto_prepend_file=');
+});
+
+it('detect follows the ide: watcher installed, ini flips with applyDetect, other modes stop the watcher', function () {
+    ($this->installTap)();
+    $this->xdebug->adopt('8.4', fn () => null);
+
+    // IDE not listening → detect resolves to off; the watcher is installed
+    expect($this->xdebug->setMode('8.4', 'detect'))->toBeFalse();          // off → off: no fpm restart needed
+    expect($this->state->get('8.4'))->toBe(['so' => $this->so, 'mode' => 'detect', 'effective' => 'off'])
+        ->and(($this->ini)('8.4'))->toContain('; mode: off')
+        ->and(($this->ini)('8.4'))->toContain('; detect: switches on when the IDE listens')
+        ->and($this->watcherOn)->toBeTrue()
+        ->and($this->xdebug->detecting())->toBe(['8.4'])
+        ->and($this->xdebug->status()['8.4'])->toMatchArray(['mode' => 'detect', 'effective' => 'off'])
+        ->and($this->xdebug->watcher()['running'])->toBeTrue();
+
+    // the IDE starts listening → the heartbeat flips the ini to on (and restarts fpm)
+    Process::fake(['*bin/valet*' => Process::result("ok\n")]);
+    $lines = [];
+    expect($this->xdebug->applyDetect(true, function (string $l) use (&$lines) { $lines[] = $l; }))->toBe(['8.4']);
+    expect(($this->ini)('8.4'))->toContain('xdebug.start_with_request=yes')
+        ->and(($this->ini)('8.4'))->toContain('; detect: switches off when the IDE stops listening')
+        ->and($this->state->get('8.4')['effective'])->toBe('on')
+        ->and(implode("\n", $lines))->toContain('xdebug → on (IDE listening)');
+    expect($this->xdebug->applyDetect(true, fn () => null))->toBe([]);          // steady state: nothing to do
+    expect($this->xdebug->applyDetect(false, fn () => null))->toBe(['8.4']);    // IDE gone → off
+    expect(($this->ini)('8.4'))->not->toContain('zend_extension');
+
+    // leaving detect stops the watcher
+    expect($this->xdebug->setMode('8.4', 'trigger'))->toBeTrue()->and($this->watcherOn)->toBeFalse()->and($this->xdebug->detecting())->toBe([]);
 });

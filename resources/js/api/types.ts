@@ -262,13 +262,14 @@ export interface DumpRequest {
   n: number;
 }
 
-export type XdebugMode = 'off' | 'on' | 'trigger';
+export type XdebugMode = 'off' | 'on' | 'trigger' | 'detect';
 
 export interface XdebugStatus {
-  versions: Record<string, { installed: boolean; so: string | null; mode: XdebugMode; tap_ini: boolean; ini_current: boolean }>;
+  versions: Record<string, { installed: boolean; so: string | null; mode: XdebugMode; effective: 'off' | 'on' | 'trigger'; tap_ini: boolean; ini_current: boolean }>;
   linked: string | null;
   port: number;
   ide_listening: boolean;
+  watcher: { installed: boolean; running: boolean; pid: number | null };
 }
 
 export interface DoctorRow {

@@ -27,6 +27,7 @@ class XdebugController extends Controller
             'linked' => $this->brew->linkedPhp(),
             'port' => $this->xdebug->port(),
             'ide_listening' => $this->xdebug->ideListening(),
+            'watcher' => $this->xdebug->watcher(),
         ]]);
     }
 

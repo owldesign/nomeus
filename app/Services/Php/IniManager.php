@@ -24,13 +24,20 @@ final class IniManager
         $out .= $prependPath !== null ? "auto_prepend_file={$prependPath}\n" : "; (not installed)\n";
 
         $out .= "\n; [xdebug] nomeus xdebug:mode\n";
+        $mode = $xdebug === null ? null : ($xdebug['mode'] === 'detect' ? ($xdebug['effective'] ?? 'off') : $xdebug['mode']);
         if ($xdebug === null) {
             $out .= "; (not installed)\n";
-        } elseif ($xdebug['mode'] === 'off') {
+        } elseif ($mode === 'off') {
             $out .= "; mode: off — extension not loaded (zero cost)\n";
+            if ($xdebug['mode'] === 'detect') {
+                $out .= "; detect: switches on when the IDE listens (nomeus xdebug:watch)\n";
+            }
         } else {
-            $start = $xdebug['mode'] === 'on' ? 'yes' : 'trigger';
-            $out .= "; mode: {$xdebug['mode']}\n";
+            $start = $mode === 'on' ? 'yes' : 'trigger';
+            $out .= "; mode: {$mode}\n";
+            if ($xdebug['mode'] === 'detect') {
+                $out .= "; detect: switches off when the IDE stops listening (nomeus xdebug:watch)\n";
+            }
             $out .= "zend_extension={$xdebug['so']}\n";
             $out .= "xdebug.mode=debug,develop\n";
             $out .= "xdebug.start_with_request={$start}\n";

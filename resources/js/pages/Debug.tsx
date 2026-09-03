@@ -83,6 +83,7 @@ const MODES: { mode: XdebugMode; hint: string }[] = [
   { mode: 'off', hint: 'not loaded — zero cost' },
   { mode: 'on', hint: 'every request connects to the IDE — use while stepping' },
   { mode: 'trigger', hint: 'loaded; starts with the browser helper / ?XDEBUG_TRIGGER=1 / XDEBUG_TRIGGER=1 for CLI' },
+  { mode: 'detect', hint: 'follows the IDE: on while it listens, off when it stops (php-fpm restarts on each change)' },
 ];
 
 /** Xdebug per PHP version; mode changes and installs run as tasks (brew, fpm restart). */
@@ -103,7 +104,12 @@ function XdebugPanel() {
         <span className="inline-flex items-center gap-1 text-dim">
           <span className={`inline-block h-2 w-2 rounded-full ${data.ide_listening ? 'bg-green' : 'bg-mute'}`} /> IDE {data.ide_listening ? `listening on ${data.port}` : `not listening on ${data.port}`}
         </span>
-        {!open && versions.filter(([, v]) => v.installed).map(([php, v]) => <span key={php} className="text-dim">php {php}: <span className={v.mode === 'on' ? 'text-gold' : v.mode === 'trigger' ? 'text-blue' : ''}>{v.mode}</span></span>)}
+        {data.watcher.installed && (
+          <span className="inline-flex items-center gap-1 text-dim">
+            <span className={`inline-block h-2 w-2 rounded-full ${data.watcher.running ? 'bg-green' : 'bg-red'}`} /> detect watcher {data.watcher.running ? `pid ${data.watcher.pid}` : 'not running'}
+          </span>
+        )}
+        {!open && versions.filter(([, v]) => v.installed).map(([php, v]) => <span key={php} className="text-dim">php {php}: <span className={v.mode === 'on' ? 'text-gold' : v.mode === 'trigger' ? 'text-blue' : v.mode === 'detect' ? 'text-green' : ''}>{v.mode}{v.mode === 'detect' ? ` → ${v.effective}` : ''}</span></span>)}
         {taskId && <TaskProgress id={taskId} onFinished={() => { refetch(); setTimeout(() => setTaskId(null), 3000); }} />}
       </div>
       {open && (
@@ -122,9 +128,9 @@ function XdebugPanel() {
                           title={m.hint}
                           disabled={act.isPending || taskId !== null}
                           onClick={() => run({ action: 'mode', version: php, mode: m.mode })}
-                          className={`rounded-sm border px-2 py-0.5 ${v.mode === m.mode ? (m.mode === 'on' ? 'border-gold text-gold' : m.mode === 'trigger' ? 'border-blue text-blue' : 'border-fg text-fg') : 'border-line text-dim hover:text-fg'}`}
+                          className={`rounded-sm border px-2 py-0.5 ${v.mode === m.mode ? (m.mode === 'on' ? 'border-gold text-gold' : m.mode === 'trigger' ? 'border-blue text-blue' : m.mode === 'detect' ? 'border-green text-green' : 'border-fg text-fg') : 'border-line text-dim hover:text-fg'}`}
                         >
-                          {m.mode}
+                          {m.mode}{m.mode === 'detect' && v.mode === 'detect' ? ` → ${v.effective}` : ''}
                         </button>
                       ))}
                     </span>

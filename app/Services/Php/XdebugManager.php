@@ -30,6 +30,7 @@ final class XdebugManager
         private readonly Probe $probe,
         private readonly XdebugState $state,
         private readonly PrependInstaller $prepend,
+        private readonly XdebugWatcher $watcher,   // required on purpose: an optional nullable dependency resolves to null in the container
     ) {}
 
     public function port(): int
@@ -75,24 +76,75 @@ final class XdebugManager
     }
 
     /**
-     * @return array<string, array{installed:bool, so:?string, mode:string, tap_ini:bool, ini_current:bool}>
+     * @return array<string, array{installed:bool, so:?string, mode:string, effective:string, tap_ini:bool, ini_current:bool}>
      */
     public function status(): array
     {
         $out = [];
         $ini = $this->prepend->status();
         foreach ($this->brew->installedPhp() as $version) {
-            $so = $this->state->get($version)['so'] ?? $this->discoverSo($version);
+            $st = $this->state->get($version);
+            $so = $st['so'] ?? $this->discoverSo($version);
+            $mode = $st['mode'] ?? 'off';
             $out[$version] = [
                 'installed' => $so !== null && is_file($so),
                 'so' => $so,
-                'mode' => $this->state->get($version)['mode'] ?? 'off',
+                'mode' => $mode,
+                'effective' => $mode === 'detect' ? ($st['effective'] ?? 'off') : $mode,   // what the ini says right now
                 'tap_ini' => is_file($this->tapIniPath($version)),          // reappeared after a brew upgrade → needs quarantine
                 'ini_current' => $ini[$version]['current'] ?? false,
             ];
         }
 
         return $out;
+    }
+
+    /** Versions in detect mode. @return list<string> */
+    public function detecting(): array
+    {
+        return array_keys(array_filter($this->state->all(), fn ($s) => $s['mode'] === 'detect'));
+    }
+
+    /** The watcher agent's state (installed/running/pid). */
+    public function watcher(): array
+    {
+        return $this->watcher->status();
+    }
+
+    /**
+     * Detect's heartbeat: make every detect-mode version's ini match whether the IDE listens.
+     * Returns the versions whose ini changed (fpm was restarted when any did).
+     *
+     * @param  callable(string):void  $log
+     * @return list<string>
+     */
+    public function applyDetect(bool $listening, callable $log): array
+    {
+        $changed = [];
+        foreach ($this->detecting() as $version) {
+            $st = $this->state->get($version);
+            $want = $listening ? 'on' : 'off';
+            if (($st['effective'] ?? 'off') === $want) {
+                continue;
+            }
+            $this->state->set($version, $st['so'], 'detect', $want);
+            $changed[] = $version;
+        }
+        if ($changed !== []) {
+            $this->quarantineAll($changed);
+            $this->prepend->install();
+            $log('php '.implode(', ', $changed).': xdebug → '.($listening ? 'on (IDE listening)' : 'off (IDE gone)'));
+            $this->prepend->restartAndWait($log);
+        }
+
+        return $changed;
+    }
+
+    private function quarantineAll(array $versions): void
+    {
+        foreach ($versions as $v) {
+            $this->quarantine($v);
+        }
     }
 
     public function ideListening(): bool
@@ -153,12 +205,21 @@ final class XdebugManager
         if ($so === null || ! is_file($so)) {
             throw new RuntimeException("Xdebug is not installed for php {$version}: nomeus xdebug:install {$version}");
         }
-        $before = $current['mode'] ?? 'off';
-        $this->state->set($version, $so, $mode);
+        $beforeEffective = $current === null ? 'off' : ($current['mode'] === 'detect' ? ($current['effective'] ?? 'off') : $current['mode']);
+        if ($mode === 'detect') {
+            $effective = $this->ideListening() ? 'on' : 'off';
+            $this->state->set($version, $so, 'detect', $effective);
+        } else {
+            $effective = $mode;
+            $this->state->set($version, $so, $mode);
+        }
         $this->quarantine($version);
         $this->prepend->install();
 
-        return $before !== $mode;
+        // the watcher runs while any version is in detect mode, and only then
+        $this->detecting() !== [] ? $this->watcher->enable() : $this->watcher->disable();
+
+        return $beforeEffective !== $effective;
     }
 
     public function restartPlan(): array
