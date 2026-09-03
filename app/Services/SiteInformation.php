@@ -17,7 +17,7 @@ final class SiteInformation
             return null;
         }
 
-        return Cache::remember("devkit.about.{$site->name}", 30, function () use ($site): ?array {
+        return Cache::remember("nomeus.about.{$site->name}", 30, function () use ($site): ?array {
             $result = $this->shell->run(['php', 'artisan', 'about', '--json'], cwd: $site->path, timeout: 60);
             if (! $result->successful()) {
                 return null;

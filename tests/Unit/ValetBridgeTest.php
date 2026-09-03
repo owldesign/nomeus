@@ -2,15 +2,15 @@
 
 use App\Exceptions\ValetCommandFailed;
 use App\Services\ValetBridge;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
     $this->fake = new FakeValet;
-    config()->set('devkit.valet_bin', $this->fake->valetBin());
-    $this->bridge = new ValetBridge(new Shell(new DevkitConfig($this->fake->root.'/devkit.json')), $this->fake->configDir);
+    config()->set('nomeus.valet_bin', $this->fake->valetBin());
+    $this->bridge = new ValetBridge(new Shell(new NomeusConfig($this->fake->root.'/nomeus.json')), $this->fake->configDir);
 });
 
 afterEach(fn () => $this->fake->destroy());

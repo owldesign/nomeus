@@ -43,7 +43,7 @@ class PhpUpdateCommand extends Command
             }
         }
         $brew->outdatedPhp(fresh: true);
-        $this->info('Done. Restart fpm for updated versions: devkit restart');
+        $this->info('Done. Restart fpm for updated versions: nomeus restart');
 
         return self::SUCCESS;
     }

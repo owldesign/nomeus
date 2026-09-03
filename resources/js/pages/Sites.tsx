@@ -77,7 +77,7 @@ function RowActions({ site, phpVersions, globalPhp }: { site: Site; phpVersions:
             <button type="button" className="hover:text-gold" onClick={() => run({ name: site.name, action: 'unisolate' })}>unisolate</button>
           )}
           {site.manifest && (
-            <button type="button" className="text-gold hover:underline" title="devkit init — apply the site's dev.yml" onClick={() => run({ name: site.name, action: 'init' })}>init</button>
+            <button type="button" className="text-gold hover:underline" title="nomeus init — apply the site's nomeus.yml" onClick={() => run({ name: site.name, action: 'init' })}>init</button>
           )}
           {site.type === 'linked' && (
             <button type="button" className="hover:text-red" onClick={() => setConfirm('unlink')}>unlink</button>
@@ -154,7 +154,7 @@ export default function Sites() {
 
       {!trusted && (
         <p className="mb-4 border border-gold px-3 py-2 text-gold">
-          Valet isn't trusted, so actions here will fail with a sudo error. Run <code>devkit trust</code> once.
+          Valet isn't trusted, so actions here will fail with a sudo error. Run <code>nomeus trust</code> once.
         </p>
       )}
 
@@ -162,7 +162,7 @@ export default function Sites() {
       {sites.isError && <p className="text-red">{errorText(sites.error)}</p>}
 
       {sites.data && sites.data.length === 0 && (
-        <p className="text-dim">Nothing served yet. Park a directory (<code>devkit park</code>) or link one below.</p>
+        <p className="text-dim">Nothing served yet. Park a directory (<code>nomeus park</code>) or link one below.</p>
       )}
 
       {sites.data && sites.data.length > 0 && (

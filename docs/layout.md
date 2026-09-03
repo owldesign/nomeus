@@ -1,36 +1,36 @@
 # Where things live
 
-## `~/.devkit/`
+## `~/.nomeus/`
 
 ```
-config.json                 machine facts + your choices (code_dir, ide, db_client, ports); `devkit config:get/set`
+config.json                 machine facts + your choices (code_dir, ide, db_client, ports); `nomeus config:get/set`
 tasks/<id>.json, <id>.log   every dashboard mutation; newest 100 kept
 services/<name>/
   service.json              type, formula, version, port, options (aux ports, secrets, adopted_from, site)
   data/  conf/  run/  logs/ the instance; logs/service.log is launchd's stdout+stderr
 dumps/capture               present = dump()/dd() go to the Debug page
 dumps/dumps.sqlite          the dump store, newest 5,000 rows
-php/prepend.php             the auto_prepend_file (generated; `devkit dumps:install`)
+php/prepend.php             the auto_prepend_file (generated; `nomeus dumps:install`)
 php/xdebug.json             per version: xdebug.so path and last mode
 ```
 
 ## Homebrew
 
 ```
-<prefix>/etc/php/X.Y/conf.d/99-devkit.ini            devkit's one ini per version: prepend + xdebug block (generated)
-<prefix>/etc/php/X.Y/conf.d/20-xdebug.ini.devkit-off  the tap's always-on ini, quarantined by `xdebug:install`
+<prefix>/etc/php/X.Y/conf.d/99-nomeus.ini            nomeus's one ini per version: prepend + xdebug block (generated)
+<prefix>/etc/php/X.Y/conf.d/20-xdebug.ini.nomeus-off  the tap's always-on ini, quarantined by `xdebug:install`
 <prefix>/var/{postgresql@N,mysql,db/redis}            brew's own data dirs — left untouched by `services:adopt`
-<prefix>/bin/devkit → ~/Code/devkit/bin/devkit        the shim
+<prefix>/bin/nomeus → ~/Code/nomeus/bin/nomeus        the shim
 ```
 
 ## launchd (user agents, `~/Library/LaunchAgents/`)
 
 ```
-dev.zhuk.devkit.svc.<name>.plist    one per service instance; KeepAlive; env = devkit's (PATH, HOME, LC_ALL, LANG)
+dev.nomeus.svc.<name>.plist    one per service instance; KeepAlive; env = nomeus's (PATH, HOME, LC_ALL, LANG)
 homebrew.mxcl.*.plist               brew services — what `services:adopt` takes over
 ```
 
-`launchctl print gui/<uid>/dev.zhuk.devkit.svc.<name>` shows state, pid and last exit code.
+`launchctl print gui/<uid>/dev.nomeus.svc.<name>` shows state, pid and last exit code.
 
 ## Ports (defaults; the next free one when taken)
 
@@ -50,7 +50,7 @@ homebrew.mxcl.*.plist               brew services — what `services:adopt` take
 ## sudo
 
 `valet trust` writes `/etc/sudoers.d/valet` and `/etc/sudoers.d/brew`: NOPASSWD for `<prefix>/bin/valet` and `brew`.
-That is what lets php-fpm-spawned tasks link sites, secure them, isolate PHP and restart fpm. devkit never sudo's anything else.
+That is what lets php-fpm-spawned tasks link sites, secure them, isolate PHP and restart fpm. nomeus never sudo's anything else.
 
 ## Valet
 

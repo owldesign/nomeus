@@ -43,7 +43,7 @@ class InstallCommand extends Command
                     return self::FAILURE;
                 }
             } else {
-                $this->line('<fg=yellow>php-fpm reads ini files at start:</> valet restart php   (or: devkit dumps:install --restart)');
+                $this->line('<fg=yellow>php-fpm reads ini files at start:</> valet restart php   (or: nomeus dumps:install --restart)');
             }
         }
 

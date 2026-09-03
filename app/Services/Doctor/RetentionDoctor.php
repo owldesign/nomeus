@@ -36,7 +36,7 @@ final class RetentionDoctor implements Section
         $dbFile = $this->dumps->path();
         if (is_file($dbFile)) {
             clearstatcache(true, $dbFile);
-            $r->expect(filesize($dbFile) < 200 * 1024 * 1024, 'dumps', self::human((int) filesize($dbFile)).' (kept to the newest '.DumpStore::KEEP.' rows)', self::human((int) filesize($dbFile)).' — devkit dumps:clear', 'warn');
+            $r->expect(filesize($dbFile) < 200 * 1024 * 1024, 'dumps', self::human((int) filesize($dbFile)).' (kept to the newest '.DumpStore::KEEP.' rows)', self::human((int) filesize($dbFile)).' — nomeus dumps:clear', 'warn');
         } else {
             $r->ok('dumps', 'no store yet');
         }
@@ -47,7 +47,7 @@ final class RetentionDoctor implements Section
                 $total += (int) @filesize($f);
             }
             if ($total > self::SERVICE_LOG_WARN) {
-                $r->warn("service logs {$i->name}", self::human($total)." — devkit services:logs {$i->name} --clear");
+                $r->warn("service logs {$i->name}", self::human($total)." — nomeus services:logs {$i->name} --clear");
             }
         }
 

@@ -32,7 +32,7 @@ class PhpInstallCommand extends Command
         }
 
         $v = preg_replace('/^php@/', '', (string) $this->argument('version'));
-        $this->info("php@{$v} installed. Use it per site: devkit isolate php@{$v} --site=<name>   or globally: devkit use php@{$v}");
+        $this->info("php@{$v} installed. Use it per site: nomeus isolate php@{$v} --site=<name>   or globally: nomeus use php@{$v}");
 
         return self::SUCCESS;
     }

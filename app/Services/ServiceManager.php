@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Services\Services\Driver;
 use App\Services\Services\DriverRegistry;
-use App\Services\Services\DevkitBound;
+use App\Services\Services\NomeusBound;
 use App\Services\Services\SiteBound;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\ServiceInstance;
 use App\Support\Shell;
@@ -21,7 +21,7 @@ use RuntimeException;
 final class ServiceManager
 {
     public function __construct(
-        private readonly DevkitConfig $config,
+        private readonly NomeusConfig $config,
         private readonly BrewBridge $brew,
         private readonly DriverRegistry $drivers,
         private readonly LaunchdManager $launchd,
@@ -78,7 +78,7 @@ final class ServiceManager
             'disabled' => $launchd['disabled'],
             'installed' => match (true) {
                 $driver instanceof SiteBound => is_dir(rtrim((string) ($i->options['site_path'] ?? ''), '/').'/'.$driver->siteRequirement()),
-                $driver instanceof DevkitBound => true,
+                $driver instanceof NomeusBound => true,
                 default => $this->brew->isFormulaInstalled($i->formula),
             },
         ];
@@ -105,7 +105,7 @@ final class ServiceManager
         $options = $driver->defaultOptions();
         if ($driver instanceof SiteBound) {
             if ($site === null || $site === '') {
-                throw new RuntimeException("{$driver->label()} runs inside a site: devkit services:create {$type} --site=<name>");
+                throw new RuntimeException("{$driver->label()} runs inside a site: nomeus services:create {$type} --site=<name>");
             }
             $siteObj = $this->valet->find($site) ?? throw new RuntimeException("Site [{$site}] is not parked or linked.");
             if ($siteObj->type === 'proxy') {
@@ -126,14 +126,14 @@ final class ServiceManager
             $options += ['site' => $siteObj->name, 'site_path' => $siteObj->path, 'php_bin_dir' => $binDir];
             $slug = trim(preg_replace('/[^a-z0-9-]+/', '-', strtolower($siteObj->name)), '-');
             $name ??= $this->defaultName(str_starts_with($slug, $type) ? $slug : "{$type}-{$slug}");   // reverb-test stays reverb-test
-        } elseif ($driver instanceof DevkitBound) {
+        } elseif ($driver instanceof NomeusBound) {
             $binDir = dirname($this->shell->phpBin());
             $problem = $this->brew->binaryRuns("{$binDir}/php");
             if ($problem !== null) {
-                throw new RuntimeException("devkit's PHP ({$binDir}/php) does not run:\n{$problem}");
+                throw new RuntimeException("nomeus's PHP ({$binDir}/php) does not run:\n{$problem}");
             }
-            $version = (string) config('devkit.version');
-            $options += ['site' => 'devkit', 'site_path' => base_path(), 'php_bin_dir' => $binDir];
+            $version = (string) config('nomeus.version');
+            $options += ['site' => 'nomeus', 'site_path' => base_path(), 'php_bin_dir' => $binDir];
         }
 
         $name ??= $this->defaultName($type);
@@ -147,7 +147,7 @@ final class ServiceManager
         $port = $this->allocatePort($port ?? $driver->defaultPort(), explicit: $port !== null);
         $options += $this->allocateAuxPorts($driver, [$port]);
 
-        if (! $driver instanceof SiteBound && ! $driver instanceof DevkitBound) {
+        if (! $driver instanceof SiteBound && ! $driver instanceof NomeusBound) {
             if (! $this->brew->isFormulaInstalled($formula)) {
                 $this->installFormula($formula, $log);
             }
@@ -186,14 +186,14 @@ final class ServiceManager
                     $this->stop($instance);
                 } catch (RuntimeException) {
                 }
-                throw new RuntimeException($e->getMessage()."\n\nKept {$name} stopped for inspection: devkit services:logs {$name}   ·   devkit services:delete {$name}");
+                throw new RuntimeException($e->getMessage()."\n\nKept {$name} stopped for inspection: nomeus services:logs {$name}   ·   nomeus services:delete {$name}");
             }
         }
 
         return $instance;
     }
 
-    // ── adopt: a `brew services` cluster becomes a devkit instance, data copied ───
+    // ── adopt: a `brew services` cluster becomes a nomeus instance, data copied ───
 
     /**
      * @param  callable(string):void|null  $log
@@ -207,7 +207,7 @@ final class ServiceManager
     {
         $log ??= fn () => null;
         $driver = $this->drivers->driverForFormula($formula)
-            ?? throw new RuntimeException("No devkit driver for [{$formula}]. Adoptable: ".implode(', ', array_map(fn ($s) => $s['formula'], $this->brewServices->adoptable())));
+            ?? throw new RuntimeException("No nomeus driver for [{$formula}]. Adoptable: ".implode(', ', array_map(fn ($s) => $s['formula'], $this->brewServices->adoptable())));
         $formula = $this->brew->shortName($formula);
         $src = $driver->brewDataDir($this->brew->prefix(), $formula);
         if ($src === null || ! is_dir($src)) {
@@ -278,7 +278,7 @@ final class ServiceManager
                 $this->stop($instance);
             } catch (RuntimeException) {
             }
-            throw new RuntimeException($e->getMessage()."\n\nKept {$name} stopped for inspection: devkit services:logs {$name}   ·   devkit services:delete {$name}. brew's data is untouched at {$src}; `brew services start {$formula}` restores the old setup.");
+            throw new RuntimeException($e->getMessage()."\n\nKept {$name} stopped for inspection: nomeus services:logs {$name}   ·   nomeus services:delete {$name}. brew's data is untouched at {$src}; `brew services start {$formula}` restores the old setup.");
         }
 
         return $instance;
@@ -288,7 +288,7 @@ final class ServiceManager
 
     /**
      * Point an instance at another formula (e.g. mysql → mysql@9.7). The server performs whatever
-     * in-place data upgrade it supports on the next start; devkit only swaps the binary the agent runs.
+     * in-place data upgrade it supports on the next start; nomeus only swaps the binary the agent runs.
      * One-way for databases — MySQL and Postgres do not downgrade a data dir.
      *
      * @param  callable(string):void|null  $log
@@ -332,7 +332,7 @@ final class ServiceManager
                 $this->stop($updated);
             } catch (RuntimeException) {
             }
-            throw new RuntimeException($e->getMessage()."\n\nKept {$updated->name} stopped (now {$formula}): devkit services:logs {$updated->name}. To go back: devkit services:upgrade {$updated->name} {$i->formula} — only if the server did not already rewrite the data.");
+            throw new RuntimeException($e->getMessage()."\n\nKept {$updated->name} stopped (now {$formula}): nomeus services:logs {$updated->name}. To go back: nomeus services:upgrade {$updated->name} {$i->formula} — only if the server did not already rewrite the data.");
         }
 
         return $updated;
@@ -379,7 +379,7 @@ final class ServiceManager
             throw new RuntimeException("Service [{$newName}] already exists.");
         }
         $driver = $this->driver($source);
-        if ($driver instanceof SiteBound || $driver instanceof DevkitBound) {
+        if ($driver instanceof SiteBound || $driver instanceof NomeusBound) {
             throw new RuntimeException("{$source->name} is a process, not a data service; nothing to clone.");
         }
         $binDir = $this->brew->formulaBinDir($source->formula) ?? throw new RuntimeException("Formula {$source->formula} is not installed.");
@@ -469,7 +469,7 @@ final class ServiceManager
             return $preferred;
         }
         if ($explicit) {
-            $why = in_array($preferred, $claimed, true) ? 'is claimed by another devkit service' : 'is already in use on this machine (brew services? another instance?)';
+            $why = in_array($preferred, $claimed, true) ? 'is claimed by another nomeus service' : 'is already in use on this machine (brew services? another instance?)';
             throw new RuntimeException("Port {$preferred} {$why}.");
         }
         for ($p = $preferred + 1; $p < $preferred + 200; $p++) {
@@ -508,6 +508,16 @@ final class ServiceManager
         }
     }
 
+    /** Rewrite an instance's launchd plist from its current record (paths, label, env). */
+    public function refreshAgent(ServiceInstance $i): void
+    {
+        $driver = $this->driver($i);
+        $binDir = $driver instanceof SiteBound || $driver instanceof NomeusBound
+            ? (string) ($i->options['php_bin_dir'] ?? dirname($this->shell->phpBin()))
+            : ($this->brew->formulaBinDir($i->formula) ?? throw new RuntimeException("Formula {$i->formula} is not installed."));
+        $this->writeAgent($i, $driver, $binDir);
+    }
+
     /** Directories, service.json — the parts every instance has before anything runs. */
     private function materialize(ServiceInstance $instance): ServiceInstance
     {
@@ -522,7 +532,7 @@ final class ServiceManager
     }
 
     /**
-     * The agent gets devkit's whole environment: PATH and HOME, but also LC_ALL/LANG,
+     * The agent gets nomeus's whole environment: PATH and HOME, but also LC_ALL/LANG,
      * which PostgreSQL on macOS needs to start at all.
      */
     private function writeAgent(ServiceInstance $instance, Driver $driver, string $binDir): void

@@ -126,22 +126,22 @@ final class PhpManager
     }
 
     /**
-     * The oldest PHP devkit itself can run on. The dashboard is served by the global fpm, so
-     * `use` below this takes devkit down with it (Composer's platform check answers 500).
+     * The oldest PHP nomeus itself can run on. The dashboard is served by the global fpm, so
+     * `use` below this takes nomeus down with it (Composer's platform check answers 500).
      * Read from vendor/composer/platform_check.php, which Composer writes from the lock file.
      */
     public function minPhp(): string
     {
-        // `?:` not a config() default: the key exists (as null) in config/devkit.php, and config()
+        // `?:` not a config() default: the key exists (as null) in config/nomeus.php, and config()
         // only falls back for keys that are absent — a null value is returned as null.
-        $file = (string) (config('devkit.platform_check') ?: base_path('vendor/composer/platform_check.php'));
+        $file = (string) (config('nomeus.platform_check') ?: base_path('vendor/composer/platform_check.php'));
         if (is_file($file) && preg_match('/PHP_VERSION_ID\s*>=\s*(\d{5,6})/', (string) file_get_contents($file), $m)) {
             $id = (int) $m[1];
 
             return intdiv($id, 10000).'.'.intdiv($id % 10000, 100);
         }
 
-        return (string) config('devkit.min_php', '8.2');
+        return (string) config('nomeus.min_php', '8.2');
     }
 
     // ── plans (executed by TaskRunner from the API, inline from the CLI) ──────────
@@ -151,11 +151,11 @@ final class PhpManager
     {
         $version = $this->brew->assertVersion($version);
         if (! in_array($version, $this->brew->installedPhp(), true)) {
-            throw new RuntimeException("php@{$version} is not installed. Install it first: devkit php:install {$version}");
+            throw new RuntimeException("php@{$version} is not installed. Install it first: nomeus php:install {$version}");
         }
         $min = $this->minPhp();
         if (version_compare($version, $min, '<')) {
-            throw new RuntimeException("devkit's dashboard runs on the global PHP and its dependencies need {$min}+; isolate sites that need php@{$version} instead: devkit isolate php@{$version} --site=<name>");
+            throw new RuntimeException("nomeus's dashboard runs on the global PHP and its dependencies need {$min}+; isolate sites that need php@{$version} instead: nomeus isolate php@{$version} --site=<name>");
         }
 
         return [

@@ -3,7 +3,7 @@
 use App\Services\LogSources;
 use App\Services\ValetBridge;
 use App\Support\Shell;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
@@ -18,7 +18,7 @@ beforeEach(function () {
     file_put_contents("{$this->valetFs->configDir}/Log/nginx-error.log", "2026/09/02 01:00:00 [error] boom\n");
     $this->valetFs->parked('static');   // no storage/logs → no sources
     $this->valetFs->proxied('api', 'http://127.0.0.1:9000');
-    $config = new DevkitConfig(sys_get_temp_dir().'/devkit-nonexistent-config.json');
+    $config = new NomeusConfig(sys_get_temp_dir().'/nomeus-nonexistent-config.json');
     $this->sources = new LogSources(new ValetBridge(new Shell($config), $this->valetFs->configDir));
 });
 

@@ -37,7 +37,7 @@ it('skips what is already in place', function () use ($ids) {
     $this->w->valetFs->secured('smoke');
     $this->w->valetFs->isolated('smoke', '8.3');
     file_put_contents("{$this->site}/.nvmrc", "22\n");
-    mkdir("{$this->site}/vendor/zhuk/devkit-client", 0755, true);
+    mkdir("{$this->site}/vendor/nomeus/client", 0755, true);
     $this->w->manager->create('postgresql', null, 'pg17');
     $this->w->manager->create('redis');
     $this->w->manager->create('mailpit');
@@ -68,7 +68,7 @@ it('runs the plan: valet, services, database, env, scripts', function () {
         ->and(substr_count($env, 'MAIL_MAILER='))->toBe(1)
         ->and($env)->toContain('MAIL_PORT=1025')
         ->and($env)->toContain('MAIL_FROM_ADDRESS=hello@smoke.test')
-        ->and($env)->toContain('DEVKIT_MAIL_TAG=smoke')
+        ->and($env)->toContain('NOMEUS_MAIL_TAG=smoke')
         ->and($env)->toContain('DB_CONNECTION=pgsql')
         ->and($env)->toContain('DB_DATABASE=smoke')
         ->and($env)->toContain('REDIS_PORT=6379')
@@ -78,7 +78,7 @@ it('runs the plan: valet, services, database, env, scripts', function () {
     Process::assertRan(fn ($p) => $p->command === [$valet, 'secure', 'smoke']);
     Process::assertRan(fn ($p) => $p->command === [$valet, 'isolate', 'php@8.3', '--site=smoke']);
     Process::assertRan(fn ($p) => str_ends_with($p->command[0], '/createdb') && end($p->command) === 'smoke');
-    Process::assertRan(fn ($p) => $p->command === ['composer', 'require', '--dev', 'zhuk/devkit-client:@dev', '--no-interaction'] && $p->path === $this->site);
+    Process::assertRan(fn ($p) => $p->command === ['composer', 'require', '--dev', 'nomeus/client:@dev', '--no-interaction'] && $p->path === $this->site);
     Process::assertRan(fn ($p) => $p->command === ['sh', '-c', 'php artisan migrate'] && $p->path === $this->site);
     expect(implode("\n", $lines))->toContain('createdb smoke: ok');
 });
@@ -87,7 +87,7 @@ it('stops at the first failing step and names it', function () {
     $steps = $this->planner->plan(($this->manifest)(['php' => '7.4']));   // not installed
 
     expect(fn () => $this->runner->run(($this->manifest)(['php' => '7.4']), fn () => null))
-        ->toThrow(RuntimeException::class, '[php] php 7.4: php@7.4 is not installed: devkit php:install 7.4');
+        ->toThrow(RuntimeException::class, '[php] php 7.4: php@7.4 is not installed: nomeus php:install 7.4');
 });
 
 it('refuses an instance name that belongs to another type', function () {

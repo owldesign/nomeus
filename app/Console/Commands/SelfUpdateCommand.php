@@ -6,7 +6,7 @@ use App\Support\Shell;
 use Illuminate\Console\Command;
 
 /**
- * Update devkit in place: git pull, composer, npm build, regenerate the php ini, doctor.
+ * Update nomeus in place: git pull, composer, npm build, regenerate the php ini, doctor.
  * Runs as a task from the dashboard too — the dashboard being updated is fine, the task is detached.
  */
 class SelfUpdateCommand extends Command
@@ -75,14 +75,14 @@ class SelfUpdateCommand extends Command
             }
         }
 
-        $this->line('<fg=yellow>▶ dumps:install</> <fg=gray>(regenerates 99-devkit.ini per php version — xdebug block included)</>');
+        $this->line('<fg=yellow>▶ dumps:install</> <fg=gray>(regenerates 99-nomeus.ini per php version — xdebug block included)</>');
         if ($this->call('dumps:install') !== self::SUCCESS) {
             return self::FAILURE;
         }
 
         $this->line('<fg=yellow>▶ doctor</>');
         $this->call('doctor');
-        $this->info('devkit '.config('devkit.version').' — reload the dashboard.');
+        $this->info('nomeus '.config('nomeus.version').' — reload the dashboard.');
 
         return self::SUCCESS;
     }

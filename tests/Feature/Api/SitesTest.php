@@ -3,13 +3,16 @@
 use App\Support\Probe;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\Process;
+use Tests\Support\FakeBrew;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
     $this->fake = new FakeValet;
-    config()->set('devkit.config_path', $this->fake->root.'/devkit.json');
-    config()->set('devkit.valet_config_dir', $this->fake->configDir);
-    config()->set('devkit.valet_bin', $this->fake->valetBin());
+    $this->brewFs = new FakeBrew;                                                                    // a prefix with a bin/brew: never the real one
+    file_put_contents($this->fake->root.'/nomeus.json', json_encode(['brew_prefix' => $this->brewFs->root]));
+    config()->set('nomeus.config_path', $this->fake->root.'/nomeus.json');
+    config()->set('nomeus.valet_config_dir', $this->fake->configDir);
+    config()->set('nomeus.valet_bin', $this->fake->valetBin());
 
     $this->fake->parked('alpha', laravel: true);
     $this->fake->linked('api');
@@ -36,9 +39,12 @@ beforeEach(function () {
     ]);
 });
 
-afterEach(fn () => $this->fake->destroy());
+afterEach(function () {
+    $this->fake->destroy();
+    $this->brewFs->destroy();
+});
 
-$h = ['X-Devkit' => '1'];
+$h = ['X-Nomeus' => '1'];
 
 it('lists sites', function () {
     $this->getJson('/api/sites')
@@ -67,7 +73,7 @@ it('shows one site with artisan about for laravel sites', function () use ($h) {
     $this->getJson('/api/sites/missing')->assertNotFound();
 });
 
-it('refuses unsafe requests without the devkit header', function () {
+it('refuses unsafe requests without the nomeus header', function () {
     $this->postJson('/api/sites/alpha/secure')->assertForbidden();
     $this->deleteJson('/api/sites/api/link')->assertForbidden();
     Process::assertNothingRan();

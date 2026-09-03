@@ -95,7 +95,7 @@ final class ValetBridge
      */
     public function version(): ?string
     {
-        return Cache::remember('devkit.valet.version', 60, function (): ?string {
+        return Cache::remember('nomeus.valet.version', 60, function (): ?string {
             $bin = $this->shell->valetBin();
             $real = realpath($bin);
             if ($real !== false) {

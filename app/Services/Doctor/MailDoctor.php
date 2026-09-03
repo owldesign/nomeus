@@ -19,10 +19,10 @@ final class MailDoctor implements Section
         $r = new Rows;
         $i = $this->mail->instance();
         if ($i === null) {
-            return $r->warn('mailpit', 'no mailpit instance — devkit mail --create')->all();
+            return $r->warn('mailpit', 'no mailpit instance — nomeus mail --create')->all();
         }
         $st = $this->services->status($i);
-        $r->expect($st['running'], 'mailpit', "{$i->name}: smtp {$this->mail->smtpPort()} · ui {$this->mail->baseUrl()}", "{$i->name} stopped — devkit services:start {$i->name}", 'warn');
+        $r->expect($st['running'], 'mailpit', "{$i->name}: smtp {$this->mail->smtpPort()} · ui {$this->mail->baseUrl()}", "{$i->name} stopped — nomeus services:start {$i->name}", 'warn');
 
         return $r->all();
     }

@@ -15,7 +15,7 @@ class TailCommand extends Command
     public function handle(DumpStore $store, CaptureFlag $flag): int
     {
         if (! $flag->isOn()) {
-            $this->line('<fg=gray>capture is off (devkit dumps:capture on) — showing what is stored</>');
+            $this->line('<fg=gray>capture is off (nomeus dumps:capture on) — showing what is stored</>');
         }
         $rows = $store->page($this->option('kind'), null, null, max(1, (int) $this->option('lines')));
         foreach ($rows as $r) {

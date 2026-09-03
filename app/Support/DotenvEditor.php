@@ -47,7 +47,7 @@ final class DotenvEditor
                     if (end($lines) !== '') {
                         $lines[] = '';
                     }
-                    $lines[] = '# devkit';
+                    $lines[] = '# nomeus';
                 }
                 $lines[] = "{$key}={$value}";
                 $added[] = $key;

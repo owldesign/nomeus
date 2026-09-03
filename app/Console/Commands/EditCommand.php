@@ -19,7 +19,7 @@ class EditCommand extends Command
         if ($site === null) {
             $this->error($this->argument('name')
                 ? "Site [{$this->argument('name')}] is not parked or linked."
-                : 'Current directory is not inside a Valet site. Pass a name: devkit edit <name>');
+                : 'Current directory is not inside a Valet site. Pass a name: nomeus edit <name>');
 
             return self::FAILURE;
         }

@@ -186,7 +186,7 @@ function CreateForm({ types, existing }: { types: ServiceType[]; existing: Servi
           {create.isPending ? 'enqueuing…' : 'create'}
         </button>
       </div>
-      <div className="mt-1 text-dim">placeholders show what devkit picks when left blank; the port is the standard one when free, otherwise the next free</div>
+      <div className="mt-1 text-dim">placeholders show what nomeus picks when left blank; the port is the standard one when free, otherwise the next free</div>
       {create.isError && <div className="mt-2 text-red">{errorText(create.error)}</div>}
       {taskId && (
         <div className="mt-2">
@@ -208,7 +208,7 @@ function AdoptPanel() {
   return (
     <div className="mt-6 border border-gold/40 bg-panel px-4 py-3">
       <div className="mb-1 text-gold">running under brew services</div>
-      <div className="mb-3 text-dim">devkit can take these over on their standard ports. The data is copied; brew's copy stays where it is until you remove it.</div>
+      <div className="mb-3 text-dim">nomeus can take these over on their standard ports. The data is copied; brew's copy stays where it is until you remove it.</div>
       <table className="w-full border-collapse">
         <tbody>
           {adoptable.data.map((s) => (
@@ -256,7 +256,7 @@ export default function Services() {
       {services.isLoading && <p className="text-dim">reading…</p>}
       {services.isError && <p className="text-red">{errorText(services.error)}</p>}
       {services.data && services.data.length === 0 && (
-        <p className="text-dim">No instances yet. Create one below, or <code>devkit services:create postgresql</code>.</p>
+        <p className="text-dim">No instances yet. Create one below, or <code>nomeus services:create postgresql</code>.</p>
       )}
 
       {services.data && services.data.length > 0 && (

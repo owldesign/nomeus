@@ -12,7 +12,7 @@ use RuntimeException;
  */
 final class LaunchdManager
 {
-    public const PREFIX = 'dev.zhuk.devkit.svc.';
+    public const PREFIX = 'dev.nomeus.svc.';
 
     public function __construct(
         private readonly Shell $shell,

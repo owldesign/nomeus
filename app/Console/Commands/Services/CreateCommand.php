@@ -38,7 +38,7 @@ class CreateCommand extends Command
         }
 
         $this->info("{$i->name}: {$i->formula} {$i->version} on 127.0.0.1:{$i->port}".($this->option('no-start') ? ' (not started)' : ''));
-        $this->line('<fg=gray>.env for it: devkit services:env '.$i->name.'</>');
+        $this->line('<fg=gray>.env for it: nomeus services:env '.$i->name.'</>');
 
         return self::SUCCESS;
     }

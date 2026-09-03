@@ -6,7 +6,7 @@ use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * dev.yml — what a site needs from devkit. Herd's herd.yml equivalent.
+ * nomeus.yml — what a site needs from nomeus. Herd's herd.yml equivalent.
  *
  *   name: smoke                     # APP_NAME + mail tag; defaults to the directory name
  *   domain: smoke                   # site name (no tld); defaults to the directory name
@@ -18,7 +18,7 @@ use Symfony\Component\Yaml\Yaml;
  *     - { type: redis }
  *     - { type: seaweedfs, bucket: smoke }
  *   mail: true                      # mailpit instance + MAIL_* + the client package
- *   client: true                    # zhuk/devkit-client (implied by mail)
+ *   client: true                    # nomeus/client (implied by mail)
  *   env: { QUEUE_CONNECTION: redis }
  *   post-init:
  *     - composer install
@@ -26,7 +26,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 final readonly class Manifest
 {
-    public const FILE = 'dev.yml';
+    public const FILE = 'nomeus.yml';
 
     /** @param  list<array{type:string, version:?string, instance:?string, database:?string, bucket:?string}>  $services */
     public function __construct(
@@ -43,17 +43,31 @@ final readonly class Manifest
         public array $postInit,
     ) {}
 
+    /** nomeus.yml, or the older dev.yml — both accepted; nomeus.yml wins when both exist. */
+    public const FILES = ['nomeus.yml', 'dev.yml'];
+
+    public static function find(string $dir): ?string
+    {
+        foreach (self::FILES as $name) {
+            if (is_file(rtrim($dir, '/').'/'.$name)) {
+                return rtrim($dir, '/').'/'.$name;
+            }
+        }
+
+        return null;
+    }
+
     public static function exists(string $dir): bool
     {
-        return is_file(rtrim($dir, '/').'/'.self::FILE);
+        return self::find($dir) !== null;
     }
 
     public static function load(string $dir): self
     {
         $dir = rtrim($dir, '/');
-        $file = "{$dir}/".self::FILE;
-        if (! is_file($file)) {
-            throw new RuntimeException("No ".self::FILE." in {$dir}. Start from docs/dev.yml.example.");
+        $file = self::find($dir);
+        if ($file === null) {
+            throw new RuntimeException("No ".self::FILE." in {$dir}. Start from docs/nomeus.yml.example.");
         }
         try {
             $data = Yaml::parseFile($file) ?? [];

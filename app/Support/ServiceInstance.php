@@ -4,7 +4,7 @@ namespace App\Support;
 
 use RuntimeException;
 
-/** One managed service instance: ~/.devkit/services/<name>/ with service.json, data/, conf/, run/, logs/. */
+/** One managed service instance: ~/.nomeus/services/<name>/ with service.json, data/, conf/, run/, logs/. */
 final readonly class ServiceInstance
 {
     public function __construct(
@@ -65,7 +65,7 @@ final readonly class ServiceInstance
     public function runDir(): string { return "{$this->dir}/run"; }
     public function logDir(): string { return "{$this->dir}/logs"; }
     public function logFile(): string { return "{$this->dir}/logs/service.log"; }
-    public function label(): string { return 'dev.zhuk.devkit.svc.'.$this->name; }
+    public function label(): string { return 'dev.nomeus.svc.'.$this->name; }
 
     public function toArray(): array
     {

@@ -10,11 +10,11 @@ use RuntimeException;
 class InitCommand extends Command
 {
     protected $signature = 'init
-        {path? : site directory containing dev.yml; defaults to the current directory}
+        {path? : site directory containing nomeus.yml; defaults to the current directory}
         {--dry-run : show the plan and change nothing}
         {--skip-scripts : do everything except the post-init commands}';
 
-    protected $description = 'Set a site up from its dev.yml: link, tls, php, node, services, databases, mail, client package, .env, scripts';
+    protected $description = 'Set a site up from its nomeus.yml: link, tls, php, node, services, databases, mail, client package, .env, scripts';
 
     public function handle(InitRunner $init): int
     {
@@ -28,7 +28,7 @@ class InitCommand extends Command
         }
 
         if ($this->option('dry-run')) {
-            $this->line("<fg=gray>{$m->path}/dev.yml → {$m->domain}</>");
+            $this->line("<fg=gray>{$m->path}/nomeus.yml → {$m->domain}</>");
             $this->table(['step', 'action', ''], array_map(fn ($s) => [
                 $s->id,
                 $s->skip ? "<fg=gray>{$s->label}</>" : $s->label,

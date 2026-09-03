@@ -1,7 +1,7 @@
 <?php
 
 use App\Services\Services\DriverRegistry;
-use App\Services\Services\DevkitBound;
+use App\Services\Services\NomeusBound;
 use App\Services\Services\DumpsDriver;
 use App\Services\Services\MailpitDriver;
 use App\Services\Services\MariaDbDriver;
@@ -133,7 +133,7 @@ it('describes seaweedfs with the s3 port as the main port and three aux listener
     expect($d->versionArgs())->toBe(['version'])
         ->and($d->auxPorts())->toBe(['master' => 9333, 'volume' => 8080, 'filer' => 8888])
         ->and($d->programArguments($i, '/b'))->toContain('/b/weed', 'server', '-dir=/svc/x/data', '-master.port=9333', '-volume.port=8080', '-filer.port=8888', '-s3', '-s3.port=8333')
-        ->and($d->env($i))->toMatchArray(['FILESYSTEM_DISK' => 's3', 'AWS_ENDPOINT' => 'http://127.0.0.1:8333', 'AWS_USE_PATH_STYLE_ENDPOINT' => 'true', 'AWS_ACCESS_KEY_ID' => 'devkit']);
+        ->and($d->env($i))->toMatchArray(['FILESYSTEM_DISK' => 's3', 'AWS_ENDPOINT' => 'http://127.0.0.1:8333', 'AWS_USE_PATH_STYLE_ENDPOINT' => 'true', 'AWS_ACCESS_KEY_ID' => 'nomeus']);
 });
 
 it('describes reverb as site-bound: runs the site\'s php from the site dir', function () {
@@ -160,12 +160,12 @@ it('describes mailpit: smtp main port, http aux port, laravel mail env', functio
         ->and($d->env($i))->toMatchArray(['MAIL_MAILER' => 'smtp', 'MAIL_HOST' => '127.0.0.1', 'MAIL_PORT' => '1025', 'MAIL_USERNAME' => 'null', 'MAIL_ENCRYPTION' => 'null']);
 });
 
-it('describes the dump server as devkit\'s own artisan process', function () {
+it('describes the dump server as nomeus\'s own artisan process', function () {
     $d = new DumpsDriver;
-    $i = new ServiceInstance(name: 'dumps', type: 'dumps', formula: 'devkit/dumps', version: '0.5.0', port: 9912, dir: '/svc/d', createdAt: 'now', options: ['site_path' => '/Users/me/Code/devkit']);
+    $i = new ServiceInstance(name: 'dumps', type: 'dumps', formula: 'nomeus/dumps', version: '0.5.0', port: 9912, dir: '/svc/d', createdAt: 'now', options: ['site_path' => '/Users/me/Code/nomeus']);
 
-    expect($d)->toBeInstanceOf(DevkitBound::class)
+    expect($d)->toBeInstanceOf(NomeusBound::class)
         ->and($d->programArguments($i, '/b'))->toBe(['/b/php', base_path('artisan'), 'dumps:serve', '--port=9912', '--no-interaction'])
-        ->and($d->workingDirectory($i))->toBe('/Users/me/Code/devkit')
+        ->and($d->workingDirectory($i))->toBe('/Users/me/Code/nomeus')
         ->and($d->env($i))->toBe([]);
 });

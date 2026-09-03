@@ -15,7 +15,7 @@ final class FakeBrew
 
     public function __construct()
     {
-        $this->root = sys_get_temp_dir().'/devkit-brew-'.uniqid();
+        $this->root = sys_get_temp_dir().'/nomeus-brew-'.uniqid();
         foreach (['bin', 'opt', 'Cellar', 'etc/php', 'Library/Taps/shivammathur/homebrew-php/Formula'] as $d) {
             mkdir("{$this->root}/$d", 0755, true);
         }

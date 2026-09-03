@@ -39,7 +39,7 @@ it('adopts a brew postgres cluster: stop brew, copy data, standard port, agent, 
 });
 
 it('refuses formulae it cannot drive and missing data, and installs the run formula when brew no longer has it', function () {
-    expect(fn () => $this->m->adopt('nginx'))->toThrow(RuntimeException::class, 'No devkit driver for [nginx]')
+    expect(fn () => $this->m->adopt('nginx'))->toThrow(RuntimeException::class, 'No nomeus driver for [nginx]')
         ->and(fn () => $this->m->adopt('mysql'))->toThrow(RuntimeException::class, 'no data directory')   // data is what matters, not brew's keg
         ->and(fn () => $this->m->adopt('redis'))->toThrow(RuntimeException::class, 'no data directory');
 

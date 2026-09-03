@@ -1,7 +1,7 @@
 <?php
 
 /*
- * devkit is same-origin only. No path is exposed to cross-origin requests, so a page on
+ * nomeus is same-origin only. No path is exposed to cross-origin requests, so a page on
  * any other origin cannot read the API, and any request carrying a custom header is
  * preflighted and refused. Mutation endpoints (1b+) additionally require that header.
  */

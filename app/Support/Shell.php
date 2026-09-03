@@ -8,12 +8,12 @@ use Illuminate\Support\Facades\Process;
 /**
  * Subprocess wrapper. php-fpm runs with a stripped environment (no PATH, HOME, USER),
  * so every command gets an explicit env that can find brew, valet and composer.
- * The installer records composer_bin and brew_prefix in ~/.devkit/config.json;
+ * The installer records composer_bin and brew_prefix in ~/.nomeus/config.json;
  * filesystem discovery is only the fallback.
  */
 final class Shell
 {
-    public function __construct(private readonly DevkitConfig $config) {}
+    public function __construct(private readonly NomeusConfig $config) {}
 
     public function brewPrefix(): string
     {
@@ -36,7 +36,7 @@ final class Shell
         if (is_string($configured) && is_dir($configured)) {
             return $configured;
         }
-        $home = DevkitConfig::homeDir();
+        $home = NomeusConfig::homeDir();
         foreach (["$home/.composer/vendor/bin", "$home/.config/composer/vendor/bin"] as $dir) {
             if (is_dir($dir)) {
                 return $dir;
@@ -54,7 +54,7 @@ final class Shell
      */
     public function valetBin(): string
     {
-        $configured = config('devkit.valet_bin');
+        $configured = config('nomeus.valet_bin');
         if (is_string($configured) && $configured !== '' && is_executable($configured)) {
             return $configured;
         }
@@ -97,7 +97,7 @@ final class Shell
         $user = self::currentUser();
 
         return [
-            'HOME' => DevkitConfig::homeDir(),
+            'HOME' => NomeusConfig::homeDir(),
             'USER' => $user,
             'LOGNAME' => $user,
             // brew bin before composer bin: `valet` on PATH must resolve to the sudoers-trusted symlink.
@@ -128,7 +128,7 @@ final class Shell
         return $process->run($command, $output);
     }
 
-    /** Absolute path of a binary on devkit's PATH, or null. */
+    /** Absolute path of a binary on nomeus's PATH, or null. */
     public function which(string $bin): ?string
     {
         $result = $this->run(['which', $bin], timeout: 10);

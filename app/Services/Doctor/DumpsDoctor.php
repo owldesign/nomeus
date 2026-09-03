@@ -29,12 +29,12 @@ final class DumpsDoctor implements Section
             }
         }
         if ($instance === null) {
-            $r->warn('server', 'no dump server instance — devkit services:create dumps');
+            $r->warn('server', 'no dump server instance — nomeus services:create dumps');
         } else {
             $st = $this->services->status($instance);
-            $r->expect($st['running'], 'server', "{$instance->name} on {$instance->port}", "{$instance->name} stopped — devkit services:start {$instance->name}", 'warn');
+            $r->expect($st['running'], 'server', "{$instance->name} on {$instance->port}", "{$instance->name} stopped — nomeus services:start {$instance->name}", 'warn');
         }
-        $r->expect($this->prepend->prependCurrent(), 'prepend', $this->prepend->prependPath(), 'prepend file missing/outdated — devkit dumps:install', 'warn');
+        $r->expect($this->prepend->prependCurrent(), 'prepend', $this->prepend->prependPath(), 'prepend file missing/outdated — nomeus dumps:install', 'warn');
         $r->ok('capture', $this->flag->isOn() ? 'on — dump()/dd() go to the Debug page' : 'off — dumps print as usual');
 
         return $r->all();

@@ -1,0 +1,30 @@
+# nomeus.yml — what this site needs from nomeus. Copy to the site root, then: nomeus init
+# Every key is optional. Re-running init is safe: satisfied steps are skipped.
+
+name: smoke                 # APP_NAME, and the Mail page's tag for this app
+domain: smoke               # smoke.test — defaults to the directory name
+php: "8.4"                  # nomeus isolate php@8.4 (must be installed: nomeus php:list)
+node: "22"                  # written to .nvmrc; run `nvm install` yourself
+secure: true                # https via valet secure
+
+services:
+  - type: postgresql        # existing instance of the type is reused (or name one with instance:)
+    version: "17"           # only matters when nomeus has to create it
+    instance: pg17
+    database: smoke         # created if missing; becomes DB_DATABASE
+  - type: redis
+  # - { type: mysql, database: smoke }
+  # - { type: meilisearch }
+  # - { type: seaweedfs, bucket: smoke }          # becomes AWS_BUCKET
+
+mail: true                  # mailpit instance + MAIL_* + MAIL_FROM_ADDRESS + nomeus/client
+# client: false             # skip the client package even with mail
+
+env:                        # anything else, written verbatim; wins over computed keys
+  QUEUE_CONNECTION: redis
+  CACHE_STORE: redis
+
+post-init:                  # run in the site, with its php first on PATH, after .env is written
+  - composer install
+  - php artisan key:generate --force
+  - php artisan migrate

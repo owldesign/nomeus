@@ -3,27 +3,27 @@
 namespace App\Services\Doctor;
 
 use App\Services\ValetBridge;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 
-/** devkit itself: config, dirs, the dashboard site, the shim, the build, its git state. */
+/** nomeus itself: config, dirs, the dashboard site, the shim, the build, its git state. */
 final class SelfDoctor implements Section
 {
     public function __construct(
-        private readonly DevkitConfig $config,
+        private readonly NomeusConfig $config,
         private readonly ValetBridge $valet,
         private readonly Shell $shell,
     ) {}
 
     public function name(): string
     {
-        return 'devkit';
+        return 'nomeus';
     }
 
     public function checks(): array
     {
         $r = new Rows;
-        $r->ok('version', (string) config('devkit.version').' at '.base_path());
+        $r->ok('version', (string) config('nomeus.version').' at '.base_path());
 
         $cfg = $this->config->path();
         if (! $this->config->exists()) {
@@ -36,16 +36,16 @@ final class SelfDoctor implements Section
             $r->expect(is_dir($dir) ? is_writable($dir) : is_writable($this->config->dir()), "dir {$sub}", $dir, "{$dir} not writable");
         }
 
-        $site = (string) config('devkit.site', 'devkit');
+        $site = (string) config('nomeus.site', 'nomeus');
         $tld = $this->valet->isInstalled() ? $this->valet->tld() : 'test';
         $r->expect($this->valet->isInstalled() && $this->valet->isLinked($site), 'dashboard', "https://{$site}.{$tld}", "{$site}.{$tld} is not linked — cd ".base_path()." && valet link {$site}");
-        $r->expect($this->valet->isInstalled() && in_array($site, $this->valet->secured(), true), 'dashboard tls', 'secured', "not secured — the clipboard and other browser APIs need https: devkit secure {$site}", 'warn');
+        $r->expect($this->valet->isInstalled() && in_array($site, $this->valet->secured(), true), 'dashboard tls', 'secured', "not secured — the clipboard and other browser APIs need https: nomeus secure {$site}", 'warn');
 
-        $shim = $this->shell->which('devkit');
-        $r->expect($shim !== null, 'bin/devkit', $shim ?? '', 'not on PATH — add '.base_path('bin').' to PATH (install.sh does)', 'warn');
+        $shim = $this->shell->which('nomeus');
+        $r->expect($shim !== null, 'bin/nomeus', $shim ?? '', 'not on PATH — add '.base_path('bin').' to PATH (install.sh does)', 'warn');
         $r->expect(is_file(base_path('public/build/manifest.json')), 'build', 'public/build present', 'no build — npm run build');
         $r->expect(is_file(base_path('vendor/autoload.php')), 'vendor', 'composer deps present', 'composer install');
-        $r->expect(class_exists(\Symfony\Component\Yaml\Yaml::class), 'symfony/yaml', 'present (dev.yml)', 'composer require symfony/yaml', 'warn');
+        $r->expect(class_exists(\Symfony\Component\Yaml\Yaml::class), 'symfony/yaml', 'present (nomeus.yml)', 'composer require symfony/yaml', 'warn');
 
         if (is_dir(base_path('.git'))) {
             $dirty = trim($this->shell->run(['git', 'status', '--porcelain'], base_path(), 20)->output());

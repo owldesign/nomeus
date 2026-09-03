@@ -3,7 +3,7 @@
 use App\Support\TaskSpawner;
 
 it('returns immediately instead of waiting for the background command', function () {
-    $marker = sys_get_temp_dir().'/devkit-spawn-'.uniqid();
+    $marker = sys_get_temp_dir().'/nomeus-spawn-'.uniqid();
 
     $start = microtime(true);
     (new TaskSpawner)->spawn("sleep 2 && cd /tmp && touch ".escapeshellarg($marker));

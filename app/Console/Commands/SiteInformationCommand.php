@@ -18,7 +18,7 @@ class SiteInformationCommand extends Command
         if ($site === null) {
             $this->error($this->argument('name')
                 ? "Site [{$this->argument('name')}] is not parked, linked or proxied."
-                : 'Current directory is not inside a Valet site. Pass a name: devkit site-information <name>');
+                : 'Current directory is not inside a Valet site. Pass a name: nomeus site-information <name>');
 
             return self::FAILURE;
         }

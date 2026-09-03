@@ -27,7 +27,7 @@ class TasksCommand extends Command
             $t->label,
             $t->finishedAt ?? '',
         ], $all));
-        $this->line('Log of one task: devkit task:log <id>');
+        $this->line('Log of one task: nomeus task:log <id>');
 
         return self::SUCCESS;
     }

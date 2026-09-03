@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /**
- * Homebrew as devkit needs it: which php@X.Y kegs exist, which one is linked, what the
+ * Homebrew as nomeus needs it: which php@X.Y kegs exist, which one is linked, what the
  * shivammathur tap offers, what's outdated. Reads are filesystem-only (safe and instant
  * from php-fpm); `brew outdated` is the one subprocess and is cached.
  */
@@ -104,7 +104,7 @@ final class BrewBridge
      */
     public function outdatedPhp(bool $fresh = false): array
     {
-        $key = 'devkit.brew.outdated-php';
+        $key = 'nomeus.brew.outdated-php';
         if ($fresh) {
             Cache::forget($key);
         }

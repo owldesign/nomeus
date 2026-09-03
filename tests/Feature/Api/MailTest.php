@@ -10,17 +10,17 @@ use Tests\Support\FakeBrew;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-mailapi-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
+    $this->root = sys_get_temp_dir().'/nomeus-mailapi-'.uniqid();
+    mkdir("{$this->root}/nomeus", 0755, true);
     mkdir("{$this->root}/agents", 0755, true);
     $this->brewFs = (new FakeBrew)->formula('mailpit', '1.31.0', ['mailpit']);
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'mail' => ['smtp_port' => 1025, 'ui_port' => 8025]]));
-    config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
-    config()->set('devkit.launch_agents_dir', "{$this->root}/agents");
-    config()->set('devkit.uid', 501);
+    file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'mail' => ['smtp_port' => 1025, 'ui_port' => 8025]]));
+    config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
+    config()->set('nomeus.launch_agents_dir', "{$this->root}/agents");
+    config()->set('nomeus.uid', 501);
     $this->valetFs = new FakeValet;
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
 
     // Down until "started": create() probes the ports first and would step past 1025/8025 if they answered.
     // The bootstrap fake flips it; tests that create with start:false flip it themselves.
@@ -93,8 +93,8 @@ it('deletes with the header guard, and answers 503 when mailpit is down', functi
     ]);
 
     $this->deleteJson('/api/mail/messages?tag=smoke')->assertForbidden();
-    $this->deleteJson('/api/mail/messages?tag=smoke', [], ['X-Devkit' => '1'])->assertOk()->assertJsonPath('deleted', 1);
-    $this->deleteJson('/api/mail/messages', [], ['X-Devkit' => '1'])->assertOk()->assertJsonPath('deleted', 3);
+    $this->deleteJson('/api/mail/messages?tag=smoke', [], ['X-Nomeus' => '1'])->assertOk()->assertJsonPath('deleted', 1);
+    $this->deleteJson('/api/mail/messages', [], ['X-Nomeus' => '1'])->assertOk()->assertJsonPath('deleted', 3);
 
     Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('refused'));
     $this->getJson('/api/mail/tags')->assertStatus(503)->assertJsonPath('message', fn ($m) => str_contains($m, 'not answering'));

@@ -36,7 +36,7 @@ function Row({ v, minPhp }: { v: PhpVersion; minPhp: string }) {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {!v.linked && (
           tooOld
-            ? <span className="text-mute" title={`devkit's dependencies need ${minPhp}+ on the global fpm; isolate sites to ${v.version} instead`}>use</span>
+            ? <span className="text-mute" title={`nomeus's dependencies need ${minPhp}+ on the global fpm; isolate sites to ${v.version} instead`}>use</span>
             : <button type="button" className="hover:text-gold" onClick={() => setConfirmUse(true)}>use</button>
         )}
         {v.outdated && (
@@ -109,7 +109,7 @@ export default function Php() {
       <div className="mb-4 flex items-baseline justify-between">
         <h1 className="text-[15px] font-semibold">PHP</h1>
         <div className="flex items-center gap-4 text-dim">
-          {php.data && <span>global {php.data.global ?? '?'} <span className="text-mute">· devkit needs {php.data.min_php}+</span></span>}
+          {php.data && <span>global {php.data.global ?? '?'} <span className="text-mute">· nomeus needs {php.data.min_php}+</span></span>}
           <button
             type="button"
             className="border border-line px-2 py-0.5 hover:border-gold hover:text-gold disabled:text-mute"

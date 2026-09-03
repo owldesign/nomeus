@@ -21,7 +21,7 @@ final class Editor
 
     public function __construct(
         private readonly Shell $shell,
-        private readonly DevkitConfig $config,
+        private readonly NomeusConfig $config,
     ) {}
 
     public function ide(): string

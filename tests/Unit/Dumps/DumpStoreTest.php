@@ -1,11 +1,11 @@
 <?php
 
 use App\Services\Dumps\DumpStore;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 
 beforeEach(function () {
-    $this->file = sys_get_temp_dir().'/devkit-store-'.uniqid().'.sqlite';
-    $this->store = new DumpStore(new DevkitConfig('/nonexistent/config.json'), $this->file);
+    $this->file = sys_get_temp_dir().'/nomeus-store-'.uniqid().'.sqlite';
+    $this->store = new DumpStore(new NomeusConfig('/nonexistent/config.json'), $this->file);
     $this->row = fn (string $kind, string $req, string $text = 'x') => ['kind' => $kind, 'request_key' => $req, 'uri' => '/u', 'method' => 'GET', 'command' => null, 'file' => '/f.php', 'line' => 1, 'text' => $text, 'html' => null, 'payload' => null];
 });
 

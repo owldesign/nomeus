@@ -5,7 +5,7 @@ namespace App\Services\Services;
 use App\Support\ServiceInstance;
 
 /**
- * What devkit needs to know about one kind of service. Drivers only describe: which brew
+ * What nomeus needs to know about one kind of service. Drivers only describe: which brew
  * formulae provide it, how to initialize a data dir, the exact argv launchd should run, and
  * the .env lines a Laravel app needs to reach it. ServiceManager does the running.
  */

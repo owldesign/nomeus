@@ -2,12 +2,12 @@
 
 namespace App\Services\Dumps;
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 
-/** ~/.devkit/dumps/capture — present means "route dumps to the server". Toggling restarts nothing. */
+/** ~/.nomeus/dumps/capture — present means "route dumps to the server". Toggling restarts nothing. */
 final class CaptureFlag
 {
-    public function __construct(private readonly DevkitConfig $config) {}
+    public function __construct(private readonly NomeusConfig $config) {}
 
     public function path(): string
     {

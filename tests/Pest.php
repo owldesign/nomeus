@@ -8,4 +8,14 @@ pest()->extend(Tests\TestCase::class)
         // (Tests that never call Process::fake() are unaffected: preventStray only applies while faking.)
         Process::preventStrayProcesses();
     })
+    ->afterEach(function () {
+        // No test may have resolved a BrewBridge on the real prefix: that is how a migration test once
+        // rewrote the machine's php ini files. A test needing brew must give NomeusConfig a fake prefix.
+        if (app()->resolved(\App\Services\BrewBridge::class)) {
+            $prefix = app(\App\Services\BrewBridge::class)->prefix();
+            if (! str_contains($prefix, sys_get_temp_dir()) && ! str_contains($prefix, '/nomeus-') && ! str_contains($prefix, '/devkit-')) {
+                throw new RuntimeException("Test resolved BrewBridge on the real prefix {$prefix} — point nomeus.config_path at a config with a fake brew_prefix.");
+            }
+        }
+    })
     ->in('Feature', 'Unit');

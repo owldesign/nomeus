@@ -8,14 +8,14 @@ use Tests\Support\FakeBrew;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-xdebugapi-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
+    $this->root = sys_get_temp_dir().'/nomeus-xdebugapi-'.uniqid();
+    mkdir("{$this->root}/nomeus", 0755, true);
     $this->brewFs = (new FakeBrew)->installed('8.4', '8.4.25')->linked('8.4');
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
-    config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
+    file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
+    config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
     $this->valetFs = new FakeValet;
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
     $this->fpmUp = true;
     $this->mock(Probe::class, function ($m) {
         $m->shouldReceive('tcp')->andReturn(false);
@@ -42,7 +42,7 @@ afterEach(function () {
 });
 
 it('reports per-version status and enqueues install / mode changes as tasks', function () {
-    $h = ['X-Devkit' => '1'];
+    $h = ['X-Nomeus' => '1'];
     $status = $this->getJson('/api/xdebug')->assertOk()->assertJsonPath('data.linked', '8.4')->assertJsonPath('data.port', 9003)->assertJsonPath('data.ide_listening', false)->json('data');
     expect($status['versions']['8.4'])->toMatchArray(['installed' => true, 'mode' => 'off', 'tap_ini' => true]);   // found via the tap ini, not adopted yet
 
@@ -61,7 +61,7 @@ it('reports per-version status and enqueues install / mode changes as tasks', fu
 
 it('drives it from the cli: install adopts the tap ini, mode switches and restarts fpm', function () {
     $this->artisan('xdebug:install')->expectsOutputToContain('xdebug installed, mode off')->assertSuccessful();   // linked php; already present → adopt only
-    expect(is_file($this->tapIni))->toBeFalse()->and(is_file($this->tapIni.'.devkit-off'))->toBeTrue();
+    expect(is_file($this->tapIni))->toBeFalse()->and(is_file($this->tapIni.'.nomeus-off'))->toBeTrue();
     Process::assertNotRan(fn ($p) => ($p->command[1] ?? '') === 'install');
 
     touch("{$this->valetFs->configDir}/valet.sock");
@@ -72,7 +72,7 @@ it('drives it from the cli: install adopts the tap ini, mode switches and restar
         ->expectsOutputToContain('nothing is listening')
         ->assertSuccessful();
     Process::assertRan(fn ($p) => $p->command === [$this->valetFs->valetBin(), 'restart', 'php']);
-    expect(file_get_contents($this->brewFs->root.'/etc/php/8.4/conf.d/99-devkit.ini'))->toContain('xdebug.start_with_request=yes');
+    expect(file_get_contents($this->brewFs->root.'/etc/php/8.4/conf.d/99-nomeus.ini'))->toContain('xdebug.start_with_request=yes');
 
     $this->artisan('xdebug:mode on --no-restart')->expectsOutputToContain('(unchanged)')->assertSuccessful();
     $this->artisan('xdebug:mode trigger --all --no-restart')->expectsOutputToContain('still runs the previous mode')->assertSuccessful();

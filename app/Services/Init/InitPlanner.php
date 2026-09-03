@@ -55,7 +55,7 @@ final class InitPlanner
         if ($m->php !== null) {
             if (! in_array($m->php, $this->brew->installedPhp(), true)) {
                 $steps[] = Step::run('php', "php {$m->php}", function () use ($m) {
-                    throw new RuntimeException("php@{$m->php} is not installed: devkit php:install {$m->php}");
+                    throw new RuntimeException("php@{$m->php} is not installed: nomeus php:install {$m->php}");
                 }, "requires php@{$m->php} (not installed)");
             } elseif ($site?->php === $m->php) {
                 $steps[] = Step::skip('php', "php {$m->php}", 'already isolated');
@@ -109,7 +109,7 @@ final class InitPlanner
         if ($m->mail) {
             $mailpit = $this->resolveInstance('mailpit', null);
             $driver = $this->drivers->get('mailpit');
-            $from = ['MAIL_FROM_ADDRESS' => "hello@{$m->domain}.{$tld}", 'DEVKIT_MAIL_TAG' => \Illuminate\Support\Str::slug($m->name)];
+            $from = ['MAIL_FROM_ADDRESS' => "hello@{$m->domain}.{$tld}", 'NOMEUS_MAIL_TAG' => \Illuminate\Support\Str::slug($m->name)];
             if ($mailpit === null) {
                 $steps[] = Step::run('mail', 'create mailpit', function ($log) use (&$env, $driver, $from) {
                     $i = $this->services->create('mailpit', null, null, null, true, $log);
@@ -125,14 +125,18 @@ final class InitPlanner
 
         // ── client package ────────────────────────────────────────────────────
         if ($m->client) {
-            $pkg = base_path('packages/devkit-client');
-            $vendor = "{$m->path}/vendor/zhuk/devkit-client";
+            $pkg = base_path('packages/client');
+            $vendor = "{$m->path}/vendor/nomeus/client";
+            $old = "{$m->path}/vendor/zhuk/devkit-client";   // the package's pre-rename name
             $steps[] = is_dir($vendor) || is_link($vendor)
-                ? Step::skip('client', 'zhuk/devkit-client', 'already required')
-                : Step::run('client', 'require zhuk/devkit-client', function ($log) use ($m, $pkg) {
-                    $this->sh($m, ['composer', 'config', 'repositories.devkit', 'path', $pkg], $log, 60);
-                    $this->sh($m, ['composer', 'require', '--dev', 'zhuk/devkit-client:@dev', '--no-interaction'], $log, 600);
-                }, "composer config repositories.devkit path {$pkg} && composer require --dev zhuk/devkit-client:@dev");
+                ? Step::skip('client', 'nomeus/client', 'already required')
+                : Step::run('client', (is_dir($old) || is_link($old) ? 'replace zhuk/devkit-client with ' : 'require ').'nomeus/client', function ($log) use ($m, $pkg, $old) {
+                    if (is_dir($old) || is_link($old)) {
+                        $this->sh($m, ['composer', 'remove', '--dev', 'zhuk/devkit-client', '--no-interaction'], $log, 300);
+                    }
+                    $this->sh($m, ['composer', 'config', 'repositories.nomeus', 'path', $pkg], $log, 60);
+                    $this->sh($m, ['composer', 'require', '--dev', 'nomeus/client:@dev', '--no-interaction'], $log, 600);
+                }, "composer config repositories.nomeus path {$pkg} && composer require --dev nomeus/client:@dev");
         }
 
         // ── .env ──────────────────────────────────────────────────────────────

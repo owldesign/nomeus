@@ -1,13 +1,13 @@
 <?php
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Editor;
 use App\Support\Shell;
 use Illuminate\Support\Facades\Process;
 
 beforeEach(function () {
-    $this->cfg = sys_get_temp_dir().'/devkit-editor-'.uniqid().'.json';
-    $this->editor = fn (string $ide) => new Editor(new Shell($c = new DevkitConfig($this->cfg)), tap($c, fn ($c) => $c->set('ide', $ide)));
+    $this->cfg = sys_get_temp_dir().'/nomeus-editor-'.uniqid().'.json';
+    $this->editor = fn (string $ide) => new Editor(new Shell($c = new NomeusConfig($this->cfg)), tap($c, fn ($c) => $c->set('ide', $ide)));
 });
 
 afterEach(fn () => @unlink($this->cfg));

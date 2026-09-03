@@ -1,6 +1,6 @@
 /**
  * Copy text to the clipboard. navigator.clipboard only exists in secure contexts (https or
- * localhost) — devkit.test over plain http is neither — so fall back to a hidden textarea and
+ * localhost) — nomeus.test over plain http is neither — so fall back to a hidden textarea and
  * execCommand('copy'), which still works there. Returns whether anything was copied.
  */
 export async function copyText(text: string): Promise<boolean> {

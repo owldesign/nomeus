@@ -61,8 +61,8 @@ final class SeaweedFsDriver extends AbstractDriver
     {
         return [
             'FILESYSTEM_DISK' => 's3',
-            'AWS_ACCESS_KEY_ID' => 'devkit',
-            'AWS_SECRET_ACCESS_KEY' => 'devkit',
+            'AWS_ACCESS_KEY_ID' => 'nomeus',
+            'AWS_SECRET_ACCESS_KEY' => 'nomeus',
             'AWS_DEFAULT_REGION' => 'us-east-1',
             'AWS_BUCKET' => '',
             'AWS_ENDPOINT' => "http://127.0.0.1:{$i->port}",

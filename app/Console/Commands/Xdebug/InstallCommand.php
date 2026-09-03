@@ -17,7 +17,7 @@ class InstallCommand extends Command
     {
         $version = $this->argument('version') ?: $brew->linkedPhp();
         if (! $version) {
-            $this->error('Which PHP? devkit xdebug:install 8.4');
+            $this->error('Which PHP? nomeus xdebug:install 8.4');
 
             return self::FAILURE;
         }
@@ -28,7 +28,7 @@ class InstallCommand extends Command
 
             return self::FAILURE;
         }
-        $this->info("php {$version}: xdebug installed, mode {$r['mode']}. Next: devkit xdebug:mode on --php={$version}   (or trigger)");
+        $this->info("php {$version}: xdebug installed, mode {$r['mode']}. Next: nomeus xdebug:mode on --php={$version}   (or trigger)");
 
         return self::SUCCESS;
     }

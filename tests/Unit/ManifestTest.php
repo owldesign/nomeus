@@ -36,16 +36,23 @@ it('rejects shapes that would fail later', function () {
         ->and(fn () => Manifest::fromArray(['env' => ['lower' => 'x']], '/s'))->toThrow(RuntimeException::class, 'UPPER_SNAKE');
 });
 
-it('loads dev.yml from a directory and explains a missing one', function () {
-    $dir = sys_get_temp_dir().'/devkit-manifest-'.uniqid();
+it('loads nomeus.yml from a directory and explains a missing one', function () {
+    $dir = sys_get_temp_dir().'/nomeus-manifest-'.uniqid();
     mkdir($dir);
-    file_put_contents("$dir/dev.yml", "domain: smoke\nservices:\n  - type: redis\nmail: true\n");
+    file_put_contents("$dir/nomeus.yml", "domain: smoke\nservices:\n  - type: redis\nmail: true\n");
 
     expect(Manifest::exists($dir))->toBeTrue()
         ->and(Manifest::load($dir)->services[0]['type'])->toBe('redis')
-        ->and(fn () => Manifest::load("$dir/nope"))->toThrow(RuntimeException::class, 'No dev.yml');
+        ->and(fn () => Manifest::load("$dir/nope"))->toThrow(RuntimeException::class, 'No nomeus.yml');
 
-    file_put_contents("$dir/dev.yml", "domain: [unterminated\n");
-    expect(fn () => Manifest::load($dir))->toThrow(RuntimeException::class, 'dev.yml:');
-    unlink("$dir/dev.yml"); rmdir($dir);
+    // the pre-rename name still works, and loses to nomeus.yml when both exist
+    rename("$dir/nomeus.yml", "$dir/dev.yml");
+    expect(Manifest::exists($dir))->toBeTrue()->and(Manifest::find($dir))->toEndWith('/dev.yml');
+    file_put_contents("$dir/nomeus.yml", "domain: newer\n");
+    expect(Manifest::load($dir)->domain)->toBe('newer');
+    unlink("$dir/dev.yml");
+
+    file_put_contents("$dir/nomeus.yml", "domain: [unterminated\n");
+    expect(fn () => Manifest::load($dir))->toThrow(RuntimeException::class, 'nomeus.yml:');
+    unlink("$dir/nomeus.yml"); rmdir($dir);
 });

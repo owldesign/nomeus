@@ -6,7 +6,7 @@ use App\Services\Dumps\PrependInstaller;
 use App\Services\Php\IniManager;
 use App\Services\Php\XdebugManager;
 use App\Services\Php\XdebugState;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\Shell;
 use Illuminate\Support\Facades\File;
@@ -14,11 +14,11 @@ use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeBrew;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-xdebug-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
+    $this->root = sys_get_temp_dir().'/nomeus-xdebug-'.uniqid();
+    mkdir("{$this->root}/nomeus", 0755, true);
     $this->brewFs = (new FakeBrew)->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4');
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'xdebug' => ['port' => 9003]]));
-    $config = new DevkitConfig("{$this->root}/devkit/config.json");
+    file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'xdebug' => ['port' => 9003]]));
+    $config = new NomeusConfig("{$this->root}/nomeus/config.json");
     $shell = new Shell($config);
     $brew = new BrewBridge($shell);
     $this->state = new XdebugState($config);
@@ -27,7 +27,7 @@ beforeEach(function () {
     $probe->shouldReceive('tcp')->andReturnUsing(fn ($h, $p) => $p === 9003 && $this->listening);
     $this->prepend = new PrependInstaller($config, $brew, new CaptureFlag($config), $shell, $this->state);
     $this->xdebug = new XdebugManager($config, $brew, $shell, $probe, $this->state, $this->prepend);
-    $this->ini = fn (string $v) => file_get_contents($this->brewFs->root."/etc/php/{$v}/conf.d/99-devkit.ini");
+    $this->ini = fn (string $v) => file_get_contents($this->brewFs->root."/etc/php/{$v}/conf.d/99-nomeus.ini");
 
     // what the tap leaves behind after `brew install shivammathur/extensions/xdebug@8.4`
     $this->so = $this->brewFs->root.'/opt/xdebug@8.4/xdebug.so';
@@ -65,7 +65,7 @@ it('installs from the tap, reads the .so path, quarantines the tap ini and write
     Process::assertRan(fn ($p) => $p->command === [$bin, 'install', 'shivammathur/extensions/xdebug@8.4']);
     expect($r)->toBe(['so' => $this->so, 'mode' => 'off'])
         ->and(is_file($this->tapIni))->toBeFalse()
-        ->and(is_file($this->tapIni.'.devkit-off'))->toBeTrue()
+        ->and(is_file($this->tapIni.'.nomeus-off'))->toBeTrue()
         ->and($this->state->get('8.4'))->toBe(['so' => $this->so, 'mode' => 'off'])
         ->and(($this->ini)('8.4'))->toContain('; mode: off')
         ->and(($this->ini)('8.4'))->not->toContain('zend_extension')

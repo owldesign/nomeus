@@ -10,17 +10,17 @@ use Tests\Support\FakeBrew;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-dumpsapi-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
+    $this->root = sys_get_temp_dir().'/nomeus-dumpsapi-'.uniqid();
+    mkdir("{$this->root}/nomeus", 0755, true);
     mkdir("{$this->root}/agents", 0755, true);
     $this->brewFs = (new FakeBrew)->installed('8.4', '8.4.25')->linked('8.4');
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'ide' => 'phpstorm']));
-    config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
-    config()->set('devkit.launch_agents_dir', "{$this->root}/agents");
-    config()->set('devkit.uid', 501);
+    file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'ide' => 'phpstorm']));
+    config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
+    config()->set('nomeus.launch_agents_dir', "{$this->root}/agents");
+    config()->set('nomeus.uid', 501);
     $this->valetFs = new FakeValet;
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
     $this->up = false;
     $this->mock(Probe::class, function ($m) {
         $m->shouldReceive('tcp')->andReturnUsing(fn (string $h, int $p) => $p === 9912 && $this->up);
@@ -45,7 +45,7 @@ afterEach(function () {
 });
 
 it('reports status, toggles capture, serves the header, pages entries with ide links, and clears', function () {
-    $h = ['X-Devkit' => '1'];
+    $h = ['X-Nomeus' => '1'];
     $status = $this->getJson('/api/dumps/status')->assertOk()
         ->assertJsonPath('data.capture', false)->assertJsonPath('data.instance', null)->assertJsonPath('data.prepend', false)
         ->json('data');
@@ -80,13 +80,13 @@ it('reports status, toggles capture, serves the header, pages entries with ide l
     $this->deleteJson('/api/dumps', [], $h)->assertOk()->assertJsonPath('cleared', 2);
 });
 
-it('creates the dump server as a devkit-bound service instance', function () {
+it('creates the dump server as a nomeus-bound service instance', function () {
     $this->artisan('services:create dumps')->expectsOutputToContain('starting dumps on 127.0.0.1:9912')->assertSuccessful();
     $i = app(\App\Services\ServiceManager::class)->find('dumps');
-    expect($i->formula)->toBe('devkit/dumps')
+    expect($i->formula)->toBe('nomeus/dumps')
         ->and($i->options['site_path'])->toBe(base_path())
         ->and($i->options['php_bin_dir'])->toBe($this->brewFs->root.'/bin');
-    $plist = file_get_contents("{$this->root}/agents/dev.zhuk.devkit.svc.dumps.plist");
+    $plist = file_get_contents("{$this->root}/agents/dev.nomeus.svc.dumps.plist");
     expect($plist)->toContain('<string>dumps:serve</string>')->and($plist)->toContain('<string>--port=9912</string>')
         ->and($plist)->toContain('<key>WorkingDirectory</key>'."\n    <string>".base_path().'</string>');
     $this->getJson('/api/dumps/status')->assertOk()->assertJsonPath('data.instance', 'dumps')->assertJsonPath('data.running', true);
@@ -95,7 +95,7 @@ it('creates the dump server as a devkit-bound service instance', function () {
 
 it('drives capture and clear from the cli', function () {
     $this->artisan('dumps:capture on')->expectsOutputToContain('capture on')->assertSuccessful();
-    expect(is_file("{$this->root}/devkit/dumps/capture"))->toBeTrue();
+    expect(is_file("{$this->root}/nomeus/dumps/capture"))->toBeTrue();
     $this->artisan('dumps:capture off')->expectsOutputToContain('capture off')->assertSuccessful();
     $this->artisan('dumps:capture maybe')->assertFailed();
     app(DumpStore::class)->insert(['kind' => 'dump', 'request_key' => null, 'uri' => null, 'method' => null, 'command' => 'artisan tinker', 'file' => null, 'line' => null, 'text' => '"hello"', 'html' => '', 'payload' => null]);

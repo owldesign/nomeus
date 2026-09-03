@@ -24,7 +24,7 @@ class ListCommand extends Command
             return self::SUCCESS;
         }
         if ($rows === []) {
-            $this->line('No services. See devkit services:available');
+            $this->line('No services. See nomeus services:available');
 
             return self::SUCCESS;
         }

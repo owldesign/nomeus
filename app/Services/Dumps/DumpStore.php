@@ -2,17 +2,17 @@
 
 namespace App\Services\Dumps;
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use PDO;
 
-/** SQLite under ~/.devkit/dumps — written by the server, read by the API and CLI. */
+/** SQLite under ~/.nomeus/dumps — written by the server, read by the API and CLI. */
 final class DumpStore
 {
     public const KEEP = 5000;
 
     private ?PDO $pdo = null;
 
-    public function __construct(private readonly DevkitConfig $config, private readonly ?string $file = null) {}
+    public function __construct(private readonly NomeusConfig $config, private readonly ?string $file = null) {}
 
     public function path(): string
     {

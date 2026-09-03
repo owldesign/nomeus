@@ -16,7 +16,7 @@ final class FakeValet
 
     public function __construct(private readonly string $tld = 'test', string $version = '4.12.0')
     {
-        $this->root = sys_get_temp_dir().'/devkit-valet-'.uniqid();
+        $this->root = sys_get_temp_dir().'/nomeus-valet-'.uniqid();
         $this->configDir = "{$this->root}/valet";
         $this->sitesRoot = "{$this->root}/code";
 

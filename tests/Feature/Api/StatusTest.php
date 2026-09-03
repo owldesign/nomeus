@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeBrew;
 
 beforeEach(function () {
-    $this->dir = sys_get_temp_dir().'/devkit-status-'.uniqid();
+    $this->dir = sys_get_temp_dir().'/nomeus-status-'.uniqid();
     mkdir("{$this->dir}/valet/Sites", 0755, true);
 
     file_put_contents("{$this->dir}/valet/config.json", json_encode([
@@ -14,7 +14,7 @@ beforeEach(function () {
         'loopback' => '127.0.0.1',
         'paths' => ["{$this->dir}/valet/Sites", '/Users/me/Sites'],
     ]));
-    symlink($this->dir, "{$this->dir}/valet/Sites/devkit");
+    symlink($this->dir, "{$this->dir}/valet/Sites/nomeus");
     $this->brewFs = (new FakeBrew)->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4');
     file_put_contents("{$this->dir}/config.json", json_encode(['code_dir' => '~/Sites', 'brew_prefix' => $this->brewFs->root]));
 
@@ -26,9 +26,9 @@ beforeEach(function () {
     mkdir("{$this->dir}/bin", 0755, true);
     symlink("{$this->dir}/pkg/valet", "{$this->dir}/bin/valet");
 
-    config()->set('devkit.config_path', "{$this->dir}/config.json");
-    config()->set('devkit.valet_config_dir', "{$this->dir}/valet");
-    config()->set('devkit.valet_bin', "{$this->dir}/bin/valet");
+    config()->set('nomeus.config_path', "{$this->dir}/config.json");
+    config()->set('nomeus.valet_config_dir', "{$this->dir}/valet");
+    config()->set('nomeus.valet_bin', "{$this->dir}/bin/valet");
 
     // Never touch real sockets from the suite; nginx/mailpit liveness is asserted via pgrep fakes below.
     $this->mock(Probe::class, function ($m) {
@@ -71,10 +71,10 @@ it('returns the status snapshot', function () {
         ->assertJsonPath('services.dnsmasq', true)
         ->assertJsonPath('services.php_fpm', ['8.3', '8.4'])
         ->assertJsonPath('services.mailpit', false)
-        ->assertJsonPath('dashboard.url', 'http://devkit.test')
+        ->assertJsonPath('dashboard.url', 'http://nomeus.test')
         ->assertJsonPath('dashboard.linked', true)
         ->assertJsonPath('instances', [])
-        ->assertJsonPath('devkit.code_dir', \App\Support\DevkitConfig::homeDir().'/Sites');
+        ->assertJsonPath('nomeus.code_dir', \App\Support\NomeusConfig::homeDir().'/Sites');
 });
 
 it('reads the valet version from cli/valet.php without running valet', function () {

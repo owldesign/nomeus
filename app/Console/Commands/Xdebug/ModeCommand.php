@@ -31,7 +31,7 @@ class ModeCommand extends Command
             ? array_keys(array_filter($xdebug->status(), fn ($s) => $s['installed']))
             : [$this->option('php') ?: $brew->linkedPhp()];
         if ($versions === [] || $versions === [null]) {
-            $this->error('No version with xdebug. devkit xdebug:install <version>');
+            $this->error('No version with xdebug. nomeus xdebug:install <version>');
 
             return self::FAILURE;
         }

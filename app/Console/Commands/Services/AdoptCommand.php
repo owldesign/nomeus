@@ -15,14 +15,14 @@ class AdoptCommand extends Command
         {--port= : defaults to the standard port (free once brew\'s copy stops)}
         {--formula= : run the data under this formula instead of brew\'s, e.g. mysql@9.7 for a 9.6 cluster brew has since moved past}';
 
-    protected $description = 'Take over a `brew services` cluster as a devkit instance — data copied, brew\'s left in place';
+    protected $description = 'Take over a `brew services` cluster as a nomeus instance — data copied, brew\'s left in place';
 
     public function handle(ServiceManager $services, BrewServices $brew): int
     {
         if (! $this->argument('formula')) {
             $list = $brew->adoptable();
             if ($list === []) {
-                $this->line('Nothing under brew services that devkit has a driver for.');
+                $this->line('Nothing under brew services that nomeus has a driver for.');
 
                 return self::SUCCESS;
             }
@@ -32,7 +32,7 @@ class AdoptCommand extends Command
                 $s['port'].($s['answering'] ? '' : ' (silent)'),
                 $s['data_dir'],
             ], $list));
-            $this->line('<fg=gray>devkit services:adopt <formula></>');
+            $this->line('<fg=gray>nomeus services:adopt <formula></>');
 
             return self::SUCCESS;
         }
@@ -52,7 +52,7 @@ class AdoptCommand extends Command
         }
 
         $this->info("{$i->name}: {$i->formula} {$i->version} on 127.0.0.1:{$i->port}, adopted from {$i->options['adopted_from']}");
-        $this->line('<fg=gray>brew\'s data is untouched there; remove it when you\'re sure. .env: devkit services:env '.$i->name.'</>');
+        $this->line('<fg=gray>brew\'s data is untouched there; remove it when you\'re sure. .env: nomeus services:env '.$i->name.'</>');
 
         return self::SUCCESS;
     }

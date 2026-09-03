@@ -8,12 +8,12 @@ use Tests\Support\FakeValet;
 beforeEach(function () {
     $this->valetFs = new FakeValet;
     $this->brewFs = (new FakeBrew)->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4');
-    file_put_contents($this->valetFs->root.'/devkit.json', json_encode([
+    file_put_contents($this->valetFs->root.'/nomeus.json', json_encode([
         'brew_prefix' => $this->brewFs->root, 'ide' => 'phpstorm', 'db_client' => 'tableplus', 'code_dir' => '~/Sites',
     ]));
-    config()->set('devkit.config_path', $this->valetFs->root.'/devkit.json');
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+    config()->set('nomeus.config_path', $this->valetFs->root.'/nomeus.json');
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
 
     // realpath: ValetBridge resolves parked dirs, and macOS's temp dir is a symlink (/var → /private/var)
     $this->alpha = realpath($this->valetFs->parked('alpha', laravel: true));
@@ -98,7 +98,7 @@ it('reads and writes config.json with json coercion', function () {
     $this->artisan('config:set mail.smtp_port 2525')->assertSuccessful();
     $this->artisan('config:set ide emacs')->expectsOutputToContain('Unknown ide')->assertSuccessful();
 
-    $cfg = json_decode(file_get_contents($this->valetFs->root.'/devkit.json'), true);
+    $cfg = json_decode(file_get_contents($this->valetFs->root.'/nomeus.json'), true);
     expect($cfg['ide'])->toBe('emacs')
         ->and($cfg['mail']['smtp_port'])->toBe(2525)
         ->and($cfg['brew_prefix'])->toBe($this->brewFs->root); // untouched keys survive

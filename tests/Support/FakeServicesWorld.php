@@ -8,7 +8,7 @@ use App\Services\LaunchdManager;
 use App\Services\ServiceManager;
 use App\Services\Services\DriverRegistry;
 use App\Services\ValetBridge;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\Shell;
 use Illuminate\Support\Facades\File;
@@ -18,7 +18,7 @@ use Mockery;
 /**
  * Everything the services layer touches, faked coherently:
  *  - a FakeBrew prefix (formulae, brew data dirs)
- *  - temp ~/.devkit and ~/Library/LaunchAgents
+ *  - temp ~/.nomeus and ~/Library/LaunchAgents
  *  - a Probe whose answering ports launchctl bootstrap/bootout toggle (port read from the plist)
  *  - launchctl list showing brew's homebrew.mxcl.* agents from $brewLoaded
  *  - brew services stop that unloads the agent, removes its plist and its lock file
@@ -33,7 +33,7 @@ final class FakeServicesWorld
     /** @var array<string,int> label => pid */
     public array $brewLoaded = [];
     public Probe $probe;
-    public DevkitConfig $config;
+    public NomeusConfig $config;
     public Shell $shell;
     public BrewBridge $brew;
     public LaunchdManager $launchd;
@@ -44,8 +44,8 @@ final class FakeServicesWorld
 
     public function __construct()
     {
-        $this->root = sys_get_temp_dir().'/devkit-world-'.uniqid();
-        mkdir("{$this->root}/devkit", 0755, true);
+        $this->root = sys_get_temp_dir().'/nomeus-world-'.uniqid();
+        mkdir("{$this->root}/nomeus", 0755, true);
         mkdir("{$this->root}/agents", 0755, true);
         $this->brewFs = (new FakeBrew)
             ->formula('postgresql@17', '17.6', ['initdb', 'postgres', 'psql'])
@@ -55,11 +55,11 @@ final class FakeServicesWorld
             ->formula('seaweedfs', '3.97', ['weed'])
             ->formula('mailpit', '1.31.0', ['mailpit'])
             ->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4');
-        file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
+        file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
         $this->valetFs = new FakeValet;
-        config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+        config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
 
-        $this->config = new DevkitConfig("{$this->root}/devkit/config.json");
+        $this->config = new NomeusConfig("{$this->root}/nomeus/config.json");
         $this->shell = new Shell($this->config);
         $this->brew = new BrewBridge($this->shell);
         $this->probe = Mockery::mock(Probe::class);

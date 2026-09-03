@@ -2,16 +2,16 @@
 
 namespace App\Console\Commands;
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use Illuminate\Console\Command;
 
 class ConfigGetCommand extends Command
 {
     protected $signature = 'config:get {key? : Dot key, e.g. ide or mail.smtp_port; omit for everything}';
 
-    protected $description = 'Read ~/.devkit/config.json';
+    protected $description = 'Read ~/.nomeus/config.json';
 
-    public function handle(DevkitConfig $config): int
+    public function handle(NomeusConfig $config): int
     {
         if (! $config->exists()) {
             $this->error("No config at {$config->path()} — run install/install.sh");

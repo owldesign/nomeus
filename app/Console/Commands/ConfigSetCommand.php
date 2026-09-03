@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Editor;
 use Illuminate\Console\Command;
 
@@ -10,9 +10,9 @@ class ConfigSetCommand extends Command
 {
     protected $signature = 'config:set {key : Dot key, e.g. ide} {value : JSON is decoded (true, 8025, {...}); anything else is a string}';
 
-    protected $description = 'Write a key in ~/.devkit/config.json';
+    protected $description = 'Write a key in ~/.nomeus/config.json';
 
-    public function handle(DevkitConfig $config): int
+    public function handle(NomeusConfig $config): int
     {
         $key = (string) $this->argument('key');
         $raw = (string) $this->argument('value');

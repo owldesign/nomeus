@@ -13,11 +13,11 @@ beforeEach(function () {
     $this->brewFs = (new FakeBrew)
         ->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4')
         ->available(['8.1', '8.3', '8.4', '8.5']);
-    file_put_contents($this->valetFs->root.'/devkit.json', json_encode(['brew_prefix' => $this->brewFs->root]));
-    config()->set('devkit.config_path', $this->valetFs->root.'/devkit.json');
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
-    config()->set('devkit.platform_check', $this->valetFs->root.'/missing.php'); // tests assume floor 8.2
+    file_put_contents($this->valetFs->root.'/nomeus.json', json_encode(['brew_prefix' => $this->brewFs->root]));
+    config()->set('nomeus.config_path', $this->valetFs->root.'/nomeus.json');
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
+    config()->set('nomeus.platform_check', $this->valetFs->root.'/missing.php'); // tests assume floor 8.2
     $this->valetFs->parked('alpha');
 
     $this->mock(Probe::class, function ($m) {
@@ -39,7 +39,7 @@ afterEach(function () {
     $this->brewFs->destroy();
 });
 
-$h = ['X-Devkit' => '1'];
+$h = ['X-Nomeus' => '1'];
 
 it('lists php state', function () {
     $this->getJson('/api/php')
@@ -74,7 +74,7 @@ it('enqueues use, install and update as tasks with guards', function () use ($h)
     Process::assertNotRan(fn ($p) => is_array($p->command) && in_array('use', $p->command, true));
 });
 
-it('refuses unsafe requests without the devkit header', function () {
+it('refuses unsafe requests without the nomeus header', function () {
     $this->postJson('/api/php/8.3/use')->assertForbidden();
     expect($this->spawned)->toBe([]);
 });

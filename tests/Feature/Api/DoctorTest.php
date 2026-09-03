@@ -9,17 +9,17 @@ use Tests\Support\FakeBrew;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-doctor-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
+    $this->root = sys_get_temp_dir().'/nomeus-doctor-'.uniqid();
+    mkdir("{$this->root}/nomeus", 0755, true);
     mkdir("{$this->root}/agents", 0755, true);
     $this->brewFs = (new FakeBrew)->installed('8.4', '8.4.25')->linked('8.4')->formula('redis', '8.2.1', ['redis-server']);
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'code_dir' => "{$this->root}/code"]));
-    config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
-    config()->set('devkit.launch_agents_dir', "{$this->root}/agents");
-    config()->set('devkit.uid', 501);
+    file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root, 'code_dir' => "{$this->root}/code"]));
+    config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
+    config()->set('nomeus.launch_agents_dir', "{$this->root}/agents");
+    config()->set('nomeus.uid', 501);
     $this->valetFs = new FakeValet;
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
     $this->valetFs->parked('smoke', laravel: true);
     touch("{$this->valetFs->configDir}/valet.sock");
 
@@ -37,7 +37,7 @@ beforeEach(function () {
         '*pgrep*-x*nginx*' => Process::result('123'),
         '*pgrep*-x*dnsmasq*' => Process::result('124'),
         '*pgrep*' => Process::result('', '', 1),
-        '*which*' => Process::result(''),                         // no devkit shim on PATH → warn
+        '*which*' => Process::result(''),                         // no nomeus shim on PATH → warn
         '*brew*outdated*' => Process::result(json_encode(['formulae' => []])),
         '*--version*' => Process::result("stub 1.0\n"),
         '*php*-r*' => Process::result('8.4.25'),
@@ -59,17 +59,17 @@ it('reports every section with a fix for what is missing', function () {
     $r = $this->getJson('/api/doctor')->assertOk()->json('data');
     $rows = collect($r['rows'])->keyBy(fn ($x) => "{$x['section']}|{$x['check']}");
 
-    expect($r['sections'])->toBe(['valet', 'php', 'devkit', 'services', 'dumps', 'mail', 'retention'])
+    expect($r['sections'])->toBe(['valet', 'php', 'nomeus', 'services', 'dumps', 'mail', 'retention'])
         ->and($rows['valet|installed']['level'])->toBe('ok')
         ->and($rows['valet|nginx']['level'])->toBe('ok')                 // via the pgrep fallback (probe is mocked false)
         ->and($rows['valet|trusted']['level'])->toBe(is_file('/etc/sudoers.d/valet') ? 'ok' : 'fail')   // the real machine's sudoers
         ->and($rows['php|linked']['detail'])->toContain('php 8.4')
         ->and($rows['php|php-fpm']['detail'])->toBe('running: 8.4')
-        ->and($rows['php|99-devkit.ini php 8.4']['level'])->toBe('warn')
-        ->and($rows['devkit|config']['level'])->toBe('ok')
-        ->and($rows['devkit|bin/devkit']['level'])->toBe('warn')
+        ->and($rows['php|99-nomeus.ini php 8.4']['level'])->toBe('warn')
+        ->and($rows['nomeus|config']['level'])->toBe('ok')
+        ->and($rows['nomeus|bin/nomeus']['level'])->toBe('warn')
         ->and($rows['dumps|server']['detail'])->toContain('services:create dumps')
-        ->and($rows['mail|mailpit']['detail'])->toContain('devkit mail --create')
+        ->and($rows['mail|mailpit']['detail'])->toContain('nomeus mail --create')
         ->and($rows['retention|tasks']['level'])->toBe('ok')
         ->and($r['counts']['ok'])->toBeGreaterThan(5);
 
@@ -77,11 +77,11 @@ it('reports every section with a fix for what is missing', function () {
 });
 
 it('clears in the cli: doctor sections, json, exit code', function () {
-    $this->artisan('doctor --section=mail')->expectsOutputToContain('devkit mail --create')->assertSuccessful();   // warn only → 0
+    $this->artisan('doctor --section=mail')->expectsOutputToContain('nomeus mail --create')->assertSuccessful();   // warn only → 0
     $this->artisan('doctor --section=nope')->expectsOutputToContain('Sections:')->assertFailed();
     $this->artisan('doctor --json --section=retention')->expectsOutputToContain('"section": "retention"')->assertSuccessful();
     // a fail row (dashboard not linked in the fake valet) makes the exit code non-zero
-    $this->artisan('doctor --section=devkit')->expectsOutputToContain('not linked')->assertFailed();
+    $this->artisan('doctor --section=nomeus')->expectsOutputToContain('not linked')->assertFailed();
 });
 
 it('reports commits behind with self-update --check and refuses a dirty tree', function () {
@@ -97,9 +97,9 @@ it('reports commits behind with self-update --check and refuses a dirty tree', f
 
 it('enqueues self-update as a task from the dashboard', function () {
     $php = app(\App\Support\Shell::class)->phpBin();
-    $this->postJson('/api/update', ['check' => true], ['X-Devkit' => '1'])->assertStatus(202)
+    $this->postJson('/api/update', ['check' => true], ['X-Nomeus' => '1'])->assertStatus(202)
         ->assertJsonPath('task.argv', [$php, base_path('artisan'), 'self-update', '--check', '--no-interaction']);
-    $this->postJson('/api/update', ['no_build' => true], ['X-Devkit' => '1'])->assertStatus(202)
+    $this->postJson('/api/update', ['no_build' => true], ['X-Nomeus' => '1'])->assertStatus(202)
         ->assertJsonPath('task.label', 'self-update')
         ->assertJsonPath('task.argv', [$php, base_path('artisan'), 'self-update', '--no-build', '--no-interaction']);
     $this->postJson('/api/update')->assertForbidden();
@@ -112,7 +112,7 @@ it('generates the command reference and clears service logs', function () {
     expect($md)->toContain('## services')
         ->and($md)->toContain('### `services:create <type> [version] [--name=] [--port=] [--site=] [--no-start]`')
         ->and($md)->toContain('### `doctor [--section=] [--json]`')
-        ->and($md)->toContain('- `--section` — valet, php, devkit, services, dumps, mail, retention');
+        ->and($md)->toContain('- `--section` — valet, php, nomeus, services, dumps, mail, retention');
 
     $i = app(\App\Services\ServiceManager::class)->create('redis', start: false);
     file_put_contents($i->logFile(), str_repeat("noise\n", 1000));

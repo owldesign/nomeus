@@ -1,5 +1,5 @@
 export interface Status {
-  devkit: {
+  nomeus: {
     version: string;
     home: string;
     config_path: string;
@@ -43,7 +43,7 @@ export interface Site {
   secured: boolean;
   php: string | null; // isolated version, or null = global
   laravel: boolean;
-  manifest: boolean;  // has a dev.yml
+  manifest: boolean;  // has a nomeus.yml
   nginx_conf: string | null;
 }
 

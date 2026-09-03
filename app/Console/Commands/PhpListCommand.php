@@ -29,7 +29,7 @@ class PhpListCommand extends Command
         }
 
         if ($versions === []) {
-            $this->warn('No php@X.Y kegs under '.app(\App\Services\BrewBridge::class)->prefix().'/opt. Install one: devkit php:install 8.4');
+            $this->warn('No php@X.Y kegs under '.app(\App\Services\BrewBridge::class)->prefix().'/opt. Install one: nomeus php:install 8.4');
 
             return self::SUCCESS;
         }
@@ -45,7 +45,7 @@ class PhpListCommand extends Command
         ], $versions));
 
         if ($installable) {
-            $this->line('<fg=gray>installable: '.implode(', ', $installable).'   (devkit php:install <version>)</>');
+            $this->line('<fg=gray>installable: '.implode(', ', $installable).'   (nomeus php:install <version>)</>');
         }
 
         return self::SUCCESS;

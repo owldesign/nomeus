@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\ServiceInstance;
 use Illuminate\Http\Client\RequestException;
@@ -10,14 +10,14 @@ use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * Mailpit's REST API, addressed at the devkit mailpit instance (or the configured UI port when
+ * Mailpit's REST API, addressed at the nomeus mailpit instance (or the configured UI port when
  * no instance exists). Per-app inboxes are Mailpit tags; the client package sets X-Tags on send.
  */
 final class MailpitClient
 {
     public function __construct(
         private readonly ServiceManager $services,
-        private readonly DevkitConfig $config,
+        private readonly NomeusConfig $config,
         private readonly Probe $probe,
     ) {}
 
@@ -129,7 +129,7 @@ final class MailpitClient
         } catch (RequestException $e) {
             throw new RuntimeException("Mailpit {$method} {$path}: HTTP {$e->response->status()} — ".trim($e->response->body()));
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            throw new RuntimeException("Mailpit is not answering on {$this->baseUrl()} — devkit services:start ".($this->instance()?->name ?? 'mailpit').' (or services:create mailpit)');
+            throw new RuntimeException("Mailpit is not answering on {$this->baseUrl()} — nomeus services:start ".($this->instance()?->name ?? 'mailpit').' (or services:create mailpit)');
         }
     }
 }

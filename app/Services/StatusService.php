@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\Shell;
 
-/** One snapshot, rendered by both `devkit status` and GET /api/status. */
+/** One snapshot, rendered by both `nomeus status` and GET /api/status. */
 final class StatusService
 {
     public function __construct(
-        private readonly DevkitConfig $config,
+        private readonly NomeusConfig $config,
         private readonly ValetBridge $valet,
         private readonly Shell $shell,
         private readonly Probe $probe,
@@ -21,20 +21,20 @@ final class StatusService
 
     public function snapshot(): array
     {
-        $site = (string) config('devkit.site');
+        $site = (string) config('nomeus.site');
         $installed = $this->valet->isInstalled();
         $tld = $installed ? $this->valet->tld() : 'test';
         $loopback = $installed ? $this->valet->loopback() : '127.0.0.1';
         $smtpPort = (int) $this->config->get('mail.smtp_port', 1025);
         foreach ($this->services->all() as $i) {
             if ($i->type === 'mailpit') {
-                $smtpPort = $i->port;   // the devkit instance wins over the configured default
+                $smtpPort = $i->port;   // the nomeus instance wins over the configured default
             }
         }
 
         return [
-            'devkit' => [
-                'version' => config('devkit.version'),
+            'nomeus' => [
+                'version' => config('nomeus.version'),
                 'home' => base_path(),
                 'config_path' => $this->config->path(),
                 'config_exists' => $this->config->exists(),
@@ -74,7 +74,7 @@ final class StatusService
         ];
     }
 
-    /** Raw material for `devkit status --diagnose` / ?diagnose=1: what fpm actually sees and gets back. */
+    /** Raw material for `nomeus status --diagnose` / ?diagnose=1: what fpm actually sees and gets back. */
     public function diagnostics(): array
     {
         $commands = [

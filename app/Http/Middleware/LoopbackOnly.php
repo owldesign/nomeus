@@ -20,7 +20,7 @@ class LoopbackOnly
         }
 
         if (! in_array($request->ip(), $allowed, true)) {
-            abort(403, 'devkit is local-only.');
+            abort(403, 'nomeus is local-only.');
         }
 
         return $next($request);

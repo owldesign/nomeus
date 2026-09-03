@@ -7,9 +7,9 @@ use Illuminate\Console\Command;
 
 class DoctorCommand extends Command
 {
-    protected $signature = 'doctor {--section= : valet, php, devkit, services, dumps, mail, retention} {--json}';
+    protected $signature = 'doctor {--section= : valet, php, nomeus, services, dumps, mail, retention} {--json}';
 
-    protected $description = 'Check every layer devkit depends on and name the fix for anything wrong';
+    protected $description = 'Check every layer nomeus depends on and name the fix for anything wrong';
 
     public function handle(DoctorAggregate $doctor): int
     {

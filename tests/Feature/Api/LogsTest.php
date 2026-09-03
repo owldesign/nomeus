@@ -5,8 +5,11 @@ use Tests\Support\FakeValet;
 
 beforeEach(function () {
     $this->valetFs = new FakeValet;
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+    $this->brewFs = new \Tests\Support\FakeBrew;
+    file_put_contents($this->valetFs->root.'/nomeus.json', json_encode(['brew_prefix' => $this->brewFs->root, 'ide' => 'phpstorm']));
+    config()->set('nomeus.config_path', $this->valetFs->root.'/nomeus.json');
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
     $this->site = realpath($this->valetFs->parked('smoke', laravel: true));
     mkdir("{$this->site}/storage/logs", 0755, true);
     $this->log = "{$this->site}/storage/logs/laravel.log";
@@ -16,7 +19,10 @@ beforeEach(function () {
     Process::fake([]);
 });
 
-afterEach(fn () => $this->valetFs->destroy());
+afterEach(function () {
+    $this->valetFs->destroy();
+    $this->brewFs->destroy();
+});
 
 it('lists sources, tails with offsets, refuses foreign paths, and clears behind the header', function () {
     $this->getJson('/api/logs/sources')->assertOk()
@@ -38,9 +44,9 @@ it('lists sources, tails with offsets, refuses foreign paths, and clears behind 
     $this->getJson('/api/logs/tail?path=/etc/hosts')->assertNotFound();
 
     $this->deleteJson('/api/logs?path='.urlencode($this->log))->assertForbidden();
-    $this->deleteJson('/api/logs?path='.urlencode($this->log), [], ['X-Devkit' => '1'])->assertOk()->assertJsonPath('cleared', $this->log);
+    $this->deleteJson('/api/logs?path='.urlencode($this->log), [], ['X-Nomeus' => '1'])->assertOk()->assertJsonPath('cleared', $this->log);
     expect(filesize($this->log))->toBe(0);
-    $this->deleteJson('/api/logs?path=/etc/hosts', [], ['X-Devkit' => '1'])->assertNotFound();
+    $this->deleteJson('/api/logs?path=/etc/hosts', [], ['X-Nomeus' => '1'])->assertNotFound();
 });
 
 it('prints a site log and valet logs from the cli', function () {

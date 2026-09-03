@@ -30,7 +30,7 @@ class IniCommand extends Command
             }
             $version = $site?->php ?? $brew->linkedPhp();
             if ($version === null) {
-                $this->error('No global PHP is linked; pass a version: devkit ini 8.4');
+                $this->error('No global PHP is linked; pass a version: nomeus ini 8.4');
 
                 return self::FAILURE;
             }
@@ -65,7 +65,7 @@ class IniCommand extends Command
 
             return self::FAILURE;
         }
-        $this->line("<fg=gray>opened {$path} in {$editor->ide()} — restart fpm after edits: devkit restart</>");
+        $this->line("<fg=gray>opened {$path} in {$editor->ide()} — restart fpm after edits: nomeus restart</>");
 
         return self::SUCCESS;
     }

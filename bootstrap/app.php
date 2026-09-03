@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Middleware\LoopbackOnly;
-use App\Http\Middleware\RequireDevkitHeader;
+use App\Http\Middleware\RequireNomeusHeader;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Global, not just the api group: the SPA shell is local-only too.
         $middleware->append(LoopbackOnly::class);
         // Unsafe API calls run Valet as root; they must be deliberate, same-origin requests.
-        $middleware->api(append: [RequireDevkitHeader::class]);
+        $middleware->api(append: [RequireNomeusHeader::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

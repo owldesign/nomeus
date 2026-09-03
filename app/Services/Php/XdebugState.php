@@ -2,14 +2,14 @@
 
 namespace App\Services\Php;
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 
-/** ~/.devkit/php/xdebug.json — per PHP version: where xdebug.so is and which mode we last wrote. */
+/** ~/.nomeus/php/xdebug.json — per PHP version: where xdebug.so is and which mode we last wrote. */
 final class XdebugState
 {
     public const MODES = ['off', 'on', 'trigger'];
 
-    public function __construct(private readonly DevkitConfig $config) {}
+    public function __construct(private readonly NomeusConfig $config) {}
 
     public function path(): string
     {

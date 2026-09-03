@@ -55,7 +55,7 @@ class ServicesController extends Controller
         ], $this->drivers->all()))]);
     }
 
-    /** brew services clusters devkit could take over. */
+    /** brew services clusters nomeus could take over. */
     public function adoptable(): JsonResponse
     {
         return response()->json(['data' => $this->brewServices->adoptable()]);
@@ -69,7 +69,7 @@ class ServicesController extends Controller
             'port' => ['nullable', 'integer', 'between:1024,65535'],
         ]);
         if ($this->drivers->driverForFormula($data['formula']) === null) {
-            return response()->json(['message' => "No devkit driver for [{$data['formula']}]."], 422);
+            return response()->json(['message' => "No nomeus driver for [{$data['formula']}]."], 422);
         }
         if (! empty($data['name']) && $this->services->find($data['name']) !== null) {
             return response()->json(['message' => "Service [{$data['name']}] already exists."], 422);

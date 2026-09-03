@@ -14,7 +14,7 @@ beforeEach(function () {
 
 afterEach(fn () => $this->w->destroy());
 
-it('addresses the devkit mailpit instance', function () {
+it('addresses the nomeus mailpit instance', function () {
     expect($this->client->instance()?->name)->toBe('mailpit')
         ->and($this->client->smtpPort())->toBe(1025)
         ->and($this->client->httpPort())->toBe(8025)
@@ -56,5 +56,5 @@ it('deletes everything, or every message with a tag by id', function () {
 it('explains a mailpit that is not answering', function () {
     Http::fake(fn () => throw new ConnectionException('Connection refused'));
 
-    expect(fn () => $this->client->tags())->toThrow(RuntimeException::class, 'not answering on http://127.0.0.1:8025 — devkit services:start mailpit');
+    expect(fn () => $this->client->tags())->toThrow(RuntimeException::class, 'not answering on http://127.0.0.1:8025 — nomeus services:start mailpit');
 });

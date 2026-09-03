@@ -1,10 +1,10 @@
-# devkit — macOS Brewfile
+# nomeus — macOS Brewfile
 # Run via install/install.sh, or directly: brew bundle --no-upgrade --file=install/Brewfile
 #
 # Homebrew 6 requires explicit trust for non-official taps (docs.brew.sh/Tap-Trust).
 # Trust is declared here so `brew bundle` grants it before installing — no manual `brew trust` step.
 
-# Whole-tap trust: PHP Monitor and devkit's `php:install` enumerate this tap to offer versions
+# Whole-tap trust: PHP Monitor and nomeus's `php:install` enumerate this tap to offer versions
 # that aren't listed below, and item-level trust would refuse to load them.
 tap "shivammathur/php", trusted: true
 # shivammathur/extensions (xdebug@X.Y) is tapped in Phase 5 with item-level trust — not here.
@@ -17,7 +17,7 @@ brew "nginx"
 brew "dnsmasq"
 brew "composer"                      # pulls homebrew-core `php` as a dependency; `valet use` relinks the active version
 
-# The default PHP only. Other versions are `devkit php:install X.Y` (which accepts a homebrew-core php@X.Y
+# The default PHP only. Other versions are `nomeus php:install X.Y` (which accepts a homebrew-core php@X.Y
 # or the tap's); listing them here would make `brew bundle check` fail on a machine that got them elsewhere.
 brew "shivammathur/php/php@8.4"
 
@@ -29,5 +29,5 @@ brew "mailpit"
 
 # GUI companions — fully-qualified so resolution never depends on tap search order
 cask "nicoverbruggen/cask/phpmon"    # menubar: PHP switching, Valet services, site isolation
-cask "tableplus"                     # target of `devkit db`; free tier is sufficient
-# Dumps need no app: devkit's own dump server + Debug page (Phase 5a).
+cask "tableplus"                     # target of `nomeus db`; free tier is sufficient
+# Dumps need no app: nomeus's own dump server + Debug page (Phase 5a).

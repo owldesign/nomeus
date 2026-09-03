@@ -16,7 +16,7 @@ export default function TaskProgress({ id, onFinished }: { id: string; onFinishe
     const why = error instanceof ApiError ? `${error.status} ${error.message}` : String(error);
     return (
       <span className="text-red">
-        can't reach the api ({why}). {data ? `${data.label} may have finished; ` : ''}check from a terminal: devkit status · devkit tasks
+        can't reach the api ({why}). {data ? `${data.label} may have finished; ` : ''}check from a terminal: nomeus status · nomeus tasks
       </span>
     );
   }

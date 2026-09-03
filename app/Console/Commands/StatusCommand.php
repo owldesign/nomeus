@@ -11,7 +11,7 @@ class StatusCommand extends Command
         {--json : Emit the snapshot as JSON}
         {--diagnose : JSON snapshot plus env and raw subprocess output — compare with /api/status?diagnose=1}';
 
-    protected $description = 'Show devkit, Valet, PHP and service status';
+    protected $description = 'Show nomeus, Valet, PHP and service status';
 
     public function handle(StatusService $status): int
     {
@@ -28,21 +28,21 @@ class StatusCommand extends Command
 
         $state = fn (bool $up): string => $up ? '<fg=green>running</>' : '<fg=red>stopped</>';
         $fpm = $s['services']['php_fpm'];
-        $site = config('devkit.site');
+        $site = config('nomeus.site');
 
         $valet = $s['valet']['installed']
             ? sprintf('%s   tld .%s   paths: %s   %s',
                 $s['valet']['version'] ?? '?',
                 $s['valet']['tld'],
                 $s['valet']['paths'] ? implode(', ', $s['valet']['paths']) : '<fg=yellow>none parked</>',
-                $s['valet']['trusted'] ? '<fg=green>trusted</>' : '<fg=yellow>not trusted — dashboard actions need: devkit trust</>')
+                $s['valet']['trusted'] ? '<fg=green>trusted</>' : '<fg=yellow>not trusted — dashboard actions need: nomeus trust</>')
             : '<fg=red>not installed</>';
 
         $this->table([], [
-            ['devkit', $s['devkit']['version']],
-            ['home', $s['devkit']['home']],
-            ['config', $s['devkit']['config_path'].($s['devkit']['config_exists'] ? '' : '   <fg=yellow>missing — run install/install.sh</>')],
-            ['code dir', $s['devkit']['code_dir']],
+            ['nomeus', $s['nomeus']['version']],
+            ['home', $s['nomeus']['home']],
+            ['config', $s['nomeus']['config_path'].($s['nomeus']['config_exists'] ? '' : '   <fg=yellow>missing — run install/install.sh</>')],
+            ['code dir', $s['nomeus']['code_dir']],
             ['valet', $valet],
             ['php', $s['php']['global'] ?? '<fg=red>not found on PATH</>'],
             ['nginx', $state($s['services']['nginx'])],
@@ -51,7 +51,7 @@ class StatusCommand extends Command
             ['mailpit', $state($s['services']['mailpit'])],
             ['dashboard', $s['dashboard']['url'].'   '.($s['dashboard']['linked']
                 ? '<fg=green>linked</>'
-                : "<fg=yellow>not linked — run: devkit link {$site}</>")],
+                : "<fg=yellow>not linked — run: nomeus link {$site}</>")],
         ]);
 
         return self::SUCCESS;

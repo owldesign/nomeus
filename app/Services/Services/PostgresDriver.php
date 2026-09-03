@@ -59,7 +59,7 @@ final class PostgresDriver extends AbstractDriver
     }
 
     /**
-     * brew's initdb made your macOS username the superuser; devkit's .env convention is `postgres`.
+     * brew's initdb made your macOS username the superuser; nomeus's .env convention is `postgres`.
      * Create it (superuser, no password — trust auth on loopback) if the cluster lacks it. Both keep working.
      */
     public function postAdopt(ServiceInstance $i, string $binDir): array

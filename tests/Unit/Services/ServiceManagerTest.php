@@ -4,7 +4,7 @@ use App\Services\BrewBridge;
 use App\Services\LaunchdManager;
 use App\Services\ServiceManager;
 use App\Services\Services\DriverRegistry;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\Shell;
 use Illuminate\Support\Facades\File;
@@ -37,7 +37,7 @@ it('creates a postgres instance: dirs, initdb, plist, launchd, ready', function 
         ->and($lines)->toContain('initdb', 'starting postgresql on 127.0.0.1:5432');
 
     Process::assertRan(fn ($p) => $p->command[0] === $this->brewFs->root.'/opt/postgresql@17/bin/initdb' && in_array('--auth=trust', $p->command, true));
-    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'enable', 'gui/501/dev.zhuk.devkit.svc.postgresql']);
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'enable', 'gui/501/dev.nomeus.svc.postgresql']);
     Process::assertRan(fn ($p) => $p->command[1] === 'bootstrap');
 });
 
@@ -48,7 +48,7 @@ it('takes the standard port when free, the next free one otherwise, and names in
 
     expect($a->name)->toBe('redis')->and($a->port)->toBe(6380)
         ->and($b->name)->toBe('redis-2')->and($b->port)->toBe(6381)
-        ->and(fn () => $this->m->create('redis', port: 6380, start: false))->toThrow(RuntimeException::class, 'claimed by another devkit service')
+        ->and(fn () => $this->m->create('redis', port: 6380, start: false))->toThrow(RuntimeException::class, 'claimed by another nomeus service')
         ->and(fn () => $this->m->create('redis', port: 6379, start: false))->toThrow(RuntimeException::class, 'already in use on this machine')
         ->and(fn () => $this->m->create('redis', name: 'redis', start: false))->toThrow(RuntimeException::class, 'already exists')
         ->and(fn () => $this->m->create('redis', name: 'Bad Name', start: false))->toThrow(RuntimeException::class, 'lowercase');
@@ -74,15 +74,15 @@ it('stops, starts and restarts through launchd and waits for the port', function
     expect($this->m->status($i)['running'])->toBeTrue();
 
     $this->m->stop($i);
-    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootout', 'gui/501/dev.zhuk.devkit.svc.redis']);
-    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'disable', 'gui/501/dev.zhuk.devkit.svc.redis']);
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootout', 'gui/501/dev.nomeus.svc.redis']);
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'disable', 'gui/501/dev.nomeus.svc.redis']);
     expect($this->m->status($i)['running'])->toBeFalse();
 
     $this->m->start($i);
     expect($this->m->status($i)['running'])->toBeTrue();
 
     $this->m->restart($i);
-    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'kickstart', '-k', 'gui/501/dev.zhuk.devkit.svc.redis']);
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'kickstart', '-k', 'gui/501/dev.nomeus.svc.redis']);
 });
 
 it('writes a full environment into the agent so postgres has a locale', function () {
@@ -100,8 +100,8 @@ it('keeps a failed-to-start instance but stops it, with a hint', function () {
     Process::fake(['*launchctl*bootstrap*' => Process::result('')]); // loads, but the port never answers
 
     expect(fn () => $this->m->create('redis'))->toThrow(RuntimeException::class, 'Kept redis stopped for inspection');
-    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootout', 'gui/501/dev.zhuk.devkit.svc.redis']);
-    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'disable', 'gui/501/dev.zhuk.devkit.svc.redis']);
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootout', 'gui/501/dev.nomeus.svc.redis']);
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'disable', 'gui/501/dev.nomeus.svc.redis']);
     expect($this->m->find('redis'))->not->toBeNull();
 });
 
@@ -178,7 +178,7 @@ it('retargets an instance to another formula of the same type and restarts it', 
         ->and(file_get_contents($this->launchd->plistPath('postgresql')))->toContain('/opt/postgresql@16/bin/postgres')
         ->and($this->m->status($u)['running'])->toBeTrue()
         ->and(json_decode(file_get_contents($u->file()), true)['formula'])->toBe('postgresql@16');
-    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootout', 'gui/501/dev.zhuk.devkit.svc.postgresql']);
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'bootout', 'gui/501/dev.nomeus.svc.postgresql']);
 
     expect(fn () => $this->m->retarget($u, 'redis'))->toThrow(RuntimeException::class, 'is not a PostgreSQL formula')
         ->and(fn () => $this->m->retarget($u, 'postgresql@16'))->toThrow(RuntimeException::class, 'already runs');

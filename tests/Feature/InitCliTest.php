@@ -8,17 +8,17 @@ use Tests\Support\FakeBrew;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-initcli-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
+    $this->root = sys_get_temp_dir().'/nomeus-initcli-'.uniqid();
+    mkdir("{$this->root}/nomeus", 0755, true);
     mkdir("{$this->root}/agents", 0755, true);
     $this->brewFs = (new FakeBrew)->formula('redis', '8.2.1', ['redis-server'])->formula('mailpit', '1.31.0', ['mailpit'])->installed('8.4', '8.4.25')->linked('8.4');
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
-    config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
-    config()->set('devkit.launch_agents_dir', "{$this->root}/agents");
-    config()->set('devkit.uid', 501);
+    file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
+    config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
+    config()->set('nomeus.launch_agents_dir', "{$this->root}/agents");
+    config()->set('nomeus.uid', 501);
     $this->valetFs = new FakeValet;
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
     $this->site = realpath($this->valetFs->parked('smoke', laravel: true));
     file_put_contents("{$this->site}/.env", "APP_NAME=Laravel\n");
 
@@ -57,7 +57,7 @@ afterEach(function () {
 });
 
 it('shows the plan with --dry-run and changes nothing', function () {
-    file_put_contents("{$this->site}/dev.yml", "domain: smoke\nsecure: true\nservices:\n  - type: redis\nmail: true\npost-init:\n  - composer install\n");
+    file_put_contents("{$this->site}/nomeus.yml", "domain: smoke\nsecure: true\nservices:\n  - type: redis\nmail: true\npost-init:\n  - composer install\n");
 
     $this->artisan("init {$this->site} --dry-run")
         ->expectsOutputToContain('site smoke.test')
@@ -70,7 +70,7 @@ it('shows the plan with --dry-run and changes nothing', function () {
 });
 
 it('runs init, skipping scripts on request', function () {
-    file_put_contents("{$this->site}/dev.yml", "domain: smoke\nname: smoke\nservices:\n  - type: redis\nmail: true\nenv:\n  CACHE_STORE: redis\npost-init:\n  - composer install\n");
+    file_put_contents("{$this->site}/nomeus.yml", "domain: smoke\nname: smoke\nservices:\n  - type: redis\nmail: true\nenv:\n  CACHE_STORE: redis\npost-init:\n  - composer install\n");
 
     $this->artisan("init {$this->site} --skip-scripts")
         ->expectsOutputToContain('smoke.test ready')
@@ -85,14 +85,14 @@ it('runs init, skipping scripts on request', function () {
 });
 
 it('explains a missing manifest', function () {
-    $this->artisan("init {$this->site}")->expectsOutputToContain('No dev.yml')->assertFailed();
+    $this->artisan("init {$this->site}")->expectsOutputToContain('No nomeus.yml')->assertFailed();
 });
 
 it('enqueues init from the api for sites with a manifest', function () {
-    $h = ['X-Devkit' => '1'];
+    $h = ['X-Nomeus' => '1'];
     $this->postJson('/api/sites/smoke/init', [], $h)->assertUnprocessable();
 
-    file_put_contents("{$this->site}/dev.yml", "domain: smoke\n");
+    file_put_contents("{$this->site}/nomeus.yml", "domain: smoke\n");
     $this->getJson('/api/sites')->assertOk()->assertJsonPath('data.0.manifest', true);
     $this->postJson('/api/sites/smoke/init', ['skip_scripts' => true], $h)->assertStatus(202)
         ->assertJsonPath('task.label', 'init smoke')

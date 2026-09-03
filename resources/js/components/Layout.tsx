@@ -27,14 +27,14 @@ function Led({ on, label }: { on: boolean; label: string }) {
 
 function Version() {
   const { data } = useStatus();
-  return <span className="text-mute">{data ? `v${data.devkit.version}` : ''}</span>;
+  return <span className="text-mute">{data ? `v${data.nomeus.version}` : ''}</span>;
 }
 
 function StatusStrip() {
   const { data, isError, isLoading } = useStatus();
 
   if (isLoading) return <div className="text-dim">reading…</div>;
-  if (isError || !data) return <div className="text-red">api unreachable — is devkit.test linked and nginx up?</div>;
+  if (isError || !data) return <div className="text-red">api unreachable — is nomeus.test linked and nginx up?</div>;
 
   const fpm = data.services.php_fpm;
   return (
@@ -70,7 +70,7 @@ export default function Layout() {
     <div className="grid min-h-screen grid-cols-[200px_1fr]">
       <aside className="border-r border-line bg-panel px-4 py-5">
         <div className="mb-6 flex items-baseline justify-between text-[15px] font-semibold tracking-wide text-gold">
-          <span>devkit<span className="text-dim font-normal"> /</span></span>
+          <span>nomeus<span className="text-dim font-normal"> /</span></span>
           <Version />
         </div>
         <nav aria-label="Sections">

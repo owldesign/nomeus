@@ -20,7 +20,7 @@ class LogsController extends Controller
     /** ?path=…&offset=N — offset omitted = the last 64 KB. Returns entries appended since, and the offset to send next. */
     public function tail(Request $request): JsonResponse
     {
-        $source = $this->sources->resolve((string) $request->query('path', '')) ?? abort(404, 'Not a log devkit serves.');
+        $source = $this->sources->resolve((string) $request->query('path', '')) ?? abort(404, 'Not a log nomeus serves.');
         $offset = $request->query('offset');
         $bytes = max(4096, min(LogTailer::MAX_BYTES, (int) $request->query('bytes', LogTailer::INITIAL_BYTES)));
 
@@ -29,7 +29,7 @@ class LogsController extends Controller
 
     public function truncate(Request $request): JsonResponse
     {
-        $source = $this->sources->resolve((string) $request->query('path', '')) ?? abort(404, 'Not a log devkit serves.');
+        $source = $this->sources->resolve((string) $request->query('path', '')) ?? abort(404, 'Not a log nomeus serves.');
         $this->tailer->truncate($source['path']);
 
         return response()->json(['cleared' => $source['path']]);

@@ -19,7 +19,7 @@ class DoctorController extends Controller
         return response()->json(['data' => $this->doctor->run($section ?: null) + ['sections' => $this->doctor->sectionNames()]]);
     }
 
-    /** `devkit self-update` as a task — the dashboard survives its own rebuild because the task is detached. */
+    /** `nomeus self-update` as a task — the dashboard survives its own rebuild because the task is detached. */
     public function update(Request $request): JsonResponse
     {
         $args = ['self-update'];

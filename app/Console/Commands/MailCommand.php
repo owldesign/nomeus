@@ -19,7 +19,7 @@ class MailCommand extends Command
         $i = $mail->instance();
         if ($i === null) {
             if (! $this->option('create')) {
-                $this->error('No mailpit instance. Create one: devkit services:create mailpit   (or: devkit mail --create)');
+                $this->error('No mailpit instance. Create one: nomeus services:create mailpit   (or: nomeus mail --create)');
 
                 return self::FAILURE;
             }
@@ -42,7 +42,7 @@ class MailCommand extends Command
         }
 
         $shell->run(['open', $mail->baseUrl()], timeout: 10);
-        $this->info("{$mail->baseUrl()}   ·   SMTP 127.0.0.1:{$mail->smtpPort()}   ·   .env: devkit services:env {$i->name}");
+        $this->info("{$mail->baseUrl()}   ·   SMTP 127.0.0.1:{$mail->smtpPort()}   ·   .env: nomeus services:env {$i->name}");
 
         return self::SUCCESS;
     }

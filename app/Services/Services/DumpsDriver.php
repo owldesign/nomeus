@@ -4,15 +4,15 @@ namespace App\Services\Services;
 
 use App\Support\ServiceInstance;
 
-/** devkit's dump server: `artisan dumps:serve` under launchd, on the port the prepend file points at. */
-final class DumpsDriver extends AbstractDriver implements DevkitBound
+/** nomeus's dump server: `artisan dumps:serve` under launchd, on the port the prepend file points at. */
+final class DumpsDriver extends AbstractDriver implements NomeusBound
 {
     public function type(): string { return 'dumps'; }
 
     public function label(): string { return 'Dump server'; }
 
     /** Not a brew formula; the name is informational. */
-    public function formulae(): array { return ['devkit/dumps']; }
+    public function formulae(): array { return ['nomeus/dumps']; }
 
     public function defaultPort(): int { return 9912; }
 

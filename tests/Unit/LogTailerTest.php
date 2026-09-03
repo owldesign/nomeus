@@ -1,16 +1,16 @@
 <?php
 
 use App\Services\LogTailer;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Editor;
 use App\Support\Shell;
 
 beforeEach(function () {
-    $this->dir = sys_get_temp_dir().'/devkit-tail-'.uniqid();
+    $this->dir = sys_get_temp_dir().'/nomeus-tail-'.uniqid();
     mkdir($this->dir);
     $this->file = "{$this->dir}/laravel.log";
     file_put_contents("{$this->dir}/config.json", json_encode(['ide' => 'phpstorm']));
-    $config = new DevkitConfig("{$this->dir}/config.json");
+    $config = new NomeusConfig("{$this->dir}/config.json");
     $this->tailer = new LogTailer(new Editor(new Shell($config), $config));
     $this->entry = fn (string $ts, string $level, string $msg) => "[{$ts}] local.{$level}: {$msg}\n";
 });

@@ -211,9 +211,9 @@ export default function Debug() {
       {notReady && (
         <div className="border-b border-line bg-bg px-3 py-2 text-gold">
           {!s.prepend || Object.values(s.ini).some((v) => !v.current)
-            ? <>prepend ini missing for a PHP version — <code>devkit dumps:install --restart</code>. </>
+            ? <>prepend ini missing for a PHP version — <code>nomeus dumps:install --restart</code>. </>
             : null}
-          {!s.instance ? <>no dump server yet — <code>devkit services:create dumps</code>. </> : !s.running ? <>dump server stopped — start it on the Services page. </> : null}
+          {!s.instance ? <>no dump server yet — <code>nomeus services:create dumps</code>. </> : !s.running ? <>dump server stopped — start it on the Services page. </> : null}
         </div>
       )}
 

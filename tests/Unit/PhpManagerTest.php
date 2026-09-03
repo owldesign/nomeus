@@ -3,7 +3,7 @@
 use App\Services\BrewBridge;
 use App\Services\PhpManager;
 use App\Services\ValetBridge;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\Shell;
 use Illuminate\Support\Facades\Cache;
@@ -17,8 +17,8 @@ beforeEach(function () {
     $this->brewFs = (new FakeBrew)
         ->installed('8.3', '8.3.26')->installed('8.4', '8.4.25')->linked('8.4')
         ->available(['8.1', '8.3', '8.4', '8.5']);
-    file_put_contents($this->valetFs->root.'/devkit.json', json_encode(['brew_prefix' => $this->brewFs->root]));
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
+    file_put_contents($this->valetFs->root.'/nomeus.json', json_encode(['brew_prefix' => $this->brewFs->root]));
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
 
     $this->valetFs->parked('alpha');
     $this->valetFs->parked('beta');
@@ -27,7 +27,7 @@ beforeEach(function () {
     touch($this->valetFs->configDir.'/valet.sock');
     touch($this->valetFs->configDir.'/valet83.sock');
 
-    $shell = new Shell(new DevkitConfig($this->valetFs->root.'/devkit.json'));
+    $shell = new Shell(new NomeusConfig($this->valetFs->root.'/nomeus.json'));
     $this->probe = Mockery::mock(Probe::class);
     $this->probe->shouldReceive('unix')->andReturnUsing(fn (string $p) => str_ends_with($p, 'valet.sock')); // only the global fpm answers
     $this->manager = new PhpManager(
@@ -65,7 +65,7 @@ it('merges kegs, sockets, sites and updates into one view', function () {
 });
 
 it('plans use/install/update with guards', function () {
-    config()->set('devkit.platform_check', $this->valetFs->root.'/missing.php'); // fall back to min_php 8.2
+    config()->set('nomeus.platform_check', $this->valetFs->root.'/missing.php'); // fall back to min_php 8.2
     $valet = $this->valetFs->valetBin();
     $brew = $this->brewFs->root.'/bin/brew';
 
@@ -79,24 +79,24 @@ it('plans use/install/update with guards', function () {
         ->and(fn () => $this->manager->updatePlan('8.1'))->toThrow(RuntimeException::class, 'not installed');
 });
 
-it('reads devkit\'s own PHP floor from composer\'s platform check and refuses to switch below it', function () {
+it('reads nomeus\'s own PHP floor from composer\'s platform check and refuses to switch below it', function () {
     $check = $this->valetFs->root.'/platform_check.php';
     file_put_contents($check, "<?php\nif (!(PHP_VERSION_ID >= 80400)) { \$issues[] = 'x'; }\n");
-    config()->set('devkit.platform_check', $check);
+    config()->set('nomeus.platform_check', $check);
 
     expect($this->manager->minPhp())->toBe('8.4')
         ->and(fn () => $this->manager->usePlan('8.3'))->toThrow(RuntimeException::class, 'need 8.4+')
         ->and($this->manager->usePlan('8.4')['argv'][1])->toBe('use');
 
-    config()->set('devkit.platform_check', $this->valetFs->root.'/missing.php');
-    config()->set('devkit.min_php', '8.2');
+    config()->set('nomeus.platform_check', $this->valetFs->root.'/missing.php');
+    config()->set('nomeus.min_php', '8.2');
     expect($this->manager->minPhp())->toBe('8.2')
         ->and($this->manager->usePlan('8.3')['argv'][2])->toBe('php@8.3');
 });
 
 it('reads composer\'s real platform check when no override is configured', function () {
-    config()->set('devkit.platform_check', null); // the shipped default: key present, value null
-    config()->set('devkit.min_php', '1.0');       // if this leaks through, the assertion below fails
+    config()->set('nomeus.platform_check', null); // the shipped default: key present, value null
+    config()->set('nomeus.min_php', '1.0');       // if this leaks through, the assertion below fails
 
     $real = base_path('vendor/composer/platform_check.php');
     if (! is_file($real) || ! preg_match('/PHP_VERSION_ID\s*>=\s*(\d{5,6})/', file_get_contents($real), $m)) {

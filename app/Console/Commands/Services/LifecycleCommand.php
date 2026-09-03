@@ -16,7 +16,7 @@ abstract class LifecycleCommand extends Command
         $name = (string) $this->argument('name');
         $i = $services->find($name);
         if ($i === null) {
-            $this->error("No service [{$name}]. See devkit services:list");
+            $this->error("No service [{$name}]. See nomeus services:list");
 
             return self::FAILURE;
         }

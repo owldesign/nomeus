@@ -2,7 +2,7 @@
 
 use App\Services\TaskRunner;
 
-it('shapes a cli task with devkit\'s php, artisan, the args and --no-interaction', function () {
+it('shapes a cli task with nomeus\'s php, artisan, the args and --no-interaction', function () {
     $plan = app(TaskRunner::class)->artisanPlan('services:start x', ['services:start', 'x'], 120);
 
     expect($plan['label'])->toBe('services:start x')

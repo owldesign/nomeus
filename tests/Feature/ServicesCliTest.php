@@ -7,17 +7,17 @@ use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeBrew;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-svccli-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
+    $this->root = sys_get_temp_dir().'/nomeus-svccli-'.uniqid();
+    mkdir("{$this->root}/nomeus", 0755, true);
     $this->brewFs = (new FakeBrew)->formula('redis', '8.2.1', ['redis-server'])->formula('postgresql@17', '17.6', ['initdb', 'postgres'])
         ->installed('8.4', '8.4.25')->linked('8.4');
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
-    config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
+    file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
+    config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
     $this->valetFs = new \Tests\Support\FakeValet;
-    config()->set('devkit.valet_config_dir', $this->valetFs->configDir);
-    config()->set('devkit.valet_bin', $this->valetFs->valetBin());
-    config()->set('devkit.launch_agents_dir', "{$this->root}/agents");
-    config()->set('devkit.uid', 501);
+    config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
+    config()->set('nomeus.launch_agents_dir', "{$this->root}/agents");
+    config()->set('nomeus.uid', 501);
     mkdir("{$this->root}/agents", 0755, true);
 
     $this->answering = [];
@@ -76,23 +76,23 @@ it('creates, lists, prints env, stops, starts and deletes an instance', function
         ->expectsOutputToContain('starting redis on 127.0.0.1:6379')
         ->expectsOutputToContain('redis: redis 8.2.1 on 127.0.0.1:6379')
         ->assertSuccessful();
-    expect(file_exists("{$this->root}/devkit/services/redis/service.json"))->toBeTrue()
-        ->and(file_exists("{$this->root}/agents/dev.zhuk.devkit.svc.redis.plist"))->toBeTrue();
+    expect(file_exists("{$this->root}/nomeus/services/redis/service.json"))->toBeTrue()
+        ->and(file_exists("{$this->root}/agents/dev.nomeus.svc.redis.plist"))->toBeTrue();
 
     $this->artisan('services:list')->expectsOutputToContain('running')->assertSuccessful();
     $this->artisan('services:list --json')->expectsOutputToContain('"formula": "redis"')->assertSuccessful();
     $this->artisan('services:env redis')->expectsOutput('REDIS_HOST=127.0.0.1')->expectsOutput('REDIS_PORT=6379')->assertSuccessful();
 
     $this->artisan('services:stop redis')->expectsOutputToContain('redis stopped')->assertSuccessful();
-    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'disable', 'gui/501/dev.zhuk.devkit.svc.redis']);
+    Process::assertRan(fn ($p) => $p->command === ['launchctl', 'disable', 'gui/501/dev.nomeus.svc.redis']);
     $this->artisan('services:list')->expectsOutputToContain('stopped')->assertSuccessful();
 
     $this->artisan('services:start redis')->expectsOutputToContain('redis running')->assertSuccessful();
     $this->artisan('services:restart redis')->expectsOutputToContain('redis restarted')->assertSuccessful();
 
     $this->artisan('services:delete redis --force')->expectsOutputToContain('redis deleted')->assertSuccessful();
-    expect(is_dir("{$this->root}/devkit/services/redis"))->toBeFalse()
-        ->and(file_exists("{$this->root}/agents/dev.zhuk.devkit.svc.redis.plist"))->toBeFalse();
+    expect(is_dir("{$this->root}/nomeus/services/redis"))->toBeFalse()
+        ->and(file_exists("{$this->root}/agents/dev.nomeus.svc.redis.plist"))->toBeFalse();
 });
 
 it('creates a named postgres on a chosen port without starting it, and clones it', function () {
@@ -146,11 +146,11 @@ it('lists adoptable brew services and adopts one, and runs the doctor', function
         ->expectsOutputToContain('adopted from')
         ->assertSuccessful();
     $this->artisan('services:list')->expectsOutputToContain('6379')->assertSuccessful();
-    expect(file_exists("{$this->root}/devkit/services/redis/data/dump.rdb"))->toBeTrue();
+    expect(file_exists("{$this->root}/nomeus/services/redis/data/dump.rdb"))->toBeTrue();
 
     $this->artisan('services:doctor')->expectsOutputToContain('launchd')->assertSuccessful();
     $this->artisan('services:doctor --json')->expectsOutputToContain('"level": "ok"')->assertSuccessful();
-    $this->artisan('services:adopt nginx')->expectsOutputToContain('No devkit driver')->assertFailed();
+    $this->artisan('services:adopt nginx')->expectsOutputToContain('No nomeus driver')->assertFailed();
 });
 
 it('upgrades an instance to another formula from the cli', function () {

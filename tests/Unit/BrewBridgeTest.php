@@ -1,7 +1,7 @@
 <?php
 
 use App\Services\BrewBridge;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Process;
@@ -13,9 +13,9 @@ beforeEach(function () {
         ->installed('8.5', '8.5.1', formula: 'php')   // homebrew-core alias: opt/php@8.5 → Cellar/php/8.5.1
         ->linked('8.4')
         ->available(['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']);
-    $this->cfg = sys_get_temp_dir().'/devkit-brewcfg-'.uniqid().'.json';
+    $this->cfg = sys_get_temp_dir().'/nomeus-brewcfg-'.uniqid().'.json';
     file_put_contents($this->cfg, json_encode(['brew_prefix' => $this->brewFs->root]));
-    $this->brew = new BrewBridge(new Shell(new DevkitConfig($this->cfg)));
+    $this->brew = new BrewBridge(new Shell(new NomeusConfig($this->cfg)));
 });
 
 afterEach(function () {

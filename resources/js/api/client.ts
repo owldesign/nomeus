@@ -12,7 +12,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
       Accept: 'application/json',
       'Content-Type': 'application/json',
       // Required on every unsafe request; forces a CORS preflight for anyone who isn't us.
-      'X-Devkit': '1',
+      'X-Nomeus': '1',
       ...(init?.headers ?? {}),
     },
   });

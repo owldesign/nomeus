@@ -10,7 +10,7 @@ class TaskRunCommand extends Command
 {
     protected $signature = 'task:run {id}';
 
-    protected $description = 'Run a queued devkit task (internal)';
+    protected $description = 'Run a queued nomeus task (internal)';
 
     protected $hidden = true;
 

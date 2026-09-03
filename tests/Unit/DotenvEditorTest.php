@@ -3,7 +3,7 @@
 use App\Support\DotenvEditor;
 
 beforeEach(function () {
-    $this->dir = sys_get_temp_dir().'/devkit-dotenv-'.uniqid();
+    $this->dir = sys_get_temp_dir().'/nomeus-dotenv-'.uniqid();
     mkdir($this->dir);
     $this->file = "{$this->dir}/.env";
 });
@@ -19,7 +19,7 @@ it('replaces the first definition in place and appends new keys under a header',
 
     expect($r)->toBe(['changed' => ['MAIL_MAILER', 'SESSION_DRIVER'], 'added' => ['MAIL_PORT'], 'created' => false])
         ->and(file_get_contents($this->file))->toBe(
-            "APP_NAME=Laravel\n# mail\nMAIL_MAILER=smtp\nMAIL_HOST=127.0.0.1\nMAIL_MAILER=other\nexport SESSION_DRIVER=redis\n\n# devkit\nMAIL_PORT=1025\n"
+            "APP_NAME=Laravel\n# mail\nMAIL_MAILER=smtp\nMAIL_HOST=127.0.0.1\nMAIL_MAILER=other\nexport SESSION_DRIVER=redis\n\n# nomeus\nMAIL_PORT=1025\n"
         );
 });
 

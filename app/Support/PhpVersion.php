@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-/** One installed php@X.Y keg as devkit sees it. */
+/** One installed php@X.Y keg as nomeus sees it. */
 final readonly class PhpVersion
 {
     public function __construct(

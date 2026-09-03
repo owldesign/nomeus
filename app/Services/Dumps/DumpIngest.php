@@ -9,7 +9,7 @@ use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 
 /**
  * One VarDumper server message → one store row. Plain dumps carry Symfony's own context
- * (source, request, cli); the client package's recorders add a `devkit` context with the kind.
+ * (source, request, cli); the client package's recorders add a `nomeus` context with the kind.
  */
 final class DumpIngest
 {
@@ -51,8 +51,8 @@ final class DumpIngest
 
     public function toRow(Data $data, array $context): array
     {
-        $devkit = (array) ($context['devkit'] ?? []);
-        $kind = in_array($devkit['kind'] ?? 'dump', self::KINDS, true) ? ($devkit['kind'] ?? 'dump') : 'dump';
+        $nomeus = (array) ($context['nomeus'] ?? []);
+        $kind = in_array($nomeus['kind'] ?? 'dump', self::KINDS, true) ? ($nomeus['kind'] ?? 'dump') : 'dump';
         $request = (array) ($context['request'] ?? []);
         $cli = (array) ($context['cli'] ?? []);
         $source = (array) ($context['source'] ?? []);
@@ -60,12 +60,12 @@ final class DumpIngest
         $text = $this->cli->dump($data, true);
         $row = [
             'kind' => $kind,
-            'request_key' => $devkit['request_id'] ?? $request['identifier'] ?? $cli['identifier'] ?? null,
-            'uri' => $request['uri'] ?? $devkit['uri'] ?? null,
-            'method' => $request['method'] ?? $devkit['method'] ?? null,
-            'command' => $cli['command_line'] ?? $devkit['command'] ?? null,
-            'file' => $devkit['file'] ?? $source['file'] ?? null,
-            'line' => isset($devkit['line']) ? (int) $devkit['line'] : (isset($source['line']) ? (int) $source['line'] : null),
+            'request_key' => $nomeus['request_id'] ?? $request['identifier'] ?? $cli['identifier'] ?? null,
+            'uri' => $request['uri'] ?? $nomeus['uri'] ?? null,
+            'method' => $request['method'] ?? $nomeus['method'] ?? null,
+            'command' => $cli['command_line'] ?? $nomeus['command'] ?? null,
+            'file' => $nomeus['file'] ?? $source['file'] ?? null,
+            'line' => isset($nomeus['line']) ? (int) $nomeus['line'] : (isset($source['line']) ? (int) $source['line'] : null),
             'text' => $kind === 'dump' ? $text : $this->summary($kind, $data),
             'html' => $kind === 'dump' ? $this->html->dump($data, true) : null,
             'payload' => $kind === 'dump' ? null : json_encode($this->value($data), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_PARTIAL_OUTPUT_ON_ERROR),

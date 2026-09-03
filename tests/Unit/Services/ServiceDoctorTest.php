@@ -23,7 +23,7 @@ it('reports a healthy layer', function () use ($byCheck) {
 
     expect($checks->has('launchd|ok'))->toBeTrue()
         ->and($checks->has('agents dir|ok'))->toBeTrue()
-        ->and($checks->get('dumps ini php 8.4|warn'))->toContain('missing — devkit dumps:install')
+        ->and($checks->get('dumps ini php 8.4|warn'))->toContain('missing — nomeus dumps:install')
         ->and($checks->get('binary redis|ok'))->toContain('redis-server --version runs')
         ->and($checks->get('instance redis|ok'))->toContain('running on 127.0.0.1:6379');
 });
@@ -40,9 +40,9 @@ it('flags crash loops, stale locks, port clashes and brew overlaps', function ()
     $this->w->brewCluster('redis', 'var/db/redis', ['dump.rdb' => ''], 6379);   // brew owns 6379 …
     $pg = $this->w->manager->create('postgresql', start: false);
     file_put_contents($pg->dataDir().'/postmaster.pid', "1\n");
-    $this->w->manager->create('redis', start: false);                            // … so devkit's redis lands on 6380
+    $this->w->manager->create('redis', start: false);                            // … so nomeus's redis lands on 6380
     // fake a crash loop on postgres: loaded, no pid, last exit 1
-    $this->w->loaded[] = 'dev.zhuk.devkit.svc.postgresql';
+    $this->w->loaded[] = 'dev.nomeus.svc.postgresql';
     Process::fake(['*launchctl*print*' => fn ($p) => match (true) {
         $p->command[2] === 'gui/501' => Process::result("gui/501 = {}\n"),
         str_contains($p->command[2], 'postgresql') => Process::result("state = waiting\n\tlast exit code = 1\n"),
@@ -53,7 +53,7 @@ it('flags crash loops, stale locks, port clashes and brew overlaps', function ()
 
     expect($checks->get('instance postgresql|fail'))->toContain('crash-looping (last exit 1)')
         ->and($checks->get('instance redis|ok'))->toBe('stopped')
-        ->and($checks->get('brew services|warn'))->toContain('devkit services:adopt redis');
+        ->and($checks->get('brew services|warn'))->toContain('nomeus services:adopt redis');
 
     // stale lock warning shows once the instance is not loaded
     $this->w->loaded = [];

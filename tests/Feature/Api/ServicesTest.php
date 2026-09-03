@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeBrew;
 
 beforeEach(function () {
-    $this->root = sys_get_temp_dir().'/devkit-svcapi-'.uniqid();
-    mkdir("{$this->root}/devkit", 0755, true);
+    $this->root = sys_get_temp_dir().'/nomeus-svcapi-'.uniqid();
+    mkdir("{$this->root}/nomeus", 0755, true);
     $this->brewFs = (new FakeBrew)->formula('redis', '8.2.1', ['redis-server'])->formula('postgresql@17', '17.6', ['initdb', 'postgres']);
-    file_put_contents("{$this->root}/devkit/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
-    config()->set('devkit.config_path', "{$this->root}/devkit/config.json");
-    config()->set('devkit.launch_agents_dir', "{$this->root}/agents");
-    config()->set('devkit.uid', 501);
+    file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
+    config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
+    config()->set('nomeus.launch_agents_dir', "{$this->root}/agents");
+    config()->set('nomeus.uid', 501);
 
     $this->mock(Probe::class, function ($m) {
         $m->shouldReceive('tcp')->andReturn(false);
@@ -41,7 +41,7 @@ afterEach(function () {
     $this->brewFs->destroy();
 });
 
-$h = ['X-Devkit' => '1'];
+$h = ['X-Nomeus' => '1'];
 $artisan = fn (array $args) => [PHP_BINARY, base_path('artisan'), ...$args, '--no-interaction'];
 
 it('lists instances with status and env, types with formulae, and detail with a log tail', function () {
@@ -118,7 +118,7 @@ it('runs start, stop, restart, clone and delete as cli tasks', function () use (
     expect($this->spawned)->toHaveCount(6);
 });
 
-it('refuses unsafe requests without the devkit header', function () {
+it('refuses unsafe requests without the nomeus header', function () {
     $this->postJson('/api/services/redis/start')->assertForbidden();
     $this->deleteJson('/api/services/redis')->assertForbidden();
     expect($this->spawned)->toBe([]);

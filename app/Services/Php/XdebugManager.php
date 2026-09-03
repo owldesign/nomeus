@@ -4,7 +4,7 @@ namespace App\Services\Php;
 
 use App\Services\BrewBridge;
 use App\Services\Dumps\PrependInstaller;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\Shell;
 use RuntimeException;
@@ -16,15 +16,15 @@ use RuntimeException;
  *   trigger — loaded, starts only with XDEBUG_TRIGGER / the browser helper's cookie
  *
  * Installed from shivammathur/extensions/xdebug@X.Y. That formula's own ini (20-xdebug.ini, loads
- * xdebug unconditionally) is moved aside; devkit's 99-devkit.ini is the only place xdebug is configured.
+ * xdebug unconditionally) is moved aside; nomeus's 99-nomeus.ini is the only place xdebug is configured.
  */
 final class XdebugManager
 {
     public const TAP_INI = '20-xdebug.ini';
-    public const QUARANTINE_SUFFIX = '.devkit-off';
+    public const QUARANTINE_SUFFIX = '.nomeus-off';
 
     public function __construct(
-        private readonly DevkitConfig $config,
+        private readonly NomeusConfig $config,
         private readonly BrewBridge $brew,
         private readonly Shell $shell,
         private readonly Probe $probe,
@@ -109,7 +109,7 @@ final class XdebugManager
     public function install(string $version, callable $log): array
     {
         if (! in_array($version, $this->brew->installedPhp(), true)) {
-            throw new RuntimeException("php@{$version} is not installed: devkit php:install {$version}");
+            throw new RuntimeException("php@{$version} is not installed: nomeus php:install {$version}");
         }
         $formula = $this->formula($version);
         if ($this->discoverSo($version) === null) {
@@ -151,7 +151,7 @@ final class XdebugManager
         $current = $this->state->get($version);
         $so = $current['so'] ?? $this->discoverSo($version);
         if ($so === null || ! is_file($so)) {
-            throw new RuntimeException("Xdebug is not installed for php {$version}: devkit xdebug:install {$version}");
+            throw new RuntimeException("Xdebug is not installed for php {$version}: nomeus xdebug:install {$version}");
         }
         $before = $current['mode'] ?? 'off';
         $this->state->set($version, $so, $mode);

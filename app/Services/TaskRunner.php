@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 use App\Support\Task;
 use App\Support\TaskSpawner;
@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Detached background commands, recorded as ~/.devkit/tasks/<id>.json + <id>.log.
+ * Detached background commands, recorded as ~/.nomeus/tasks/<id>.json + <id>.log.
  *
  * Why not run Valet inline in the request: `valet secure` restarts nginx (severing the very
  * connection carrying our response) and `valet use` restarts the php-fpm executing us.
@@ -22,7 +22,7 @@ final class TaskRunner
     public const KEEP = 100;
 
     public function __construct(
-        private readonly DevkitConfig $config,
+        private readonly NomeusConfig $config,
         private readonly Shell $shell,
         private readonly TaskSpawner $spawner,
     ) {}
@@ -62,7 +62,7 @@ final class TaskRunner
     }
 
     /**
-     * A task that runs one of devkit's own commands. The API uses this for every mutation that has
+     * A task that runs one of nomeus's own commands. The API uses this for every mutation that has
      * a CLI form, so there is one implementation per action and the task log is its streamed output.
      *
      * @param  list<string>  $args  e.g. ['services:start', 'redis']

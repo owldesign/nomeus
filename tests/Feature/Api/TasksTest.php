@@ -6,17 +6,21 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 
 beforeEach(function () {
-    $this->dir = sys_get_temp_dir().'/devkit-tasks-'.uniqid();
+    $this->dir = sys_get_temp_dir().'/nomeus-tasks-'.uniqid();
     mkdir($this->dir, 0755, true);
-    file_put_contents("{$this->dir}/config.json", json_encode(['code_dir' => '~/Sites']));
-    config()->set('devkit.config_path', "{$this->dir}/config.json");
+    $this->brewFs = new \Tests\Support\FakeBrew;
+    file_put_contents("{$this->dir}/config.json", json_encode(['code_dir' => '~/Sites', 'brew_prefix' => $this->brewFs->root]));
+    config()->set('nomeus.config_path', "{$this->dir}/config.json");
 
     $this->spawned = [];
     $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')
         ->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
 });
 
-afterEach(fn () => File::deleteDirectory($this->dir));
+afterEach(function () {
+    File::deleteDirectory($this->dir);
+    $this->brewFs->destroy();
+});
 
 it('spawns a task with an explicit environment and records it as queued', function () {
     $task = app(TaskRunner::class)->spawn(['label' => 'valet secure x', 'argv' => ['/x/valet', 'secure', 'x'], 'timeout' => 30]);

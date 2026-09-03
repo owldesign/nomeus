@@ -69,9 +69,9 @@ function UpdateButton() {
       className="border border-line px-2 py-0.5 hover:border-gold hover:text-gold disabled:text-mute"
       disabled={update.isPending}
       title="git pull --ff-only · composer install · npm run build · dumps:install · doctor"
-      onClick={() => { if (confirm('Update devkit now? (pull, deps, rebuild — the dashboard reloads when done)')) update.mutate({}, { onSuccess: (r) => setTaskId(r.task.id) }); }}
+      onClick={() => { if (confirm('Update nomeus now? (pull, deps, rebuild — the dashboard reloads when done)')) update.mutate({}, { onSuccess: (r) => setTaskId(r.task.id) }); }}
     >
-      {update.isPending ? 'enqueuing…' : 'update devkit'}
+      {update.isPending ? 'enqueuing…' : 'update nomeus'}
     </button>
   );
 }
@@ -83,7 +83,7 @@ export default function Status() {
   if (isLoading) return <p className="text-dim">reading…</p>;
   if (error || !data) return <p className="text-red">{String(error ?? 'no data')}</p>;
 
-  const { devkit, valet, php, services, dashboard } = data;
+  const { nomeus, valet, php, services, dashboard } = data;
 
   return (
     <div className="max-w-3xl">
@@ -106,12 +106,12 @@ export default function Status() {
         <pre className="overflow-x-auto border border-line bg-panel p-3 text-dim">{JSON.stringify(data, null, 2)}</pre>
       ) : (
         <div className="border border-line bg-panel px-4 py-1">
-          <Row k="home">{devkit.home}</Row>
+          <Row k="home">{nomeus.home}</Row>
           <Row k="config">
-            {devkit.config_path}
-            {!devkit.config_exists && <span className="text-gold"> — missing, run install/install.sh</span>}
+            {nomeus.config_path}
+            {!nomeus.config_exists && <span className="text-gold"> — missing, run install/install.sh</span>}
           </Row>
-          <Row k="code dir">{devkit.code_dir}</Row>
+          <Row k="code dir">{nomeus.code_dir}</Row>
           <Row k="valet">
             {valet.installed ? (
               <>
@@ -120,7 +120,7 @@ export default function Status() {
                 {valet.trusted ? (
                   <span className="text-green">trusted</span>
                 ) : (
-                  <span className="text-gold">not trusted — run devkit trust for dashboard actions</span>
+                  <span className="text-gold">not trusted — run nomeus trust for dashboard actions</span>
                 )}
               </>
             ) : (
@@ -140,7 +140,7 @@ export default function Status() {
             {dashboard.linked ? (
               <span className="text-green">linked</span>
             ) : (
-              <span className="text-gold">not linked — devkit link devkit</span>
+              <span className="text-gold">not linked — nomeus link nomeus</span>
             )}
           </Row>
         </div>

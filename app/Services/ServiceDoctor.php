@@ -96,7 +96,7 @@ final class ServiceDoctor
         foreach ($this->prepend->status() as $version => $st) {
             $st['current']
                 ? $add('ok', "dumps ini php {$version}", $this->prepend->iniPath($version))
-                : $add('warn', "dumps ini php {$version}", ($st['ini'] ? 'outdated' : 'missing').' — devkit dumps:install (then valet restart php)');
+                : $add('warn', "dumps ini php {$version}", ($st['ini'] ? 'outdated' : 'missing').' — nomeus dumps:install (then valet restart php)');
         }
 
         // xdebug: the formula's own ini must stay quarantined; "on" without a listener costs every request
@@ -107,9 +107,9 @@ final class ServiceDoctor
                     continue;
                 }
                 if ($x['tap_ini']) {
-                    $add('warn', "xdebug php {$version}", "the formula's 20-xdebug.ini is back (brew upgrade?) and loads xdebug unconditionally — devkit xdebug:mode {$x['mode']} --php={$version} re-quarantines it");
+                    $add('warn', "xdebug php {$version}", "the formula's 20-xdebug.ini is back (brew upgrade?) and loads xdebug unconditionally — nomeus xdebug:mode {$x['mode']} --php={$version} re-quarantines it");
                 } elseif ($x['mode'] === 'on' && ! $ide) {
-                    $add('warn', "xdebug php {$version}", "mode on but nothing listens on 127.0.0.1:{$this->xdebug->port()} — ~200 ms per request; devkit xdebug:mode trigger --php={$version}");
+                    $add('warn', "xdebug php {$version}", "mode on but nothing listens on 127.0.0.1:{$this->xdebug->port()} — ~200 ms per request; nomeus xdebug:mode trigger --php={$version}");
                 } else {
                     $add('ok', "xdebug php {$version}", "mode {$x['mode']}");
                 }
@@ -119,7 +119,7 @@ final class ServiceDoctor
         // brew services overlap
         foreach ($this->brewServices->adoptable() as $svc) {
             if ($svc['loaded'] || $svc['plist']) {
-                $add('warn', 'brew services', "{$svc['formula']} runs under brew services".($svc['answering'] ? " on {$svc['port']}" : '')." — take it over with: devkit services:adopt {$svc['formula']}");
+                $add('warn', 'brew services', "{$svc['formula']} runs under brew services".($svc['answering'] ? " on {$svc['port']}" : '')." — take it over with: nomeus services:adopt {$svc['formula']}");
             }
         }
         if ($instances === [] && $this->brewServices->adoptable() === []) {

@@ -63,7 +63,7 @@ export default function Mail() {
     return (
       <div className="max-w-3xl">
         <h1 className="mb-2 text-[15px] font-semibold">Mail</h1>
-        <p className="text-dim">No mailpit instance yet. <code>devkit services:create mailpit</code> (or the Services page) — SMTP on 1025, this page reads its inbox.</p>
+        <p className="text-dim">No mailpit instance yet. <code>nomeus services:create mailpit</code> (or the Services page) — SMTP on 1025, this page reads its inbox.</p>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function Mail() {
     return (
       <div className="max-w-3xl">
         <h1 className="mb-2 text-[15px] font-semibold">Mail</h1>
-        <p className="text-gold">{status.data.instance} is stopped. Start it from the Services page or <code>devkit services:start {status.data.instance}</code>.</p>
+        <p className="text-gold">{status.data.instance} is stopped. Start it from the Services page or <code>nomeus services:start {status.data.instance}</code>.</p>
       </div>
     );
   }
@@ -95,7 +95,7 @@ export default function Mail() {
           ))}
         </ul>
         {tags.data && tags.data.length === 0 && (
-          <p className="mt-3 text-dim">No tags yet — apps using zhuk/devkit-client show up here as they send.</p>
+          <p className="mt-3 text-dim">No tags yet — apps using nomeus/client show up here as they send.</p>
         )}
       </aside>
 

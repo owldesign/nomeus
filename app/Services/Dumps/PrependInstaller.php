@@ -5,12 +5,12 @@ namespace App\Services\Dumps;
 use App\Services\BrewBridge;
 use App\Services\Php\IniManager;
 use App\Services\Php\XdebugState;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 use RuntimeException;
 
 /**
- * The generated prepend file and the 99-devkit.ini that loads it in every installed PHP version.
+ * The generated prepend file and the 99-nomeus.ini that loads it in every installed PHP version.
  * php-fpm reads ini files at start, so a new ini needs one `valet restart php`; the CLI sees it at once.
  */
 final class PrependInstaller
@@ -18,7 +18,7 @@ final class PrependInstaller
     public const INI = IniManager::FILE;
 
     public function __construct(
-        private readonly DevkitConfig $config,
+        private readonly NomeusConfig $config,
         private readonly BrewBridge $brew,
         private readonly CaptureFlag $flag,
         private readonly Shell $shell,
@@ -53,7 +53,7 @@ final class PrependInstaller
         return str_replace(['{{FLAG}}', '{{HOST}}'], [addslashes($this->flag->path()), $this->host()], $stub);
     }
 
-    /** The whole 99-devkit.ini for a version: prepend section + whatever xdebug state that version has. */
+    /** The whole 99-nomeus.ini for a version: prepend section + whatever xdebug state that version has. */
     public function iniSource(string $version = ''): string
     {
         return $this->ini()->render($this->prependPath(), $version !== '' ? $this->xdebug->get($version) : null);
@@ -137,7 +137,7 @@ final class PrependInstaller
             }
             usleep(250_000);
         }
-        throw new RuntimeException("php-fpm did not come back within {$seconds}s — valet restart php, then devkit status");
+        throw new RuntimeException("php-fpm did not come back within {$seconds}s — valet restart php, then nomeus status");
     }
 
     private function write(string $path, string $content): void

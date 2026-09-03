@@ -23,7 +23,7 @@ class SitesCommand extends Command
         }
 
         if ($sites === []) {
-            $this->warn('No sites. Park a directory (devkit park) or link one (devkit link).');
+            $this->warn('No sites. Park a directory (nomeus park) or link one (nomeus link).');
 
             return self::SUCCESS;
         }

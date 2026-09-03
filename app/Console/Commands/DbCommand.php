@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\DatabaseUrl;
 use App\Services\SiteResolver;
-use App\Support\DevkitConfig;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 use App\Support\SiteEnv;
 use Illuminate\Console\Command;
@@ -25,12 +25,12 @@ class DbCommand extends Command
 
     protected $description = 'Open the site\'s database from its .env in the GUI client from config.json ("db_client")';
 
-    public function handle(SiteResolver $sites, DevkitConfig $config, Shell $shell): int
+    public function handle(SiteResolver $sites, NomeusConfig $config, Shell $shell): int
     {
         $site = $sites->resolve($this->argument('name'), (string) getcwd());
         if ($site === null || $site->type === 'proxy') {
             $this->error($site === null
-                ? ($this->argument('name') ? "Site [{$this->argument('name')}] is not parked or linked." : 'Current directory is not inside a Valet site. Pass a name: devkit db <name>')
+                ? ($this->argument('name') ? "Site [{$this->argument('name')}] is not parked or linked." : 'Current directory is not inside a Valet site. Pass a name: nomeus db <name>')
                 : "[{$site->name}] is a proxy; it has no .env.");
 
             return self::FAILURE;
