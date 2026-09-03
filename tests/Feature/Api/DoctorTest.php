@@ -99,7 +99,7 @@ it('reports commits behind with self-update --check and refuses a dirty tree', f
     Process::assertNotRan(fn ($p) => ($p->command[0] ?? '') === 'composer');
 });
 
-it('runs npm through fnm when npm is not on the task PATH', function () {
+it('runs npm through fnm whenever fnm is installed (a stray npm without node on PATH is the trap)', function () {
     if (! is_dir(base_path('.git'))) {
         $this->markTestSkipped('not a git checkout');
     }
@@ -107,13 +107,13 @@ it('runs npm through fnm when npm is not on the task PATH', function () {
     file_put_contents($fnm, "#!/bin/sh\n");
     chmod($fnm, 0755);
     Process::fake([
-        '*which*' => fn ($p) => Process::result(in_array('fnm', $p->command, true) ? "{$fnm}\n" : ''),   // fnm is on PATH, npm is not (a dashboard task)
+        '*which*' => fn ($p) => Process::result(in_array('fnm', $p->command, true) ? "{$fnm}\n" : (in_array('npm', $p->command, true) ? "/opt/homebrew/bin/npm\n" : '')),   // npm on PATH, node not, fnm present
         "*fnm' 'ls'*" => Process::result("* v22.11.0 default\n"),
         "*fnm' 'exec'*" => Process::result(''),
         '*git*rev-list*HEAD..*' => Process::result("0\n"),
         "*'composer' 'install'*" => Process::result(''),
     ]);
-    $this->artisan('self-update')->expectsOutputToContain('npm ci')->run();
+    $this->artisan('self-update')->expectsOutputToContain('node via fnm (22.11.0)')->run();
     Process::assertRan(fn ($p) => array_slice($p->command, 0, 5) === [$fnm, 'exec', '--using', '22.11.0', '--'] && array_slice($p->command, 5, 2) === ['npm', 'ci']);
     Process::assertRan(fn ($p) => array_slice($p->command, 5) === ['npm', 'run', 'build']);
 });

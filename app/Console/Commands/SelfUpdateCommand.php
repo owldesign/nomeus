@@ -70,10 +70,21 @@ class SelfUpdateCommand extends Command
             return self::FAILURE;
         }
         if (! $this->option('no-build')) {
-            // From a dashboard task there is no shell profile, so fnm's node isn't on PATH: run npm through fnm when needed.
-            $npm = fn (array $argv) => $shell->which('npm') !== null ? $argv : $node->execArgv($node->pinOf($root) ?? $node->installed()['default'] ?? $node->installed()['lts'], $argv);
-            if ($shell->which('npm') === null && ! $node->available()) {
-                $this->error('npm is not on nomeus\'s PATH and fnm is not installed — run `npm ci && npm run build` from a terminal, or install fnm (brew install fnm).');
+            // A dashboard task has no shell profile, so fnm's node isn't on PATH — and a stray `npm` on PATH without a
+            // `node` next to it dies with "env: node: No such file". With fnm installed, always go through it.
+            if ($node->available()) {
+                $using = $node->pinOf($root) ?? $node->installed()['default'] ?? $node->installed()['versions'][0] ?? null;
+                if ($using === null) {
+                    $this->error('fnm has no node installed — nomeus node:install lts');
+
+                    return self::FAILURE;
+                }
+                $this->line("<fg=gray>node via fnm ({$using})</>");
+                $npm = fn (array $argv) => $node->execArgv($using, $argv);
+            } elseif ($shell->which('node') !== null && $shell->which('npm') !== null) {
+                $npm = fn (array $argv) => $argv;
+            } else {
+                $this->error('node/npm are not on nomeus\'s PATH and fnm is not installed — run `npm ci && npm run build` from a terminal, or brew install fnm.');
 
                 return self::FAILURE;
             }
