@@ -124,7 +124,20 @@ nomeus self-update                 # pull · deps · build · ini · doctor
 | [`docs/linux.md`](docs/linux.md) | the Linux port, what runs where |
 | [`docs/design/`](docs/design) | tokens, component specs, the briefs |
 | [`docs/runbooks.md`](docs/runbooks.md) | the build log — every slice, with every trap met on a real machine |
+| [`apps/macos/`](apps/macos) | Nomeus.app — the menu bar shell (Swift, no developer account needed) |
 | [`CHANGELOG.md`](CHANGELOG.md) | what each tag contains |
+
+## Nomeus.app
+
+A native menu bar app over the same API: services with start / stop / restart, sites with open-in-browser and reveal-in-Finder, the dashboard in a window, a notification when an instance stops answering, launch at login. Nothing is ported — it talks to `http://nomeus.test` like the SPA does.
+
+Download `Nomeus-<version>.zip` from [Releases](https://github.com/owldesign/nomeus/releases), drop it in Applications, then — because it is ad-hoc signed, not notarized —
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Nomeus.app
+```
+
+(on macOS 14 and 15, right-click → Open works too; macOS 26 calls the app "damaged" and offers nothing else). Requires macOS 14. Build it yourself with `cd apps/macos && scripts/bundle.sh`.
 
 ## Development
 
@@ -132,6 +145,7 @@ nomeus self-update                 # pull · deps · build · ini · doctor
 vendor/bin/pest          # every process and HTTP call is faked, nothing touches the machine
 npm run build            # the dashboard (React, Tailwind v4, TanStack Query)
 nomeus self-update       # from a checkout with a remote
+cd apps/macos && swift test && swift run Nomeus   # the menu bar app; scripts/bundle.sh for Nomeus.app
 ```
 
 The repo grew in vertical slices — plan, code with tests, an HTML runbook, a run on a real Mac, the fixes that run produced — and

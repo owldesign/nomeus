@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nomeus · runbook 10a · macos</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>nomeus <small>· runbook 10a · Nomeus.app</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~30 min · phases 0–4</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>Nomeus.app builds from the checkout with no developer account, sits in the menu bar, drives services through the same tasks the SPA uses, and the dashboard opens in a window.</b>
+  Precondition: v2.1.0 tagged (9b), CI green, tree clean; Valet serving <code>http://nomeus.test</code>; Xcode 15.3+ or the matching Command Line Tools (<code>swift --version</code> ≥ 5.10). One line changes on the PHP side (<code>dashboard.url</code> honours <code>valet secure</code>).
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Overlay, test the core <span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay, confirm the PHP suite is untouched</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-10a.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; git status --short &amp;&amp; vendor/bin/pest</pre>
+<pre class="out">New: apps/macos/, .github/workflows/macos.yml, docs/runbook-10a-macos.html. Modified: README.md, docs/runbooks.md, .gitignore, .github/workflows/release.yml (an <code>app</code> job), app/Services/StatusService.php, tests/Feature/Api/StatusTest.php, resources/js/components/Layout.tsx (the shell no longer scrolls — <code>npm run build</code> before 1.4). Tests: 237 passed (236 at the tag) — one PHP change: <code>StatusService</code> now reports <code>dashboard.url</code> as https when the site is secured (the 1.3 finding, below).</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="0.2"><label><input type="checkbox"><span class="id">0.2</span><span class="title">Toolchain</span></label>
+    <div class="body">
+<pre class="cmd">swift --version &amp;&amp; xcode-select -p</pre>
+<pre class="out">Apple Swift version 5.10 or 6.x · /Applications/Xcode.app/Contents/Developer (or /Library/Developer/CommandLineTools)</pre>
+    <div class="callout red">If <code>swift</code> is missing or says "xcrun: error: unable to find utility": <code>xcode-select --install</code> for the Command Line Tools, or open Xcode once and accept the licence. Neither needs an Apple ID beyond the free one. If you only have CLT and <code>swift build</code> later complains about SwiftUI, install Xcode — the CLT SDK sometimes lags a macOS release.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="0.3"><label><input type="checkbox"><span class="id">0.3</span><span class="title">The core tests — no network, no bundle</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code/nomeus/apps/macos &amp;&amp; swift test</pre>
+<pre class="out">First run resolves nothing (no dependencies) and compiles NomeusCore + tests: ~40 s. Then: Executed 30 tests, with 0 failures.</pre>
+    <div class="callout blue">Everything in NomeusCore is fed by <code>FakeTransport</code>: the fixtures are copies of what <code>/api/status</code>, <code>/api/sites</code>, <code>/api/services</code> and <code>/api/tasks/{id}</code> return today (shapes from <code>StatusService::snapshot</code>, <code>Site::toArray</code>, <code>ServiceInstanceResource</code>, <code>Task::toArray</code>). If a later PHP slice changes one of those shapes, these are the tests that go red.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>Run it from the checkout <span class="t">~6 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Launch unbundled</span></label>
+    <div class="body">
+<pre class="cmd">swift run Nomeus</pre>
+<pre class="out">Compiles the app target (~30 s), then the four-point star from the logo appears in the menu bar, filled. No dock icon, no window. The terminal stays attached — ^C quits.</pre>
+    <div class="callout gold">Unbundled means two things are off by design: notifications and launch-at-login both abort a process that has no <code>.app</code> around it, so <code>AppSettings.isBundled</code> gates them. Phase 2 turns them on.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">The panel</span></label>
+    <div class="body">
+<p>Click the icon. Header: the star in lantern gold, "Nomeus · All services running · v2.1.0" (or "n services down"). Services: one row per instance with a coloured dot (green running, red stopped, orange crash-looping, grey formula missing), type/version/port, and restart/stop or start. Sites: every Valet site, lock icon when secured, open-in-browser and reveal-in-Finder (not for proxies). Footer: Dashboard, In browser, settings, quit.</p>
+    <div class="callout blue">Hover a dot: the tooltip is the launchd state ("Running, pid …" / "Loaded, not answering" / "Stopped"). That comes from <code>/api/services</code>, which is only fetched while the panel is open; the icon itself follows the cheap <code>/api/status</code> port probes.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">Stop and start something</span></label>
+    <div class="body">
+<p>Stop a service from the row. The row shows a spinner while the task runs (<code>POST …/stop</code> → 202 → polling <code>/api/tasks/{id}</code>), then the dot goes red and the menu bar star becomes an outline. Start it again; green, filled star. (All down: the star is struck through. API unreachable: faint outline.)</p>
+<pre class="cmd">nomeus tasks --limit=3</pre>
+<pre class="out">The two lifecycle tasks the app enqueued, status done — same path as the dashboard's buttons.</pre>
+    <div class="callout red">If the row spins for a long time and then shows "… failed — see the Tasks page": that is the task's own non-zero exit, not the app. Open the dashboard's Tasks page for the log, exactly as you would after clicking the SPA button.</div>
+    <div class="callout red"><b>Seen on the first run: a 405 "GET method is not supported for route api/services/…/stop" that flashed and vanished.</b> Cause: <code>nomeus.test</code> is secured, nginx 301s http → https, and URLSession follows a 301 by re-issuing the request as a GET (RFC behaviour). Reads survived that, every POST became a 405. Two fixes shipped: the transport no longer follows redirects — the model reads the Location, adopts that origin, retries the same method once and remembers it (Settings → Dashboard URL flips to https on its own) — and <code>/api/status</code> now says <code>https://nomeus.test</code> up front when the site is secured, so a fresh install never hits the redirect at all. <code>curl -si http://nomeus.test/api/status | head -1</code> shows the 301 that was doing it.</div>
+    <div class="callout red"><b>Then a 403 "Missing X-Nomeus header."</b> — <code>RequireNomeusHeader</code> (bootstrap/app.php, on every api route) demands <code>X-Nomeus: 1</code> on any unsafe method; it's the CSRF / DNS-rebinding guard, and the SPA's <code>client.ts</code> sends it. The app now does too, on every POST, and the fake transport in the Swift tests enforces the same 403 so a new mutation path can't forget it. Reads never needed it, which is why the panel populated fine while every button failed.</div>
+    <div class="callout red"><b>Why both errors "quickly went away"</b> — <code>run()</code> set the error, then the refresh it triggers cleared it, one poll later. The model now keeps two kinds apart: a refresh error clears itself on the next good refresh; an action error (failed task, 4xx/5xx on a button) stays until the next action or the ✕ on the line. The Swift test for the 422 case asserts the error survives a <code>refreshAll()</code>, which is the assertion that was failing.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.4"><label><input type="checkbox"><span class="id">1.4</span><span class="title">Dashboard window</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code/nomeus &amp;&amp; npm run build</pre>
+<p>Footer → Dashboard (⌘D while the panel is open). A 1180×780 window with the SPA. Open Logs or a long Services page and scroll: the sidebar and the status strip stay, only the content moves — same in Safari at nomeus.test, since it's the SPA's <code>Layout.tsx</code> that changed (<code>h-screen</code> shell, <code>overflow-y-auto</code> on <code>&lt;main&gt;</code> and the sidebar). Click a site link inside it: the site opens in your default browser, not in the window. Links to the SPA's own pages stay inside. Close the window; the menu bar item survives.</p>
+    <div class="callout gold">The window loads whatever <code>/api/status</code> reports as <code>dashboard.url</code>. If you've run <code>valet secure nomeus</code> it's https, and WKWebView trusts it because Valet's CA is in your login keychain. There is no bundled copy of the SPA — <code>npm run build</code> on the PHP side is still the only build of the UI.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.5"><label><input type="checkbox"><span class="id">1.5</span><span class="title">Unreachable state</span></label>
+    <div class="body">
+<pre class="cmd">valet stop</pre>
+<p>Within 30 s (5 s if the panel is open) the star fades to a faint outline. Panel: "Can't reach nomeus.test … <code>nomeus doctor</code>", Retry. The version from the last good snapshot stays in the header.</p>
+<pre class="cmd">valet start</pre>
+<p>Retry, or wait a tick: back to normal. ^C the <code>swift run</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>Bundle it <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">bundle.sh</span></label>
+    <div class="body">
+<pre class="cmd">scripts/bundle.sh</pre>
+<pre class="out">▸ swift build (release, universal) · ▸ app icon · ▸ codesign (ad-hoc) · dist/Nomeus.app: valid on disk / satisfies its Designated Requirement · ▸ dist/Nomeus-2.1.0.zip · done · ~550K</pre>
+    <div class="callout gold">Version comes from <code>config/nomeus.php</code> so the app and CLI carry the same number; <code>VERSION=… scripts/bundle.sh</code> overrides. The icon is <code>site/favicon.svg</code> rasterised by <code>qlmanage</code> — if that step prints "didn't rasterise", the build still succeeds without an icon and you can drop a 1024px PNG in later.</div>
+    <div class="callout red">Walked on macOS 26.5 / Xcode 26 (swift 6.3): 15 s for the universal build, and the zip is <b>~550K</b>, not the ~3M guessed above — SwiftUI and WebKit are system frameworks, the binary is 1.8M and compresses well. <code>codesign</code> prints "replacing existing signature" first: SwiftPM already ad-hoc signs a release binary, the bundle signature replaces it. Both lines are normal.</div>
+    <div class="callout red"><code>--arch x86_64</code> fails on a machine whose CLT lacks the Intel slice (rare, but seen on fresh installs): <code>ARCH=arm64 scripts/bundle.sh</code> for a native-only build.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">Install and launch the bundle</span></label>
+    <div class="body">
+<pre class="cmd">cp -R dist/Nomeus.app /Applications/ &amp;&amp; open /Applications/Nomeus.app</pre>
+<pre class="out">Menu bar icon; same panel. First launch asks to allow notifications — allow, and answer it before you quit the app (below).</pre>
+    <div class="callout red">First bundled launch: the star came up faint and the panel said <i>Nomeus is unreachable: The resource could not be loaded because the App Transport Security policy requires the use of a secure connection.</i> Every poll had failed on the plain-http first request. <code>Info.plist</code> had <code>NSAllowsArbitraryLoads</code> <i>and</i> <code>NSAllowsLocalNetworking</code> — and macOS ignores the former the moment any narrower ATS key is present, while <code>nomeus.test</code> (dnsmasq → 127.0.0.1) doesn't count as "local". Phase 1 never saw it: <code>swift run</code> has no Info.plist, so ATS never applied. Fixed by dropping the second key; <code>InfoPlistTests</code> (test 30) reads <code>Resources/Info.plist</code> and fails if any of the narrower keys comes back.</div>
+    <div class="callout red">The panel showed ports as <code>:9,912</code>. <code>Text("… :\(service.port)")</code> goes through <code>LocalizedStringKey</code>, which formats an <code>Int</code> with the locale's grouping separator. Now <code>String(service.port)</code>.</div>
+    <div class="callout red">The notification prompt is asked <b>once</b>. The app was killed while it was still on screen, and from then on macOS answered every <code>requestAuthorization</code> silently: no prompt, no callback, status <i>denied</i> — and Nomeus did not appear under System Settings → Notifications, so there was nothing to flip. What brought the prompt back, in this order: quit the app, delete <i>every</i> copy of Nomeus.app (<code>/Applications</code> and <code>dist/</code>), <code>killall usernoted NotificationCenter</code>, reinstall from the zip, launch. <code>killall usernoted</code> alone, a reinstall alone and launching a copy from another path did not. Settings now has a <b>Notifications</b> row (<i>allowed</i> / <i>not allowed</i> / <i>not asked yet</i>) read from <code>notificationSettings()</code>, so the state is visible without the log.</div>
+    <div class="callout blue">Settings (gear, or ⌘,) now enables the "Launch at login" toggle. Flip it on: macOS posts "Login Item Added — Nomeus will open automatically when you log in" and System Settings → General → Login Items lists Nomeus. That's <code>SMAppService.mainApp</code> — works with an ad-hoc signature because it registers the app itself, not a helper. Without opening System Settings: <code>sfltool dumpbtm | grep -A6 'Name: Nomeus'</code> shows <i>Type: app · Disposition: [enabled, allowed, notified] · Bundle Identifier: dev.nomeus.app</i>. The registration survives replacing the bundle in place.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">The notification</span></label>
+    <div class="body">
+<pre class="cmd">nomeus services:stop redis</pre>
+<p>Within one poll: a notification "redis stopped — The redis instance on port 6379 is no longer answering." and the menu bar label flips to "1 service down". Start it again from the panel; no notification for coming back (transitions to <i>down</i> only).</p>
+<pre class="cmd">/usr/bin/log show --last 2m --predicate 'process == "usernoted" AND eventMessage CONTAINS "dev.nomeus.app"' --info | grep Presenting</pre>
+<pre class="out">Presenting &lt;NotificationRecord app:"dev.nomeus.app" … req:"nomeus.redis stopped.…"&gt; — usernoted's side of the same event, for when the banner is gone before you look.</pre>
+    <div class="callout red">Note the <code>/usr/bin/log</code>. In zsh, <code>log</code> is a builtin (it watches logins), so a bare <code>log show …</code> prints nothing and no error — half an hour went into "the app never logs" before that surfaced. NSLog from the bundle also never reached the unified log on this machine, which is why the Notifier reads its state back from <code>notificationSettings()</code> instead of trusting the request's callback.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.4"><label><input type="checkbox"><span class="id">2.4</span><span class="title">What a downloader sees</span></label>
+    <div class="body">
+<pre class="cmd">cd /tmp &amp;&amp; cp ~/Code/nomeus/apps/macos/dist/Nomeus-*.zip . &amp;&amp; xattr -w com.apple.quarantine "0083;$(printf '%x' $(date +%s));Safari;" Nomeus-*.zip &amp;&amp; unzip -oq Nomeus-*.zip &amp;&amp; open Nomeus.app</pre>
+<pre class="out">macOS 26: "“Nomeus” is damaged and can’t be opened. You should move it to the Trash." with Move to Trash / Cancel. macOS 14–15: "Nomeus.app Not Opened — Apple could not verify…". Either way: the Gatekeeper dialog every unsigned download gets.</pre>
+<pre class="cmd">xattr -dr com.apple.quarantine /tmp/Nomeus.app &amp;&amp; open /tmp/Nomeus.app</pre>
+<p>Opens. That's the line in the README. Quit it (it's a second copy; the /Applications one is the real install).</p>
+    <div class="callout red">Walked on macOS 26.5: the dialog is the "damaged" one, not "could not verify", and it offers only Move to Trash / Cancel — no right-click → Open, no "Open Anyway" in Privacy &amp; Security. The app is also launched app-translocated (<code>/private/var/folders/…/AppTranslocation/…/Nomeus.app</code>) and killed. <code>xattr -dr com.apple.quarantine</code> is the only path on 26, which is why the README now says so; the process then runs from <code>/tmp/Nomeus.app</code> itself, same panel, "All services running".</div>
+    <div class="callout gold">Right-click → Open also works on macOS 14; on macOS 15 the first attempt is refused and System Settings → Privacy &amp; Security → "Open Anyway" is the second. The <code>xattr</code> line is the same everywhere, which is why it's the documented path. A Developer ID + notarization removes the dialog entirely and changes nothing in this slice. Afterwards: quit the /tmp copy, delete it, and <code>lsregister -f /Applications/Nomeus.app</code> so LaunchServices points back at the real install (two registered copies with one bundle id confuse <code>open</code> and usernoted).</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>CI <span class="t">~6 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Commit, push, watch macos.yml</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code/nomeus &amp;&amp; git add -A &amp;&amp; git commit -m "10a: Nomeus.app — SwiftPM menu bar shell over the API" &amp;&amp; git push</pre>
+<pre class="out">Actions → macos: test (30 passed) → bundle → artifact "Nomeus.app" containing Nomeus-2.1.0.zip. ~5 min on a macos-15 runner, mostly the universal release build. ci (pest, 8.4 required / 8.5 reported) runs too — apps/macos/ isn't on its paths-ignore — and stays green: no PHP changed.</pre>
+    <div class="callout gold">Two workflows, two jobs. <code>macos.yml</code> triggers on <code>apps/macos/**</code>, the favicon and <code>config/nomeus.php</code> — PHP-only pushes don't burn macOS minutes (10× the Linux rate on private repos; free on public). Tags are <code>release.yml</code>'s: its new <code>app</code> job runs <em>after</em> the Release exists and <code>gh release upload</code>s the zip, so there's no race with the notes and a failed Swift build leaves the Release standing without the zip instead of blocking it.</div>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">Download the CI artifact and run it</span></label>
+    <div class="body">
+<p>From the run page, download the artifact, unzip, <code>xattr -dr com.apple.quarantine</code>, open. Same app, built by the runner — proves the build isn't leaning on anything local.</p>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.3"><label><input type="checkbox"><span class="id">3.3</span><span class="title">Cut 2.2.0 — the first Release with the zip</span></label>
+    <div class="body">
+<pre class="cmd">sed -i '' "s/'version' => '.*'/'version' => '2.2.0'/" config/nomeus.php &amp;&amp; php artisan docs:changelog --next=2.2.0 &amp;&amp; git commit -am "release: 2.2.0" &amp;&amp; git push &amp;&amp; git tag -a v2.2.0 -m "nomeus 2.2.0" &amp;&amp; git push --tags</pre>
+<pre class="out">release: test → release (notes from CHANGELOG) → app (macos-15: swift test, bundle.sh, gh release upload). The Release page shows the notes and, a few minutes later, Nomeus-2.2.0.zip under Assets. That's the link the README's "Nomeus.app" section points at.</pre>
+    <div class="callout blue"><code>nomeus self-update</code> on the other checkout: 2.2.0. The app's About (Settings header) reports the same number, because <code>bundle.sh</code> read it from <code>config/nomeus.php</code> on the tag.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Troubleshooting <span class="t">as needed</span></h2>
+  <div class="trouble">
+    <div class="callout"><b>swift build: "no such module 'SwiftUI'"</b> — Command Line Tools SDK without the macOS 14 frameworks. Install Xcode, <code>sudo xcode-select -s /Applications/Xcode.app</code>, retry.</div>
+    <div class="callout"><b>Icon appears but the panel is empty and the icon is the bolt</b> — <code>curl -s http://nomeus.test/api/status | head -c 200</code>. HTML instead of JSON means nomeus isn't the linked site at that host (<code>nomeus doctor</code>); a hang means nginx/fpm (<code>valet restart</code>). If your dashboard is at another host, Settings → Dashboard URL.</div>
+    <div class="callout"><b>Dashboard window is blank, white</b> — WKWebView refused a mixed https/http situation. Set the Dashboard URL to exactly what <code>nomeus status --json | jq .dashboard.url</code> prints.</div>
+    <div class="callout"><b>"Launch at login" greyed out</b> — you're running <code>swift run</code>, or the .app is not in /Applications (SMAppService needs a stable path). Move it and relaunch.</div>
+    <div class="callout"><b>No notifications ever</b> — Settings → Notifications row. <i>not allowed</i>: the one-shot prompt was lost (the app quit while it was up, or Don't Allow); System Settings → Notifications → Nomeus if it's listed, else the reset in 2.2 (delete every copy, <code>killall usernoted NotificationCenter</code>, reinstall). <i>available when running from Nomeus.app</i>: you launched via <code>swift run</code> (gated). <i>allowed</i> and still nothing: nothing transitioned — notifications fire on running → stopped only.</div>
+    <div class="callout"><b>"Nomeus is damaged and can't be opened"</b> — macOS 26's wording for a quarantined app with no notarization; nothing is damaged. <code>xattr -dr com.apple.quarantine /Applications/Nomeus.app</code>, open again.</div>
+    <div class="callout"><b>Panel says "App Transport Security policy requires the use of a secure connection"</b> — an Info.plist with a narrower ATS key next to <code>NSAllowsArbitraryLoads</code>; <code>swift test</code> (InfoPlistTests) catches it before <code>bundle.sh</code> does.</div>
+    <div class="callout"><b><code>log show</code> prints nothing</b> — you're in zsh and <code>log</code> is its builtin. <code>/usr/bin/log show --last 5m --predicate 'process == "Nomeus"'</code>.</div>
+    <div class="callout"><b>codesign: "resource fork, Finder information, or similar detritus not allowed"</b> — <code>xattr -cr dist/Nomeus.app</code> then rerun <code>bundle.sh</code>; happens when the icon was copied through Finder.</div>
+  </div>
+</section>
+</main>
+<script>
+(function () {
+  var KEY = 'nomeus-runbook-10a';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

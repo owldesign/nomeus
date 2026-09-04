@@ -78,6 +78,13 @@ it('returns the status snapshot', function () {
         ->assertJsonPath('nomeus.code_dir', NomeusConfig::homeDir().'/Sites');
 });
 
+it('reports the dashboard as https once the site is secured', function () {
+    mkdir("{$this->dir}/valet/Certificates", 0755, true);
+    touch("{$this->dir}/valet/Certificates/nomeus.test.crt");
+
+    $this->getJson('/api/status')->assertOk()->assertJsonPath('dashboard.url', 'https://nomeus.test');
+});
+
 it('reads the valet version from cli/valet.php without running valet', function () {
     Process::fake(['*valet*--version*' => Process::result('', 'sudo: a password is required', 1)]);
 

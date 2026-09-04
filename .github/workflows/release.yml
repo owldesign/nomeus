@@ -1,4 +1,5 @@
-# release — a GitHub Release for every v* tag, body from that version's CHANGELOG.md section.
+# release — a GitHub Release for every v* tag, body from that version's CHANGELOG.md section,
+# then Nomeus-<version>.zip (apps/macos, ad-hoc signed) attached to it.
 # The README's release badge links to /releases; this is what fills it.
 name: release
 
@@ -59,3 +60,25 @@ jobs:
           name: nomeus ${{ github.ref_name }}
           body_path: body.md
           prerelease: ${{ contains(github.ref_name, '-') }}
+
+  # Nomeus.app rides the same tag. Runs after the Release exists so `gh release upload` has somewhere to put it;
+  # a failure here leaves the Release in place without the zip rather than blocking it.
+  app:
+    needs: release
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: apps/macos
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # bundle.sh: commit count → CFBundleVersion
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - run: swift test
+      - run: scripts/bundle.sh
+      - name: attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/Nomeus-*.zip --clobber

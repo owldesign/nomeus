@@ -61,7 +61,9 @@ final class StatusService
                 'mailpit' => $this->shell->running('mailpit') || $this->probe->tcp('127.0.0.1', $smtpPort),
             ],
             'dashboard' => [
-                'url' => "http://{$site}.{$tld}",
+                // Match what nginx will actually serve: a secured site 301s http → https, and URLSession-style
+                // clients re-issue a redirected POST as GET (405 on every task route). Say https up front.
+                'url' => ($installed && in_array($site, $this->valet->secured(), true) ? 'https' : 'http')."://{$site}.{$tld}",
                 'linked' => $installed && $this->valet->isLinked($site),
             ],
             // Port probe only: launchctl per instance is too slow for a 5-second poll.

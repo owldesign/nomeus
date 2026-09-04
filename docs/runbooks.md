@@ -34,3 +34,4 @@ They are the build history — and the record of every trap met on a real machin
 | 8c | [site](runbook-8c-site.html) | nomeus.dev: the designed landing page, fonts, the two screenshots |
 | 9a | [public-ready](runbook-9a-public.html) | CI on every push, a Release per tag with notes from `CHANGELOG.md`, `docs:changelog`, CONTRIBUTING, issue templates; v2.0.0 |
 | 9b | [agents](runbook-9b-agents.html) | agents that outlive the checkout that made them: `agents:rewrite`, the doctor check, self-update hook; php 8.5 on CI |
+| 10a | [macos](runbook-10a-macos.html) | Nomeus.app: the SwiftPM menu bar shell over the API; ad-hoc signed, no developer account; the zip on every Release |

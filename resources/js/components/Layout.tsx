@@ -72,8 +72,10 @@ function StatusStrip() {
 
 export default function Layout() {
   return (
-    <div className="grid min-h-screen grid-cols-[200px_1fr]">
-      <aside className="border-r border-line bg-panel px-4 py-5">
+    // The shell is the viewport; only <main> scrolls, so the sidebar and the status strip stay put
+    // (a page's own sticky headers now stick to <main>, which is what they meant anyway).
+    <div className="grid h-screen grid-cols-[200px_1fr] overflow-hidden">
+      <aside className="overflow-y-auto border-r border-line bg-panel px-4 py-5">
         <div className="mb-6 flex items-baseline justify-between text-[15px] font-semibold tracking-wide text-lantern">
           <span className="inline-flex items-center gap-2"><Star size={13} />nomeus</span>
           <Version />
@@ -101,11 +103,11 @@ export default function Layout() {
         </nav>
       </aside>
 
-      <div className="flex min-w-0 flex-col">
-        <header className="flex min-h-[44px] items-center border-b border-line bg-inset px-6 py-2">
+      <div className="flex min-h-0 min-w-0 flex-col">
+        <header className="flex min-h-[44px] shrink-0 items-center border-b border-line bg-inset px-6 py-2">
           <div className="w-full"><StatusStrip /></div>
         </header>
-        <main className="min-w-0 flex-1 px-6 py-6">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6">
           <Outlet />
         </main>
       </div>
