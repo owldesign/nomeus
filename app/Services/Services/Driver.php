@@ -62,7 +62,7 @@ interface Driver
     /**
      * Idempotent command that creates a database/bucket, or null when the type has none.
      *
-     * @return array{label:string, argv:list<string>, cwd:?string, timeout:int, tolerate?:string}|null  tolerate: regex on output meaning "already exists"
+     * @return array{label:string, argv:list<string>, cwd:?string, timeout:int, tolerate?:string}|null tolerate: regex on output meaning "already exists"
      */
     public function createDatabasePlan(ServiceInstance $instance, string $binDir, string $name): ?array;
 

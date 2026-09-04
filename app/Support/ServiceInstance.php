@@ -59,13 +59,40 @@ final readonly class ServiceInstance
         return self::fromArray($changes + $this->toArray());
     }
 
-    public function file(): string { return "{$this->dir}/service.json"; }
-    public function dataDir(): string { return "{$this->dir}/data"; }
-    public function confDir(): string { return "{$this->dir}/conf"; }
-    public function runDir(): string { return "{$this->dir}/run"; }
-    public function logDir(): string { return "{$this->dir}/logs"; }
-    public function logFile(): string { return "{$this->dir}/logs/service.log"; }
-    public function label(): string { return 'dev.nomeus.svc.'.$this->name; }
+    public function file(): string
+    {
+        return "{$this->dir}/service.json";
+    }
+
+    public function dataDir(): string
+    {
+        return "{$this->dir}/data";
+    }
+
+    public function confDir(): string
+    {
+        return "{$this->dir}/conf";
+    }
+
+    public function runDir(): string
+    {
+        return "{$this->dir}/run";
+    }
+
+    public function logDir(): string
+    {
+        return "{$this->dir}/logs";
+    }
+
+    public function logFile(): string
+    {
+        return "{$this->dir}/logs/service.log";
+    }
+
+    public function label(): string
+    {
+        return 'dev.nomeus.svc.'.$this->name;
+    }
 
     public function toArray(): array
     {

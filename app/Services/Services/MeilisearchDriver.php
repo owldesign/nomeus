@@ -6,17 +6,35 @@ use App\Support\ServiceInstance;
 
 final class MeilisearchDriver extends AbstractDriver
 {
-    public function type(): string { return 'meilisearch'; }
+    public function type(): string
+    {
+        return 'meilisearch';
+    }
 
-    public function label(): string { return 'Meilisearch'; }
+    public function label(): string
+    {
+        return 'Meilisearch';
+    }
 
-    public function formulae(): array { return ['meilisearch']; }
+    public function formulae(): array
+    {
+        return ['meilisearch'];
+    }
 
-    public function defaultPort(): int { return 7700; }
+    public function defaultPort(): int
+    {
+        return 7700;
+    }
 
-    public function binary(): string { return 'meilisearch'; }
+    public function binary(): string
+    {
+        return 'meilisearch';
+    }
 
-    public function initialize(ServiceInstance $i, string $binDir): array { return []; }
+    public function initialize(ServiceInstance $i, string $binDir): array
+    {
+        return [];
+    }
 
     /** Development mode: no master key required, so Scout works with MEILISEARCH_KEY empty. */
     public function programArguments(ServiceInstance $i, string $binDir): array
@@ -31,7 +49,10 @@ final class MeilisearchDriver extends AbstractDriver
         ];
     }
 
-    public function staleFiles(ServiceInstance $i): array { return []; }
+    public function staleFiles(ServiceInstance $i): array
+    {
+        return [];
+    }
 
     public function env(ServiceInstance $i): array
     {

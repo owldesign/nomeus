@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\BrewBridge;
+use App\Services\Php\PhpProvider;
 use App\Services\SiteResolver;
 use App\Support\Editor;
 use Illuminate\Console\Command;
@@ -42,7 +43,7 @@ class IniCommand extends Command
             return self::FAILURE;
         }
 
-        $etc = dirname(app(\App\Services\Php\PhpProvider::class)->iniDirs($version)[0] ?? $brew->prefix()."/etc/php/{$version}/conf.d");
+        $etc = dirname(app(PhpProvider::class)->iniDirs($version)[0] ?? $brew->prefix()."/etc/php/{$version}/conf.d");
         $path = $this->option('fpm')
             ? "{$etc}/php-fpm.d/valet-fpm.conf"
             : "{$etc}/php.ini";

@@ -8,20 +8,41 @@ use Illuminate\Support\Str;
 /** Laravel Reverb for one site: `php artisan reverb:start` under launchd, run with the site's PHP from the site's directory. */
 final class ReverbDriver extends AbstractDriver implements SiteBound
 {
-    public function type(): string { return 'reverb'; }
+    public function type(): string
+    {
+        return 'reverb';
+    }
 
-    public function label(): string { return 'Laravel Reverb'; }
+    public function label(): string
+    {
+        return 'Laravel Reverb';
+    }
 
     /** Not a brew formula — the composer package the site must have. */
-    public function formulae(): array { return ['laravel/reverb']; }
+    public function formulae(): array
+    {
+        return ['laravel/reverb'];
+    }
 
-    public function siteRequirement(): string { return 'vendor/laravel/reverb'; }
+    public function siteRequirement(): string
+    {
+        return 'vendor/laravel/reverb';
+    }
 
-    public function sitePackage(): string { return 'laravel/reverb'; }
+    public function sitePackage(): string
+    {
+        return 'laravel/reverb';
+    }
 
-    public function defaultPort(): int { return 8080; }
+    public function defaultPort(): int
+    {
+        return 8080;
+    }
 
-    public function binary(): string { return 'php'; }
+    public function binary(): string
+    {
+        return 'php';
+    }
 
     public function defaultOptions(): array
     {
@@ -37,14 +58,20 @@ final class ReverbDriver extends AbstractDriver implements SiteBound
         return (string) ($i->options['site_path'] ?? $i->dir);
     }
 
-    public function initialize(ServiceInstance $i, string $binDir): array { return []; }
+    public function initialize(ServiceInstance $i, string $binDir): array
+    {
+        return [];
+    }
 
     public function programArguments(ServiceInstance $i, string $binDir): array
     {
         return ["{$binDir}/php", 'artisan', 'reverb:start', '--host=127.0.0.1', '--port='.$i->port, '--no-interaction'];
     }
 
-    public function staleFiles(ServiceInstance $i): array { return []; }
+    public function staleFiles(ServiceInstance $i): array
+    {
+        return [];
+    }
 
     public function env(ServiceInstance $i): array
     {

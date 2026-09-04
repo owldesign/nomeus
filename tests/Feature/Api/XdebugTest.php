@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\Probe;
+use App\Support\Shell;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -25,7 +26,9 @@ beforeEach(function () {
         $m->shouldReceive('unix')->andReturnUsing(fn () => $this->fpmUp);   // valet.sock answers → fpm "back" after a restart
     });
     $this->spawned = [];
-    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) {
+        $this->spawned[] = $cmd;
+    }));
     $so = $this->brewFs->root.'/opt/xdebug@8.4/xdebug.so';
     mkdir(dirname($so), 0755, true);
     file_put_contents($so, 'ELF');
@@ -52,7 +55,7 @@ it('reports per-version status and enqueues install / mode changes as tasks', fu
     $status = $this->getJson('/api/xdebug')->assertOk()->assertJsonPath('data.linked', '8.4')->assertJsonPath('data.port', 9003)->assertJsonPath('data.ide_listening', false)->json('data');
     expect($status['versions']['8.4'])->toMatchArray(['installed' => true, 'mode' => 'off', 'tap_ini' => true]);   // found via the tap ini, not adopted yet
 
-    $php = app(\App\Support\Shell::class)->phpBin();
+    $php = app(Shell::class)->phpBin();
     $this->postJson('/api/xdebug/install', ['version' => '8.4'], $h)->assertStatus(202)
         ->assertJsonPath('task.argv', [$php, base_path('artisan'), 'xdebug:install', '8.4', '--no-interaction']);
     $this->postJson('/api/xdebug/mode', ['version' => '8.4', 'mode' => 'trigger'], $h)->assertStatus(202)

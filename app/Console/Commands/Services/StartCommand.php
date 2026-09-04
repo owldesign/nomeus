@@ -8,5 +8,8 @@ class StartCommand extends LifecycleCommand
 
     protected $description = 'Start a service instance (and keep it starting at login)';
 
-    protected function verb(): string { return 'start'; }
+    protected function verb(): string
+    {
+        return 'start';
+    }
 }

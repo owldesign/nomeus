@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\Probe;
+use App\Support\Shell;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -22,12 +23,23 @@ beforeEach(function () {
     file_put_contents($this->fnm, "#!/bin/sh\n");
     chmod($this->fnm, 0755);
     $this->versions = ['22.11.0 default'];
-    $this->mock(Probe::class, function ($m) { $m->shouldReceive('tcp')->andReturn(false); $m->shouldReceive('unix')->andReturn(false); });
+    $this->mock(Probe::class, function ($m) {
+        $m->shouldReceive('tcp')->andReturn(false);
+        $m->shouldReceive('unix')->andReturn(false);
+    });
     $this->spawned = [];
-    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) {
+        $this->spawned[] = $cmd;
+    }));
     Process::fake([
-        "*fnm' 'ls'*" => function () { return Process::result(implode("\n", array_map(fn ($v) => "* v{$v}", $this->versions))."\n"); },
-        "*fnm' 'install'*" => function ($p) { $this->versions[] = $p->command[2].'.20.8'; return Process::result(''); },
+        "*fnm' 'ls'*" => function () {
+            return Process::result(implode("\n", array_map(fn ($v) => "* v{$v}", $this->versions))."\n");
+        },
+        "*fnm' 'install'*" => function ($p) {
+            $this->versions[] = $p->command[2].'.20.8';
+
+            return Process::result('');
+        },
         "*fnm' 'default'*" => Process::result(''),
         '*--version*' => Process::result("stub 1.0\n"),
         '*php*-r*' => Process::result('8.4.25'),
@@ -57,7 +69,7 @@ it('shows versions and pins, installs, and pins a site', function () {
     $this->artisan('node:use 22 --site=nope')->expectsOutputToContain('No site [nope]')->assertFailed();
 
     $this->getJson('/api/node')->assertOk()->assertJsonPath('data.default', '22.11.0')->assertJsonPath('data.pins.0.site', 'smoke');
-    $php = app(\App\Support\Shell::class)->phpBin();
+    $php = app(Shell::class)->phpBin();
     $this->postJson('/api/node/use', ['version' => '22', 'site' => 'smoke'], ['X-Nomeus' => '1'])->assertStatus(202)
         ->assertJsonPath('task.argv', [$php, base_path('artisan'), 'node:use', '22', '--site=smoke', '--no-interaction']);
     $this->postJson('/api/node/install', ['version' => 'lts', 'default' => true], ['X-Nomeus' => '1'])->assertStatus(202)

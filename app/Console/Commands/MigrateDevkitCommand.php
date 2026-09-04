@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Services\BrewBridge;
 use App\Services\Dumps\PrependInstaller;
 use App\Services\Php\XdebugManager;
+use App\Services\ProcessManager;
 use App\Services\ServiceManager;
 use App\Services\ValetBridge;
 use App\Support\NomeusConfig;
@@ -21,7 +22,9 @@ use RuntimeException;
 class MigrateDevkitCommand extends Command
 {
     private const OLD_PREFIX = 'dev.zhuk.devkit.svc.';
+
     private const OLD_INI = '99-devkit.ini';
+
     private const OLD_QUARANTINE = '.devkit-off';
 
     protected $signature = 'migrate:devkit
@@ -33,7 +36,7 @@ class MigrateDevkitCommand extends Command
     protected $description = 'Move a devkit-era installation to nomeus: ~/.devkit → ~/.nomeus, launchd agents, php ini, dashboard link, shim';
 
     public function handle(
-        NomeusConfig $config, ServiceManager $services, \App\Services\ProcessManager $launchd, PrependInstaller $prepend,
+        NomeusConfig $config, ServiceManager $services, ProcessManager $launchd, PrependInstaller $prepend,
         XdebugManager $xdebug, ValetBridge $valet, Shell $shell, BrewBridge $brew,
     ): int {
         $old = rtrim((string) ($this->option('from') ?: NomeusConfig::homeDir().'/.devkit'), '/');
@@ -52,7 +55,7 @@ class MigrateDevkitCommand extends Command
         } elseif (is_dir($new)) {
             $others = array_diff(scandir($new) ?: [], ['.', '..', 'config.json', '.DS_Store']);
             if ($others !== []) {
-                $this->error("{$new} already has content (".implode(', ', $others).") — refusing. If a previous run stopped part-way after the move, use --resume.");
+                $this->error("{$new} already has content (".implode(', ', $others).') — refusing. If a previous run stopped part-way after the move, use --resume.');
 
                 return self::FAILURE;
             }
@@ -66,10 +69,10 @@ class MigrateDevkitCommand extends Command
         $newSite = (string) config('nomeus.site', 'nomeus');
 
         $this->line('<fg=yellow>plan'.($resume ? ' (resume: steps 1–2 already done)' : '').'</>');
-        $this->line("  1. stop ".count($oldNames)." devkit agent(s): ".(implode(', ', $oldNames) ?: '—'));
+        $this->line('  1. stop '.count($oldNames).' devkit agent(s): '.(implode(', ', $oldNames) ?: '—'));
         $this->line("  2. move {$old} → {$new}");
         $this->line('  3. php '.implode(', ', $versions).': '.self::OLD_INI.' → '.PrependInstaller::INI.', regenerate prepend, xdebug quarantine suffix; valet restart php   (before any php-based service starts)');
-        $this->line('  4. rewrite service.json paths and every plist (labels '.\App\Services\ProcessManager::PREFIX.'*), then start '.($resume ? 'all' : 'what was running'));
+        $this->line('  4. rewrite service.json paths and every plist (labels '.ProcessManager::PREFIX.'*), then start '.($resume ? 'all' : 'what was running'));
         $this->line("  5. valet: unlink {$oldSite}, link {$newSite} → ".base_path().(in_array($oldSite, $valet->isInstalled() ? $valet->secured() : [], true) ? ', secure' : ''));
         $this->line("  6. shim: {$brew->prefix()}/bin/devkit → {$brew->prefix()}/bin/nomeus");
         if ($this->option('dry-run')) {
@@ -138,6 +141,7 @@ class MigrateDevkitCommand extends Command
             foreach ($instances as $i) {
                 if (! $resume && ! ($wasRunning[$i->name] ?? false)) {
                     $log("{$i->name}: left stopped (was not running)");
+
                     continue;
                 }
                 try {

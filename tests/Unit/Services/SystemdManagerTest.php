@@ -32,7 +32,7 @@ it('renders a user unit with quoted argv, env, log redirection, and reloads the 
         ->and($unit)->toContain('Environment="LC_ALL=en_US.UTF-8"')
         ->and($unit)->not->toContain('APP_KEY')                                     // false = unset marker, never written
         ->and($unit)->toContain("Restart=always\n")
-        ->and($unit)->toContain("WantedBy=default.target");
+        ->and($unit)->toContain('WantedBy=default.target');
     Process::assertRan(fn ($p) => $p->command === ['systemctl', '--user', 'daemon-reload']);
 });
 

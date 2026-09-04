@@ -54,5 +54,6 @@ it('loads nomeus.yml from a directory and explains a missing one', function () {
 
     file_put_contents("$dir/nomeus.yml", "domain: [unterminated\n");
     expect(fn () => Manifest::load($dir))->toThrow(RuntimeException::class, 'nomeus.yml:');
-    unlink("$dir/nomeus.yml"); rmdir($dir);
+    unlink("$dir/nomeus.yml");
+    rmdir($dir);
 });

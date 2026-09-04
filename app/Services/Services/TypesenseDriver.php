@@ -7,16 +7,31 @@ use Illuminate\Support\Str;
 
 final class TypesenseDriver extends AbstractDriver
 {
-    public function type(): string { return 'typesense'; }
+    public function type(): string
+    {
+        return 'typesense';
+    }
 
-    public function label(): string { return 'Typesense'; }
+    public function label(): string
+    {
+        return 'Typesense';
+    }
 
     /** Tapped formula, always fully qualified: under Homebrew 6 that installs with item-level trust. */
-    public function formulae(): array { return ['typesense/tap/typesense-server']; }
+    public function formulae(): array
+    {
+        return ['typesense/tap/typesense-server'];
+    }
 
-    public function defaultPort(): int { return 8108; }
+    public function defaultPort(): int
+    {
+        return 8108;
+    }
 
-    public function binary(): string { return 'typesense-server'; }
+    public function binary(): string
+    {
+        return 'typesense-server';
+    }
 
     public function defaultOptions(): array
     {
@@ -29,7 +44,10 @@ final class TypesenseDriver extends AbstractDriver
         return ['peering' => 8107];
     }
 
-    public function initialize(ServiceInstance $i, string $binDir): array { return []; }
+    public function initialize(ServiceInstance $i, string $binDir): array
+    {
+        return [];
+    }
 
     public function programArguments(ServiceInstance $i, string $binDir): array
     {
@@ -45,7 +63,10 @@ final class TypesenseDriver extends AbstractDriver
         ];
     }
 
-    public function staleFiles(ServiceInstance $i): array { return []; }
+    public function staleFiles(ServiceInstance $i): array
+    {
+        return [];
+    }
 
     public function env(ServiceInstance $i): array
     {

@@ -1,7 +1,11 @@
 <?php
 
+use App\Services\LaunchdManager;
+use App\Services\ServiceManager;
 use App\Support\Probe;
+use App\Support\Shell;
 use App\Support\TaskSpawner;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeBrew;
@@ -28,14 +32,16 @@ beforeEach(function () {
         $m->shouldReceive('unix')->andReturn(false);
     });
     $this->spawned = [];
-    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) {
+        $this->spawned[] = $cmd;
+    }));
     Process::fake([
         '*launchctl*print-disabled*' => Process::result(''),
         '*launchctl*print*' => Process::result('', '', 113),
         "*'launchctl' 'list'*" => Process::result(''),
         '*launchctl*bootstrap*' => function ($p) {
-            $name = substr(basename($p->command[3], '.plist'), strlen(\App\Services\LaunchdManager::PREFIX));
-            $this->answering[] = app(\App\Services\ServiceManager::class)->find($name)?->port ?? 0;
+            $name = substr(basename($p->command[3], '.plist'), strlen(LaunchdManager::PREFIX));
+            $this->answering[] = app(ServiceManager::class)->find($name)?->port ?? 0;
 
             return Process::result('');
         },
@@ -69,8 +75,8 @@ afterEach(function () {
 
 it('prints the manifest and the init plan with --dry-run and creates nothing', function () {
     // Artisan::call keeps the real console output (the test harness's $this->artisan() replaces it with a mock).
-    $exit = \Illuminate\Support\Facades\Artisan::call('new shop --laravel --db=none --redis --mail --secure --php=8.4 --yes --dry-run');
-    $out = \Illuminate\Support\Facades\Artisan::output();
+    $exit = Artisan::call('new shop --laravel --db=none --redis --mail --secure --php=8.4 --yes --dry-run');
+    $out = Artisan::output();
 
     expect($exit)->toBe(0)
         ->and($out)->toContain("{$this->parked}/shop/nomeus.yml")
@@ -85,8 +91,8 @@ it('prints the manifest and the init plan with --dry-run and creates nothing', f
 });
 
 it('scaffolds, writes nomeus.yml, and runs init', function () {
-    $exit = \Illuminate\Support\Facades\Artisan::call('new shop --laravel --db=none --redis --mail --secure --yes --no-scripts --open');
-    $out = \Illuminate\Support\Facades\Artisan::output();
+    $exit = Artisan::call('new shop --laravel --db=none --redis --mail --secure --yes --no-scripts --open');
+    $out = Artisan::output();
     expect($exit)->toBe(0)
         ->and($out)->toContain('composer create-project laravel/laravel shop')
         ->and($out)->toContain('nomeus.yml written')
@@ -98,8 +104,8 @@ it('scaffolds, writes nomeus.yml, and runs init', function () {
         ->and(file_get_contents("$dir/.env"))->toContain('APP_URL=https://shop.test')
         ->and(file_get_contents("$dir/.env"))->toContain('MAIL_MAILER=smtp')
         ->and(file_get_contents("$dir/.env"))->toContain('QUEUE_CONNECTION=redis')
-        ->and(app(\App\Services\ServiceManager::class)->find('redis'))->not->toBeNull()
-        ->and(app(\App\Services\ServiceManager::class)->find('mailpit'))->not->toBeNull();
+        ->and(app(ServiceManager::class)->find('redis'))->not->toBeNull()
+        ->and(app(ServiceManager::class)->find('mailpit'))->not->toBeNull();
     Process::assertRan(fn ($p) => $p->command === [$this->valetFs->valetBin(), 'secure', 'shop']);
     Process::assertNotRan(fn ($p) => $p->command === [$this->valetFs->valetBin(), 'link', 'shop']);   // under the parked dir: already a site
     Process::assertNotRan(fn ($p) => ($p->command[0] ?? '') === 'sh');                               // --no-scripts
@@ -115,7 +121,7 @@ it('refuses bad names, an existing site, unknown databases, and missing php vers
 });
 
 it('enqueues nomeus new from the api', function () {
-    $php = app(\App\Support\Shell::class)->phpBin();
+    $php = app(Shell::class)->phpBin();
     $this->postJson('/api/sites/new', ['name' => 'shop', 'starter' => 'from', 'from' => 'laravel/laravel:^12', 'php' => '8.4', 'db' => 'postgresql', 'redis' => true, 'services' => ['meilisearch'], 'mail' => true, 'secure' => true, 'skip_scripts' => true], ['X-Nomeus' => '1'])
         ->assertStatus(202)
         ->assertJsonPath('task.label', 'new shop')

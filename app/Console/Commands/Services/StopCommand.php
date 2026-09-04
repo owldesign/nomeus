@@ -8,5 +8,8 @@ class StopCommand extends LifecycleCommand
 
     protected $description = 'Stop a service instance (stays stopped across logins)';
 
-    protected function verb(): string { return 'stop'; }
+    protected function verb(): string
+    {
+        return 'stop';
+    }
 }

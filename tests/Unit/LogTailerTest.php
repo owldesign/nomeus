@@ -1,8 +1,8 @@
 <?php
 
 use App\Services\LogTailer;
-use App\Support\NomeusConfig;
 use App\Support\Editor;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 
 beforeEach(function () {
@@ -16,7 +16,9 @@ beforeEach(function () {
 });
 
 afterEach(function () {
-    @unlink($this->file); @unlink("{$this->dir}/config.json"); @rmdir($this->dir);
+    @unlink($this->file);
+    @unlink("{$this->dir}/config.json");
+    @rmdir($this->dir);
 });
 
 it('reads the tail first, aligned to an entry, then only what was appended', function () {

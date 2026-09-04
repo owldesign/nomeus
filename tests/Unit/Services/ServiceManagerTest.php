@@ -1,16 +1,7 @@
 <?php
 
-use App\Services\BrewBridge;
-use App\Services\LaunchdManager;
-use App\Services\ServiceManager;
-use App\Services\Services\DriverRegistry;
-use App\Support\NomeusConfig;
-use App\Support\Probe;
-use App\Support\Shell;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
-use Tests\Support\FakeBrew;
-
 use Tests\Support\FakeServicesWorld;
 
 beforeEach(function () {
@@ -24,7 +15,9 @@ afterEach(fn () => $this->w->destroy());
 
 it('creates a postgres instance: dirs, initdb, plist, launchd, ready', function () {
     $lines = [];
-    $i = $this->m->create('postgresql', null, null, null, true, function (string $l) use (&$lines) { $lines[] = $l; });
+    $i = $this->m->create('postgresql', null, null, null, true, function (string $l) use (&$lines) {
+        $lines[] = $l;
+    });
 
     expect($i->name)->toBe('postgresql')
         ->and($i->formula)->toBe('postgresql@17')
@@ -60,6 +53,7 @@ it('installs the formula first when it is missing, and rolls back a failed init'
     mkdir($this->brewFs->root.'/opt');
     Process::fake(['*brew*install*' => function () {
         $this->brewFs->formula('mysql@8.4', '8.4.6', ['mysqld']);      // brew "installs" it
+
         return Process::result("==> Pouring mysql@8.4\n");
     }, '*mysqld*--initialize*' => Process::result('', 'InnoDB: cannot allocate', 1)]);
 
@@ -246,7 +240,9 @@ it('trusts the tap before installing a tapped formula that is missing', function
     ]);
     $lines = [];
 
-    $i = $this->m->create('typesense', start: false, log: function (string $l) use (&$lines) { $lines[] = $l; });
+    $i = $this->m->create('typesense', start: false, log: function (string $l) use (&$lines) {
+        $lines[] = $l;
+    });
 
     expect($i->formula)->toBe('typesense/tap/typesense-server')
         ->and($lines[0])->toBe('brew trust typesense/tap')

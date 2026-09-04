@@ -7,24 +7,45 @@ use App\Support\ServiceInstance;
 /** S3-compatible object store; the main port is the S3 API. No auth config = any key is accepted, which is the point on loopback. */
 final class SeaweedFsDriver extends AbstractDriver
 {
-    public function type(): string { return 'seaweedfs'; }
+    public function type(): string
+    {
+        return 'seaweedfs';
+    }
 
-    public function label(): string { return 'SeaweedFS (S3)'; }
+    public function label(): string
+    {
+        return 'SeaweedFS (S3)';
+    }
 
-    public function formulae(): array { return ['seaweedfs']; }
+    public function formulae(): array
+    {
+        return ['seaweedfs'];
+    }
 
-    public function defaultPort(): int { return 8333; }
+    public function defaultPort(): int
+    {
+        return 8333;
+    }
 
-    public function binary(): string { return 'weed'; }
+    public function binary(): string
+    {
+        return 'weed';
+    }
 
-    public function versionArgs(): array { return ['version']; }
+    public function versionArgs(): array
+    {
+        return ['version'];
+    }
 
     public function auxPorts(): array
     {
         return ['master' => 9333, 'volume' => 8080, 'filer' => 8888];
     }
 
-    public function initialize(ServiceInstance $i, string $binDir): array { return []; }
+    public function initialize(ServiceInstance $i, string $binDir): array
+    {
+        return [];
+    }
 
     public function programArguments(ServiceInstance $i, string $binDir): array
     {
@@ -41,9 +62,15 @@ final class SeaweedFsDriver extends AbstractDriver
         ];
     }
 
-    public function staleFiles(ServiceInstance $i): array { return []; }
+    public function staleFiles(ServiceInstance $i): array
+    {
+        return [];
+    }
 
-    public function databaseEnvKey(): ?string { return 'AWS_BUCKET'; }
+    public function databaseEnvKey(): ?string
+    {
+        return 'AWS_BUCKET';
+    }
 
     /** PUT /<bucket> on the S3 gateway; SeaweedFS answers 200 for new and existing buckets alike. */
     public function createDatabasePlan(ServiceInstance $i, string $binDir, string $name): ?array

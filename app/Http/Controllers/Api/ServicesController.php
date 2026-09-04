@@ -8,6 +8,7 @@ use App\Services\BrewBridge;
 use App\Services\BrewServices;
 use App\Services\ServiceManager;
 use App\Services\Services\DriverRegistry;
+use App\Services\Services\SiteBound;
 use App\Services\TaskRunner;
 use App\Support\ServiceInstance;
 use Illuminate\Http\JsonResponse;
@@ -45,8 +46,8 @@ class ServicesController extends Controller
             'type' => $d->type(),
             'label' => $d->label(),
             'default_port' => $d->defaultPort(),
-            'requires_site' => $d instanceof \App\Services\Services\SiteBound,
-            'site_package' => $d instanceof \App\Services\Services\SiteBound ? $d->sitePackage() : null,
+            'requires_site' => $d instanceof SiteBound,
+            'site_package' => $d instanceof SiteBound ? $d->sitePackage() : null,
             'formulae' => array_map(fn ($f) => [
                 'formula' => $f,
                 'installed' => $this->brew->isFormulaInstalled($f),
@@ -103,7 +104,7 @@ class ServicesController extends Controller
             'start' => ['nullable', 'boolean'],
             'site' => ['nullable', 'string', 'regex:/^[A-Za-z0-9][A-Za-z0-9._-]*$/'],
         ]);
-        if ($this->drivers->get($data['type']) instanceof \App\Services\Services\SiteBound && empty($data['site'])) {
+        if ($this->drivers->get($data['type']) instanceof SiteBound && empty($data['site'])) {
             return response()->json(['message' => "{$data['type']} runs inside a site; pick one."], 422);
         }
         if (! empty($data['name']) && $this->services->find($data['name']) !== null) {

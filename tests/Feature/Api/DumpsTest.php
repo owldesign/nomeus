@@ -1,6 +1,8 @@
 <?php
 
+use App\Services\Dumps\DumpIngest;
 use App\Services\Dumps\DumpStore;
+use App\Services\ServiceManager;
 use App\Support\Probe;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\File;
@@ -31,7 +33,11 @@ beforeEach(function () {
         '*launchctl*print-disabled*' => Process::result(''),
         '*launchctl*print*' => Process::result('', '', 113),
         "*'launchctl' 'list'*" => Process::result(''),
-        '*launchctl*bootstrap*' => function () { $this->up = true; return Process::result(''); },
+        '*launchctl*bootstrap*' => function () {
+            $this->up = true;
+
+            return Process::result('');
+        },
         '*launchctl*' => Process::result(''),
         '*--version*' => Process::result("PHP 8.4.25\n"),
         '*bin/valet*' => Process::result("ok\n"),
@@ -60,7 +66,7 @@ it('reports status, toggles capture, serves the header, pages entries with ide l
     $this->getJson('/api/dumps/header')->assertOk()->assertJsonPath('header', fn ($h) => str_contains($h, 'Sfdump'));
 
     $store = app(DumpStore::class);
-    $ingest = app(\App\Services\Dumps\DumpIngest::class);
+    $ingest = app(DumpIngest::class);
     $store->insert($ingest->toRow((new VarCloner)->cloneVar(['a' => 1]), ['source' => ['file' => '/Users/me/routes/web.php', 'line' => 9], 'request' => ['identifier' => 'r1', 'uri' => '/', 'method' => 'GET']]));
     $store->insert(['kind' => 'query', 'request_key' => 'r1', 'uri' => '/', 'method' => 'GET', 'command' => null, 'file' => null, 'line' => null, 'text' => 'select 1', 'html' => null, 'payload' => json_encode(['sql' => 'select 1', 'ms' => 0.3])]);
 
@@ -82,7 +88,7 @@ it('reports status, toggles capture, serves the header, pages entries with ide l
 
 it('creates the dump server as a nomeus-bound service instance', function () {
     $this->artisan('services:create dumps')->expectsOutputToContain('starting dumps on 127.0.0.1:9912')->assertSuccessful();
-    $i = app(\App\Services\ServiceManager::class)->find('dumps');
+    $i = app(ServiceManager::class)->find('dumps');
     expect($i->formula)->toBe('nomeus/dumps')
         ->and($i->options['site_path'])->toBe(base_path())
         ->and($i->options['php_bin_dir'])->toBe($this->brewFs->root.'/bin');

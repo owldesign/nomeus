@@ -26,7 +26,9 @@ beforeEach(function () {
     });
     $this->spawned = [];
     $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')
-        ->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+        ->andReturnUsing(function (string $cmd) {
+            $this->spawned[] = $cmd;
+        }));
     Process::fake([
         '*brew*outdated*' => Process::result(json_encode(['formulae' => [['name' => 'php@8.4', 'current_version' => '8.4.26']]])),
         '*pgrep*' => Process::result('', '', 1),

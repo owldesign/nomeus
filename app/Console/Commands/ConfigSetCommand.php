@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Support\NomeusConfig;
 use App\Support\Editor;
+use App\Support\NomeusConfig;
 use Illuminate\Console\Command;
 
 class ConfigSetCommand extends Command
@@ -21,10 +21,10 @@ class ConfigSetCommand extends Command
         $value = json_last_error() === JSON_ERROR_NONE && ! is_string($decoded) ? $decoded : $raw;
 
         if ($key === 'ide' && (! is_string($value) || ! array_key_exists($value, Editor::APPS))) {
-            $this->warn("Unknown ide [".json_encode($value).']; known: '.implode(', ', array_keys(Editor::APPS)).'. Saved anyway; the default `open -t` applies.');
+            $this->warn('Unknown ide ['.json_encode($value).']; known: '.implode(', ', array_keys(Editor::APPS)).'. Saved anyway; the default `open -t` applies.');
         }
         if ($key === 'db_client' && (! is_string($value) || ! array_key_exists($value, DbCommand::CLIENTS))) {
-            $this->warn("Unknown db_client [".json_encode($value).']; known: '.implode(', ', array_keys(DbCommand::CLIENTS)).". Saved anyway; `open -a ".json_encode($value).'` will be tried.');
+            $this->warn('Unknown db_client ['.json_encode($value).']; known: '.implode(', ', array_keys(DbCommand::CLIENTS)).'. Saved anyway; `open -a '.json_encode($value).'` will be tried.');
         }
 
         $config->set($key, $value);

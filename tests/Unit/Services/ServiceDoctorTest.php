@@ -1,15 +1,20 @@
 <?php
 
+use App\Services\Dumps\CaptureFlag;
+use App\Services\Dumps\PrependInstaller;
+use App\Services\Php\XdebugManager;
+use App\Services\Php\XdebugState;
+use App\Services\Php\XdebugWatcher;
 use App\Services\ServiceDoctor;
 use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeServicesWorld;
 
 beforeEach(function () {
     $this->w = new FakeServicesWorld;
-    $flag = new \App\Services\Dumps\CaptureFlag($this->w->config);
-    $state = new \App\Services\Php\XdebugState($this->w->config);
-    $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, $flag, $this->w->shell, $state);
-    $xdebug = new \App\Services\Php\XdebugManager($this->w->config, $this->w->brew, $this->w->shell, $this->w->probe, $state, $prepend, new \App\Services\Php\XdebugWatcher($this->w->launchd, $this->w->config, $this->w->shell));
+    $flag = new CaptureFlag($this->w->config);
+    $state = new XdebugState($this->w->config);
+    $prepend = new PrependInstaller($this->w->config, $this->w->brew, $flag, $this->w->shell, $state);
+    $xdebug = new XdebugManager($this->w->config, $this->w->brew, $this->w->shell, $this->w->probe, $state, $prepend, new XdebugWatcher($this->w->launchd, $this->w->config, $this->w->shell));
     $this->doctor = new ServiceDoctor($this->w->manager, $this->w->launchd, $this->w->brew, $this->w->brewServices, $this->w->shell, $this->w->probe, $prepend, $xdebug);
 });
 
@@ -63,7 +68,9 @@ it('flags crash loops, stale locks, port clashes and brew overlaps', function ()
 
 it('runs the self-test round trip and cleans up', function () {
     $lines = [];
-    $this->doctor->selfTest(function (string $l) use (&$lines) { $lines[] = $l; });
+    $this->doctor->selfTest(function (string $l) use (&$lines) {
+        $lines[] = $l;
+    });
 
     expect(implode("\n", $lines))->toContain('round trip ok')
         ->and($this->w->manager->all())->toBe([]);                                    // both throwaways deleted

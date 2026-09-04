@@ -1,6 +1,9 @@
 <?php
 
+use App\Services\LaunchdManager;
+use App\Services\ServiceManager;
 use App\Support\Probe;
+use App\Support\Shell;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -28,14 +31,16 @@ beforeEach(function () {
         $m->shouldReceive('unix')->andReturn(false);
     });
     $this->spawned = [];
-    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) {
+        $this->spawned[] = $cmd;
+    }));
     Process::fake([
         '*launchctl*print-disabled*' => Process::result(''),
         '*launchctl*print*' => Process::result('', '', 113),
         "*'launchctl' 'list'*" => Process::result(''),
         '*launchctl*bootstrap*' => function ($p) {
-            $name = substr(basename($p->command[3], '.plist'), strlen(\App\Services\LaunchdManager::PREFIX));
-            $this->answering[] = app(\App\Services\ServiceManager::class)->find($name)?->port ?? 0;
+            $name = substr(basename($p->command[3], '.plist'), strlen(LaunchdManager::PREFIX));
+            $this->answering[] = app(ServiceManager::class)->find($name)?->port ?? 0;
 
             return Process::result('');
         },
@@ -66,7 +71,7 @@ it('shows the plan with --dry-run and changes nothing', function () {
         ->expectsOutputToContain('create redis')
         ->expectsOutputToContain('create mailpit')
         ->assertSuccessful();
-    expect(app(\App\Services\ServiceManager::class)->all())->toBe([])
+    expect(app(ServiceManager::class)->all())->toBe([])
         ->and(file_get_contents("{$this->site}/.env"))->toBe("APP_NAME=Laravel\n");
     Process::assertNotRan(fn ($p) => str_contains($p->command[0] ?? '', 'valet'));
 });
@@ -80,8 +85,8 @@ it('runs init, skipping scripts on request', function () {
 
     $env = file_get_contents("{$this->site}/.env");
     expect($env)->toContain('APP_URL=http://smoke.test')->and($env)->toContain('REDIS_HOST=127.0.0.1')->and($env)->toContain('MAIL_PORT=1025')->and($env)->toContain('CACHE_STORE=redis')
-        ->and(app(\App\Services\ServiceManager::class)->find('redis'))->not->toBeNull()
-        ->and(app(\App\Services\ServiceManager::class)->find('mailpit'))->not->toBeNull();
+        ->and(app(ServiceManager::class)->find('redis'))->not->toBeNull()
+        ->and(app(ServiceManager::class)->find('mailpit'))->not->toBeNull();
     Process::assertNotRan(fn ($p) => ($p->command[0] ?? '') === 'sh');
     Process::assertRan(fn ($p) => ($p->command[0] ?? '') === 'composer' && ($p->command[1] ?? '') === 'require');
 });
@@ -98,5 +103,5 @@ it('enqueues init from the api for sites with a manifest', function () {
     $this->getJson('/api/sites')->assertOk()->assertJsonPath('data.0.manifest', true);
     $this->postJson('/api/sites/smoke/init', ['skip_scripts' => true], $h)->assertStatus(202)
         ->assertJsonPath('task.label', 'init smoke')
-        ->assertJsonPath('task.argv', [app(\App\Support\Shell::class)->phpBin(), base_path('artisan'), 'init', $this->site, '--skip-scripts', '--no-interaction']);   // the fake brew's linked php
+        ->assertJsonPath('task.argv', [app(Shell::class)->phpBin(), base_path('artisan'), 'init', $this->site, '--skip-scripts', '--no-interaction']);   // the fake brew's linked php
 });

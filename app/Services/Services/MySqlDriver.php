@@ -6,9 +6,15 @@ use App\Support\ServiceInstance;
 
 final class MySqlDriver extends AbstractDriver
 {
-    public function type(): string { return 'mysql'; }
+    public function type(): string
+    {
+        return 'mysql';
+    }
 
-    public function label(): string { return 'MySQL'; }
+    public function label(): string
+    {
+        return 'MySQL';
+    }
 
     /**
      * LTS lines first (9.7 is current, 8.4 previous); bare `mysql` is the Innovation line, which
@@ -19,9 +25,15 @@ final class MySqlDriver extends AbstractDriver
         return ['mysql@9.7', 'mysql@8.4', 'mysql@8.0', 'mysql'];
     }
 
-    public function defaultPort(): int { return 3306; }
+    public function defaultPort(): int
+    {
+        return 3306;
+    }
 
-    public function binary(): string { return 'mysqld'; }
+    public function binary(): string
+    {
+        return 'mysqld';
+    }
 
     public function initialize(ServiceInstance $i, string $binDir): array
     {
@@ -70,7 +82,10 @@ final class MySqlDriver extends AbstractDriver
         return "{$prefix}/var/mysql";
     }
 
-    public function databaseEnvKey(): ?string { return 'DB_DATABASE'; }
+    public function databaseEnvKey(): ?string
+    {
+        return 'DB_DATABASE';
+    }
 
     public function createDatabasePlan(ServiceInstance $i, string $binDir, string $name): ?array
     {

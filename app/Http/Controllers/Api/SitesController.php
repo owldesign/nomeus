@@ -7,11 +7,12 @@ use App\Http\Resources\SiteResource;
 use App\Services\SiteInformation;
 use App\Services\TaskRunner;
 use App\Services\ValetBridge;
+use App\Support\Manifest;
 use App\Support\Site;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\Rule;
 use RuntimeException;
 
 /**
@@ -124,7 +125,7 @@ class SitesController extends Controller
     public function init(Request $request, string $name): JsonResponse
     {
         $site = $this->findOrFail($name);
-        if ($site->type === 'proxy' || ! \App\Support\Manifest::exists($site->path)) {
+        if ($site->type === 'proxy' || ! Manifest::exists($site->path)) {
             return response()->json(['message' => "[{$site->name}] has no nomeus.yml."], 422);
         }
         $args = ['init', $site->path];

@@ -6,18 +6,30 @@ use App\Support\ServiceInstance;
 
 final class MariaDbDriver extends AbstractDriver
 {
-    public function type(): string { return 'mariadb'; }
+    public function type(): string
+    {
+        return 'mariadb';
+    }
 
-    public function label(): string { return 'MariaDB'; }
+    public function label(): string
+    {
+        return 'MariaDB';
+    }
 
     public function formulae(): array
     {
         return ['mariadb', 'mariadb@11.4', 'mariadb@10.11'];
     }
 
-    public function defaultPort(): int { return 3306; }
+    public function defaultPort(): int
+    {
+        return 3306;
+    }
 
-    public function binary(): string { return 'mariadbd'; }
+    public function binary(): string
+    {
+        return 'mariadbd';
+    }
 
     public function initialize(ServiceInstance $i, string $binDir): array
     {
@@ -58,7 +70,10 @@ final class MariaDbDriver extends AbstractDriver
         return "{$prefix}/var/mysql";
     }
 
-    public function databaseEnvKey(): ?string { return 'DB_DATABASE'; }
+    public function databaseEnvKey(): ?string
+    {
+        return 'DB_DATABASE';
+    }
 
     public function createDatabasePlan(ServiceInstance $i, string $binDir, string $name): ?array
     {

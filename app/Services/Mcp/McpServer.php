@@ -37,6 +37,7 @@ final class McpServer
                     continue;   // idle client; keep waiting
                 }
                 usleep(50_000);
+
                 continue;
             }
             $line = trim($line);

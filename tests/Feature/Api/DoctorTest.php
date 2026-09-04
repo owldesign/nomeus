@@ -1,7 +1,9 @@
 <?php
 
 use App\Services\Dumps\DumpStore;
+use App\Services\ServiceManager;
 use App\Support\Probe;
+use App\Support\Shell;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -29,7 +31,9 @@ beforeEach(function () {
         $m->shouldReceive('unix')->andReturn(true);
     });
     $this->spawned = [];
-    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+    $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')->andReturnUsing(function (string $cmd) {
+        $this->spawned[] = $cmd;
+    }));
     Process::fake([
         '*launchctl*print-disabled*' => Process::result(''),
         '*launchctl*print*' => Process::result("gui/501 = {}\n"),
@@ -119,7 +123,7 @@ it('runs npm through fnm whenever fnm is installed (a stray npm without node on 
 });
 
 it('enqueues self-update as a task from the dashboard', function () {
-    $php = app(\App\Support\Shell::class)->phpBin();
+    $php = app(Shell::class)->phpBin();
     $this->postJson('/api/update', ['check' => true], ['X-Nomeus' => '1'])->assertStatus(202)
         ->assertJsonPath('task.argv', [$php, base_path('artisan'), 'self-update', '--check', '--no-interaction']);
     $this->postJson('/api/update', ['no_build' => true], ['X-Nomeus' => '1'])->assertStatus(202)
@@ -137,7 +141,7 @@ it('generates the command reference and clears service logs', function () {
         ->and($md)->toContain('### `doctor [--section=] [--json]`')
         ->and($md)->toContain('- `--section` — valet, php, nomeus, services, dumps, mail, retention');
 
-    $i = app(\App\Services\ServiceManager::class)->create('redis', start: false);
+    $i = app(ServiceManager::class)->create('redis', start: false);
     file_put_contents($i->logFile(), str_repeat("noise\n", 1000));
     $this->artisan('services:logs redis --clear')->expectsOutputToContain('logs cleared (6 KB)')->assertSuccessful();
     expect(filesize($i->logFile()))->toBe(0);
@@ -147,7 +151,7 @@ it('generates the command reference and clears service logs', function () {
 });
 
 it('runs only the fixes the doctor proposes, as tasks', function () {
-    $php = app(\App\Support\Shell::class)->phpBin();
+    $php = app(Shell::class)->phpBin();
     $this->postJson('/api/doctor/fix', ['command' => 'nomeus dumps:install --restart'], ['X-Nomeus' => '1'])->assertStatus(202)
         ->assertJsonPath('task.argv', [$php, base_path('artisan'), 'dumps:install', '--restart', '--no-interaction']);
     $this->postJson('/api/doctor/fix', ['command' => 'nomeus php:ext redis --php=8.4'], ['X-Nomeus' => '1'])->assertStatus(202);

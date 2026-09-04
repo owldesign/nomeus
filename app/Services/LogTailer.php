@@ -10,6 +10,7 @@ use RuntimeException;
 final class LogTailer
 {
     public const INITIAL_BYTES = 65536;
+
     public const MAX_BYTES = 1048576;
 
     public function __construct(private readonly Editor $editor) {}

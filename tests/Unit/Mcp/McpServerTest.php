@@ -9,7 +9,10 @@ beforeEach(function () {
     {
         public function __construct() {}   // no container needed
 
-        public function has(string $name): bool { return in_array($name, ['echo', 'boom'], true); }
+        public function has(string $name): bool
+        {
+            return in_array($name, ['echo', 'boom'], true);
+        }
 
         public function describe(): array
         {
@@ -18,8 +21,12 @@ beforeEach(function () {
 
         public function call(string $name, array $args): mixed
         {
-            if ($name === 'boom') { throw new RuntimeException('it broke'); }
-            if (! isset($args['text'])) { throw new InvalidArgumentException('echo: missing required argument [text]'); }
+            if ($name === 'boom') {
+                throw new RuntimeException('it broke');
+            }
+            if (! isset($args['text'])) {
+                throw new InvalidArgumentException('echo: missing required argument [text]');
+            }
 
             return ['you_said' => $args['text']];
         }

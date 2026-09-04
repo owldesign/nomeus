@@ -6,17 +6,35 @@ use App\Support\ServiceInstance;
 
 final class RedisDriver extends AbstractDriver
 {
-    public function type(): string { return 'redis'; }
+    public function type(): string
+    {
+        return 'redis';
+    }
 
-    public function label(): string { return 'Redis'; }
+    public function label(): string
+    {
+        return 'Redis';
+    }
 
-    public function formulae(): array { return ['redis']; }
+    public function formulae(): array
+    {
+        return ['redis'];
+    }
 
-    public function defaultPort(): int { return 6379; }
+    public function defaultPort(): int
+    {
+        return 6379;
+    }
 
-    public function binary(): string { return 'redis-server'; }
+    public function binary(): string
+    {
+        return 'redis-server';
+    }
 
-    public function initialize(ServiceInstance $i, string $binDir): array { return []; }
+    public function initialize(ServiceInstance $i, string $binDir): array
+    {
+        return [];
+    }
 
     public function programArguments(ServiceInstance $i, string $binDir): array
     {

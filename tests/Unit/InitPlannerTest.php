@@ -1,7 +1,12 @@
 <?php
 
+use App\Services\Dumps\CaptureFlag;
+use App\Services\Dumps\PrependInstaller;
 use App\Services\Init\InitPlanner;
 use App\Services\Init\InitRunner;
+use App\Services\Node\NodeManager;
+use App\Services\Php\PhpExtensions;
+use App\Services\Php\XdebugState;
 use App\Services\Services\DriverRegistry;
 use App\Support\Manifest;
 use Illuminate\Support\Facades\Process;
@@ -9,9 +14,9 @@ use Tests\Support\FakeServicesWorld;
 
 beforeEach(function () {
     $this->w = new FakeServicesWorld;
-    $prepend = new \App\Services\Dumps\PrependInstaller($this->w->config, $this->w->brew, new \App\Services\Dumps\CaptureFlag($this->w->config), $this->w->shell, new \App\Services\Php\XdebugState($this->w->config));
-    $this->node = new \App\Services\Node\NodeManager($this->w->brew, $this->w->shell);
-    $this->planner = new InitPlanner($this->w->valet, $this->w->manager, new DriverRegistry, $this->w->brew, $this->w->shell, new \App\Services\Php\PhpExtensions($this->w->brew, $this->w->shell, $prepend), $this->node, $this->w->brew);
+    $prepend = new PrependInstaller($this->w->config, $this->w->brew, new CaptureFlag($this->w->config), $this->w->shell, new XdebugState($this->w->config));
+    $this->node = new NodeManager($this->w->brew, $this->w->shell);
+    $this->planner = new InitPlanner($this->w->valet, $this->w->manager, new DriverRegistry, $this->w->brew, $this->w->shell, new PhpExtensions($this->w->brew, $this->w->shell, $prepend), $this->node, $this->w->brew);
     $this->runner = new InitRunner($this->planner);
     $this->site = realpath($this->w->valetFs->parked('smoke', laravel: true));
     file_put_contents("{$this->site}/.env.example", "APP_NAME=Laravel\nAPP_URL=http://localhost\nMAIL_MAILER=log\n");
@@ -55,7 +60,9 @@ it('runs the plan: valet, services, database, env, scripts', function () {
     $this->w->manager->create('redis');                     // already there → skipped; postgres and mailpit get created
     $lines = [];
 
-    $result = $this->runner->run(($this->manifest)(), function (string $id, string $line) use (&$lines) { $lines[] = "$id $line"; });
+    $result = $this->runner->run(($this->manifest)(), function (string $id, string $line) use (&$lines) {
+        $lines[] = "$id $line";
+    });
 
     expect($result['ran'])->toBe(['secure', 'php', 'node', 'service:postgresql', 'mail', 'client', 'env', 'post-init:0'])
         ->and($result['skipped'])->toBe(['site', 'service:redis', 'php-ext:redis'])
@@ -115,7 +122,11 @@ it('installs the pinned node through fnm when it is present, and runs post-init 
         "*fnm' 'ls'*" => function () use (&$installed) {                       // by reference: an arrow fn would capture the empty array
             return Process::result(implode("\n", array_map(fn ($v) => "* v{$v}", $installed))."\n");
         },
-        "*fnm' 'install'*" => function ($p) use (&$installed) { $installed[] = $p->command[2].'.0.0'; return Process::result(''); },
+        "*fnm' 'install'*" => function ($p) use (&$installed) {
+            $installed[] = $p->command[2].'.0.0';
+
+            return Process::result('');
+        },
         "*fnm' 'exec'*" => Process::result("ran under fnm\n"),
     ]);
     $m = ($this->manifest)();
@@ -123,7 +134,9 @@ it('installs the pinned node through fnm when it is present, and runs post-init 
     expect($step->skip)->toBeNull()->and($step->detail)->toContain('fnm install 22');
 
     $log = [];
-    $step->execute(function (string $l) use (&$log) { $log[] = $l; });
+    $step->execute(function (string $l) use (&$log) {
+        $log[] = $l;
+    });
     expect(file_get_contents("{$m->path}/.nvmrc"))->toBe("22\n")
         ->and(implode("\n", $log))->toContain('fnm install 22');
     Process::assertRan(fn ($p) => $p->command === [$fnm, 'install', '22']);

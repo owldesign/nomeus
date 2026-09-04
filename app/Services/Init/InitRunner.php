@@ -29,11 +29,13 @@ final class InitRunner
             if ($skipScripts && str_starts_with($step->id, 'post-init:')) {
                 $skipped[] = $step->id;
                 $log($step->id, "skipped (--skip-scripts): {$step->label}");
+
                 continue;
             }
             if ($step->skip !== null) {
                 $skipped[] = $step->id;
                 $log($step->id, "{$step->label} — {$step->skip}");
+
                 continue;
             }
             $log($step->id, "▶ {$step->label}");

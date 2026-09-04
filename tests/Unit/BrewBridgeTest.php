@@ -64,7 +64,7 @@ it('builds install and upgrade plans', function () {
         'cwd' => null,
         'timeout' => 1800,
     ])->and($this->brew->upgradePlan('php@8.4')['argv'])->toBe([$bin, 'upgrade', 'php@8.4'])
-      ->and(fn () => $this->brew->installPlan('8'))->toThrow(RuntimeException::class);
+        ->and(fn () => $this->brew->installPlan('8'))->toThrow(RuntimeException::class);
 });
 
 it('trusts a formula\'s tap before installing from it, and never for core formulae', function () {

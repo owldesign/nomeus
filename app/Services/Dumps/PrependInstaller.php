@@ -2,9 +2,10 @@
 
 namespace App\Services\Dumps;
 
-use App\Services\Php\PhpProvider;
 use App\Services\Php\IniManager;
+use App\Services\Php\PhpProvider;
 use App\Services\Php\XdebugState;
+use App\Services\PhpManager;
 use App\Support\NomeusConfig;
 use App\Support\Shell;
 use RuntimeException;
@@ -92,6 +93,7 @@ final class PrependInstaller
             }
             if ($current) {
                 $unchanged[] = $version;
+
                 continue;
             }
             $this->brew->writeIni($version, self::INI, $this->iniSource($version));   // direct on macOS, root helper on Linux
@@ -148,7 +150,7 @@ final class PrependInstaller
                 throw new RuntimeException("{$plan['label']} failed: ".trim($result->errorOutput() ?: $result->output()));
             }
         }
-        $php = app(\App\Services\PhpManager::class);
+        $php = app(PhpManager::class);
         $deadline = microtime(true) + $seconds;
         while (microtime(true) < $deadline) {
             $up = $php->runningFpmVersions();

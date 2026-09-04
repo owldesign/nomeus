@@ -13,7 +13,9 @@ beforeEach(function () {
     $this->versions = ['20.18.0', '22.11.0 default'];
     Process::fake([
         '*which*' => fn () => Process::result(is_file($this->fnm) ? "{$this->fnm}\n" : ''),
-        "*fnm' 'ls'*" => function () { return Process::result(implode("\n", array_map(fn ($v) => "* v{$v}", $this->versions))."\n* system\n"); },
+        "*fnm' 'ls'*" => function () {
+            return Process::result(implode("\n", array_map(fn ($v) => "* v{$v}", $this->versions))."\n* system\n");
+        },
         "*fnm' 'install'*" => function ($p) {
             $this->versions[] = $p->command[2] === '--lts' ? '24.1.0 lts-latest' : rtrim($p->command[2], '.').(substr_count($p->command[2], '.') === 2 ? '' : '.9.9');
 
@@ -37,11 +39,15 @@ it('reads fnm ls, matches partial pins, installs and sets the default', function
         ->and($this->node->satisfied('lts'))->toBeNull();        // nothing aliased lts-* yet
 
     $lines = [];
-    expect($this->node->install('22', function (string $l) use (&$lines) { $lines[] = $l; }))->toBe('22.11.0')
+    expect($this->node->install('22', function (string $l) use (&$lines) {
+        $lines[] = $l;
+    }))->toBe('22.11.0')
         ->and(end($lines))->toBe('node 22.11.0 already installed');
     Process::assertNotRan(fn ($p) => ($p->command[1] ?? '') === 'install');
 
-    expect($this->node->install('18', function (string $l) use (&$lines) { $lines[] = $l; }))->toBe('18.9.9');
+    expect($this->node->install('18', function (string $l) use (&$lines) {
+        $lines[] = $l;
+    }))->toBe('18.9.9');
     Process::assertRan(fn ($p) => $p->command === [$this->fnm, 'install', '18']);
     expect($this->node->install('lts', fn () => null))->toBe('24.1.0');
     Process::assertRan(fn ($p) => $p->command === [$this->fnm, 'install', '--lts']);

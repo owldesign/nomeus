@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\File;
 final class FakeValet
 {
     public readonly string $root;      // temp root
+
     public readonly string $configDir; // <root>/valet
+
     public readonly string $sitesRoot; // <root>/code — a "parked" directory
 
     public function __construct(private readonly string $tld = 'test', string $version = '4.12.0')

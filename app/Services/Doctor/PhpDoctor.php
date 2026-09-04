@@ -2,21 +2,24 @@
 
 namespace App\Services\Doctor;
 
-use App\Services\BrewBridge;
 use App\Services\Dumps\PrependInstaller;
+use App\Services\Node\NodeManager;
+use App\Services\Php\PhpExtensions;
+use App\Services\Php\PhpProvider;
 use App\Services\Php\XdebugManager;
 use App\Services\PhpManager;
+use App\Services\ValetBridge;
 
 final class PhpDoctor implements Section
 {
     public function __construct(
-        private readonly \App\Services\Php\PhpProvider $brew,
+        private readonly PhpProvider $brew,
         private readonly PhpManager $php,
         private readonly PrependInstaller $prepend,
         private readonly XdebugManager $xdebug,
-        private readonly \App\Services\Php\PhpExtensions $extensions,
-        private readonly \App\Services\ValetBridge $valet,
-        private readonly \App\Services\Node\NodeManager $node,
+        private readonly PhpExtensions $extensions,
+        private readonly ValetBridge $valet,
+        private readonly NodeManager $node,
     ) {}
 
     public function name(): string

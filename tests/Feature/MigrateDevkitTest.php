@@ -163,7 +163,12 @@ it('fixes the php ini before starting anything, and a failing instance does not 
             return Process::result("ok\n");
         },
     ]);
-    app()->bind(ServiceManager::class, function ($app) { $m = $app->build(ServiceManager::class); $m->readyTimeout = 1; return $m; });
+    app()->bind(ServiceManager::class, function ($app) {
+        $m = $app->build(ServiceManager::class);
+        $m->readyTimeout = 1;
+
+        return $m;
+    });
 
     $this->artisan("migrate:devkit --from={$this->old} --yes")
         ->expectsOutputToContain('redis: running on 6379')

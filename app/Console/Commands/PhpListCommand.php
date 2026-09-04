@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\BrewBridge;
 use App\Services\PhpManager;
 use Illuminate\Console\Command;
 
@@ -14,7 +15,7 @@ class PhpListCommand extends Command
     public function handle(PhpManager $php): int
     {
         if ($this->option('fresh')) {
-            app(\App\Services\BrewBridge::class)->outdatedPhp(fresh: true);
+            app(BrewBridge::class)->outdatedPhp(fresh: true);
         }
         $versions = $php->versions();
         $installable = $php->installable();
@@ -29,7 +30,7 @@ class PhpListCommand extends Command
         }
 
         if ($versions === []) {
-            $this->warn('No php@X.Y kegs under '.app(\App\Services\BrewBridge::class)->prefix().'/opt. Install one: nomeus php:install 8.4');
+            $this->warn('No php@X.Y kegs under '.app(BrewBridge::class)->prefix().'/opt. Install one: nomeus php:install 8.4');
 
             return self::SUCCESS;
         }

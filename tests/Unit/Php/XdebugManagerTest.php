@@ -6,12 +6,14 @@ use App\Services\Dumps\PrependInstaller;
 use App\Services\Php\IniManager;
 use App\Services\Php\XdebugManager;
 use App\Services\Php\XdebugState;
+use App\Services\Php\XdebugWatcher;
 use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\Shell;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeBrew;
+use Tests\Support\FakeValet;
 
 beforeEach(function () {
     $this->root = sys_get_temp_dir().'/nomeus-xdebug-'.uniqid();
@@ -26,14 +28,18 @@ beforeEach(function () {
     $probe = Mockery::mock(Probe::class);
     $probe->shouldReceive('tcp')->andReturnUsing(fn ($h, $p) => $p === 9003 && $this->listening);
     $this->prepend = new PrependInstaller($config, $brew, new CaptureFlag($config), $shell, $this->state);
-    $this->watcher = Mockery::mock(\App\Services\Php\XdebugWatcher::class);
-    $this->watcher->shouldReceive('enable')->andReturnUsing(function () { $this->watcherOn = true; })->byDefault();
-    $this->watcher->shouldReceive('disable')->andReturnUsing(function () { $this->watcherOn = false; })->byDefault();
+    $this->watcher = Mockery::mock(XdebugWatcher::class);
+    $this->watcher->shouldReceive('enable')->andReturnUsing(function () {
+        $this->watcherOn = true;
+    })->byDefault();
+    $this->watcher->shouldReceive('disable')->andReturnUsing(function () {
+        $this->watcherOn = false;
+    })->byDefault();
     $this->watcher->shouldReceive('status')->andReturnUsing(fn () => ['installed' => $this->watcherOn, 'running' => $this->watcherOn, 'pid' => $this->watcherOn ? 42 : null])->byDefault();
     $this->watcherOn = false;
     $this->xdebug = new XdebugManager($config, $brew, $shell, $probe, $this->state, $this->prepend, $this->watcher);
     // restartAndWait resolves PhpManager from the container: point it at this fake world too
-    $this->valetFs = new \Tests\Support\FakeValet;
+    $this->valetFs = new FakeValet;
     touch("{$this->valetFs->configDir}/valet.sock");
     config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
     config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
@@ -76,7 +82,9 @@ it('installs from the tap, reads the .so path, quarantines the tap ini and write
     expect($this->xdebug->status()['8.4']['installed'])->toBeFalse();
     $lines = [];
 
-    $r = $this->xdebug->install('8.4', function (string $l) use (&$lines) { $lines[] = $l; });
+    $r = $this->xdebug->install('8.4', function (string $l) use (&$lines) {
+        $lines[] = $l;
+    });
 
     $bin = $this->brewFs->root.'/bin/brew';
     Process::assertRan(fn ($p) => $p->command === [$bin, 'trust', 'shivammathur/extensions']);
@@ -159,7 +167,9 @@ it('detect follows the ide: watcher installed, ini flips with applyDetect, other
     // the IDE starts listening → the heartbeat flips the ini to on (and restarts fpm)
     Process::fake(['*bin/valet*' => Process::result("ok\n")]);
     $lines = [];
-    expect($this->xdebug->applyDetect(true, function (string $l) use (&$lines) { $lines[] = $l; }))->toBe(['8.4']);
+    expect($this->xdebug->applyDetect(true, function (string $l) use (&$lines) {
+        $lines[] = $l;
+    }))->toBe(['8.4']);
     expect(($this->ini)('8.4'))->toContain('xdebug.start_with_request=yes')
         ->and(($this->ini)('8.4'))->toContain('; detect: switches off when the IDE stops listening')
         ->and($this->state->get('8.4')['effective'])->toBe('on')

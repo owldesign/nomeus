@@ -11,7 +11,9 @@ beforeEach(function () {
     mkdir($this->root);
     $this->scaffolder = new SiteScaffolder(new Shell(new NomeusConfig("{$this->root}/config.json")));
     $this->lines = [];
-    $this->log = function (string $l) { $this->lines[] = $l; };
+    $this->log = function (string $l) {
+        $this->lines[] = $l;
+    };
 });
 
 afterEach(fn () => File::deleteDirectory($this->root));

@@ -27,19 +27,32 @@ use Mockery;
 final class FakeServicesWorld
 {
     public string $root;
+
     public FakeBrew $brewFs;
+
     public array $answering = [];
+
     public array $loaded = [];
+
     /** @var array<string,int> label => pid */
     public array $brewLoaded = [];
+
     public Probe $probe;
+
     public NomeusConfig $config;
+
     public Shell $shell;
+
     public BrewBridge $brew;
+
     public LaunchdManager $launchd;
+
     public BrewServices $brewServices;
+
     public ServiceManager $manager;
+
     public FakeValet $valetFs;
+
     public ValetBridge $valet;
 
     public function __construct()
@@ -158,7 +171,7 @@ final class FakeServicesWorld
             file_put_contents("$dir/$name", $content);
         }
         $label = BrewServices::PREFIX.$formula;
-        file_put_contents("{$this->root}/agents/{$label}.plist", "<plist/>");
+        file_put_contents("{$this->root}/agents/{$label}.plist", '<plist/>');
         if ($loaded) {
             $this->brewLoaded[$label] = 864;
             $this->answering[] = $port;

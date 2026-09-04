@@ -67,7 +67,7 @@ final readonly class Manifest
         $dir = rtrim($dir, '/');
         $file = self::find($dir);
         if ($file === null) {
-            throw new RuntimeException("No ".self::FILE." in {$dir}. Start from docs/nomeus.yml.example.");
+            throw new RuntimeException('No '.self::FILE." in {$dir}. Start from docs/nomeus.yml.example.");
         }
         try {
             $data = Yaml::parseFile($file) ?? [];

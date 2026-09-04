@@ -1,7 +1,7 @@
 <?php
 
-use App\Support\NomeusConfig;
 use App\Support\Editor;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 use Illuminate\Support\Facades\Process;
 

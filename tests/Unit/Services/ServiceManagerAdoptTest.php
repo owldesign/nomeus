@@ -18,7 +18,9 @@ afterEach(fn () => $this->w->destroy());
 
 it('adopts a brew postgres cluster: stop brew, copy data, standard port, agent, role', function () {
     $lines = [];
-    $i = $this->m->adopt('postgresql@14', log: function (string $l) use (&$lines) { $lines[] = $l; });
+    $i = $this->m->adopt('postgresql@14', log: function (string $l) use (&$lines) {
+        $lines[] = $l;
+    });
 
     expect($i->name)->toBe('postgresql')
         ->and($i->formula)->toBe('postgresql@14')

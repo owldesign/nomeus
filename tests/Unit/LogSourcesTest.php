@@ -2,8 +2,8 @@
 
 use App\Services\LogSources;
 use App\Services\ValetBridge;
-use App\Support\Shell;
 use App\Support\NomeusConfig;
+use App\Support\Shell;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {

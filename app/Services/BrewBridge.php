@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Php\PhpProvider;
 use App\Support\Shell;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
@@ -11,7 +12,7 @@ use RuntimeException;
  * shivammathur tap offers, what's outdated. Reads are filesystem-only (safe and instant
  * from php-fpm); `brew outdated` is the one subprocess and is cached.
  */
-final class BrewBridge implements \App\Services\Php\PhpProvider
+final class BrewBridge implements PhpProvider
 {
     public const TAP = 'shivammathur/php';
 
@@ -100,7 +101,7 @@ final class BrewBridge implements \App\Services\Php\PhpProvider
 
     /**
      * @return array<string, string> version => newer patch, e.g. ["8.4" => "8.4.26"].
-     * `brew outdated` is slow and needs taps updated (our env sets HOMEBREW_NO_AUTO_UPDATE), so cached.
+     *                               `brew outdated` is slow and needs taps updated (our env sets HOMEBREW_NO_AUTO_UPDATE), so cached.
      */
     public function outdatedPhp(bool $fresh = false): array
     {

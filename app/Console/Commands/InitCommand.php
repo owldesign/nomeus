@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Init\InitRunner;
+use App\Services\ValetBridge;
 use App\Support\Manifest;
 use Illuminate\Console\Command;
 use RuntimeException;
@@ -49,7 +50,7 @@ class InitCommand extends Command
         }
 
         $this->info(sprintf('%s.%s ready — %d step%s run, %d already in place',
-            $m->domain, app(\App\Services\ValetBridge::class)->tld(),
+            $m->domain, app(ValetBridge::class)->tld(),
             count($result['ran']), count($result['ran']) === 1 ? '' : 's', count($result['skipped'])));
 
         return self::SUCCESS;

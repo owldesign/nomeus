@@ -2,9 +2,12 @@
 
 namespace App\Services\Doctor;
 
+use App\Services\Php\AptPhp;
 use App\Services\ValetBridge;
 use App\Support\NomeusConfig;
+use App\Support\Platform;
 use App\Support\Shell;
+use Symfony\Component\Yaml\Yaml;
 
 /** nomeus itself: config, dirs, the dashboard site, the shim, the build, its git state. */
 final class SelfDoctor implements Section
@@ -51,10 +54,10 @@ final class SelfDoctor implements Section
             'warn');
         $r->expect(is_file(base_path('public/build/manifest.json')), 'build', 'public/build present', 'no build — npm run build');
         $r->expect(is_file(base_path('vendor/autoload.php')), 'vendor', 'composer deps present', 'composer install');
-        $r->expect(class_exists(\Symfony\Component\Yaml\Yaml::class), 'symfony/yaml', 'present (nomeus.yml)', 'composer require symfony/yaml', 'warn');
+        $r->expect(class_exists(Yaml::class), 'symfony/yaml', 'present (nomeus.yml)', 'composer require symfony/yaml', 'warn');
 
-        if (\App\Support\Platform::isLinux()) {
-            $helper = \App\Services\Php\AptPhp::HELPER;
+        if (Platform::isLinux()) {
+            $helper = AptPhp::HELPER;
             $r->expect(is_executable($helper), 'root helper', $helper, "{$helper} missing — sudo install -m 0755 install/linux/nomeus-helper {$helper}");
             $r->expect(is_file('/etc/sudoers.d/nomeus'), 'sudoers', '/etc/sudoers.d/nomeus', 'no NOPASSWD rule for the helper — install/install-linux.sh writes /etc/sudoers.d/nomeus');
             $linger = trim($this->shell->run(['loginctl', 'show-user', (string) (getenv('USER') ?: get_current_user()), '-p', 'Linger', '--value'], timeout: 10)->output());

@@ -11,6 +11,7 @@ use App\Services\TaskRunner;
 final class RetentionDoctor implements Section
 {
     public const SITE_LOG_WARN = 50 * 1024 * 1024;
+
     public const SERVICE_LOG_WARN = 50 * 1024 * 1024;
 
     public function __construct(

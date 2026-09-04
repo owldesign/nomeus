@@ -9,7 +9,9 @@ beforeEach(function () {
 });
 
 afterEach(function () {
-    @unlink($this->file); @unlink("{$this->dir}/.env.example"); @rmdir($this->dir);
+    @unlink($this->file);
+    @unlink("{$this->dir}/.env.example");
+    @rmdir($this->dir);
 });
 
 it('replaces the first definition in place and appends new keys under a header', function () {

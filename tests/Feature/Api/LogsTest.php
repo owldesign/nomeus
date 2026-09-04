@@ -1,11 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Process;
+use Tests\Support\FakeBrew;
 use Tests\Support\FakeValet;
 
 beforeEach(function () {
     $this->valetFs = new FakeValet;
-    $this->brewFs = new \Tests\Support\FakeBrew;
+    $this->brewFs = new FakeBrew;
     file_put_contents($this->valetFs->root.'/nomeus.json', json_encode(['brew_prefix' => $this->brewFs->root, 'ide' => 'phpstorm']));
     config()->set('nomeus.config_path', $this->valetFs->root.'/nomeus.json');
     config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);

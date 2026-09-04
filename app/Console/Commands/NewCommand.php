@@ -10,6 +10,7 @@ use App\Services\Services\DriverRegistry;
 use App\Services\ValetBridge;
 use App\Support\Editor;
 use App\Support\Manifest;
+use App\Support\NomeusConfig;
 use App\Support\Shell;
 use Illuminate\Console\Command;
 use RuntimeException;
@@ -65,7 +66,7 @@ class NewCommand extends Command
 
             return self::FAILURE;
         }
-        $dir = $this->option('dir') ? \App\Support\NomeusConfig::expand((string) $this->option('dir')) : (($parked[0] ?? null) ? "{$parked[0]}/{$name}" : null);
+        $dir = $this->option('dir') ? NomeusConfig::expand((string) $this->option('dir')) : (($parked[0] ?? null) ? "{$parked[0]}/{$name}" : null);
         if ($dir === null) {
             $this->error('No parked directory — pass --dir=<path> or `valet park` your sites folder first.');
 
@@ -81,7 +82,7 @@ class NewCommand extends Command
                     'custom' => text('Composer package', placeholder: 'laravel/laravel:^12'),
                     default => null,
                 }
-                : SiteScaffolder::DEFAULT;
+            : SiteScaffolder::DEFAULT;
         }
 
         // ── php, services, mail, tls ─────────────────────────────────────────
@@ -132,7 +133,7 @@ class NewCommand extends Command
         $this->line("<fg=gray>{$dir}/nomeus.yml</>");
         $this->line($yaml);
         if ($this->option('dry-run')) {
-            $this->line('<fg=gray>'.($from ? "would run: composer create-project {$from}" : 'would use the directory as is').", then init:</>");
+            $this->line('<fg=gray>'.($from ? "would run: composer create-project {$from}" : 'would use the directory as is').', then init:</>');
             $this->table(['step', 'action', ''], array_map(fn ($s) => [$s->id, $s->label, $s->skip ? "skip {$s->skip}" : 'run '.($s->detail ?? '')], $init->plan(Manifest::fromArray($builder->build($answers), $dir))));
 
             return self::SUCCESS;

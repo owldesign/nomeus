@@ -8,5 +8,8 @@ class RestartCommand extends LifecycleCommand
 
     protected $description = 'Restart a service instance';
 
-    protected function verb(): string { return 'restart'; }
+    protected function verb(): string
+    {
+        return 'restart';
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\BrewBridge;
 use App\Services\PhpManager;
 use App\Support\Shell;
 use Illuminate\Console\Command;
@@ -11,7 +12,7 @@ class PhpInstallCommand extends Command
 {
     protected $signature = 'php:install {version : e.g. 8.1 or php@8.1}';
 
-    protected $description = 'Install a PHP version from the '.\App\Services\BrewBridge::TAP.' tap (streams brew output)';
+    protected $description = 'Install a PHP version from the '.BrewBridge::TAP.' tap (streams brew output)';
 
     public function handle(PhpManager $php, Shell $shell): int
     {

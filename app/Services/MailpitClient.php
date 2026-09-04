@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Support\NomeusConfig;
 use App\Support\Probe;
 use App\Support\ServiceInstance;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -128,7 +129,7 @@ final class MailpitClient
             return $res->json();
         } catch (RequestException $e) {
             throw new RuntimeException("Mailpit {$method} {$path}: HTTP {$e->response->status()} — ".trim($e->response->body()));
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+        } catch (ConnectionException $e) {
             throw new RuntimeException("Mailpit is not answering on {$this->baseUrl()} — nomeus services:start ".($this->instance()?->name ?? 'mailpit').' (or services:create mailpit)');
         }
     }

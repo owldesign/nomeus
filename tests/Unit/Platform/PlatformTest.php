@@ -1,5 +1,8 @@
 <?php
 
+use App\Services\LaunchdManager;
+use App\Services\ProcessManager;
+use App\Services\SystemdManager;
 use App\Support\NomeusConfig;
 use App\Support\Platform;
 
@@ -26,10 +29,10 @@ it('detects the platform and can be forced', function () {
 
 it('binds the supervisor by platform', function () {
     Platform::force('macos');
-    app()->forgetInstance(\App\Services\ProcessManager::class);
-    expect(app(\App\Services\ProcessManager::class))->toBeInstanceOf(\App\Services\LaunchdManager::class);
+    app()->forgetInstance(ProcessManager::class);
+    expect(app(ProcessManager::class))->toBeInstanceOf(LaunchdManager::class);
 
     Platform::force('linux');
-    app()->forgetInstance(\App\Services\ProcessManager::class);
-    expect(app(\App\Services\ProcessManager::class))->toBeInstanceOf(\App\Services\SystemdManager::class);
+    app()->forgetInstance(ProcessManager::class);
+    expect(app(ProcessManager::class))->toBeInstanceOf(SystemdManager::class);
 });

@@ -11,8 +11,11 @@ namespace App\Support;
 final class LogParser
 {
     private const LARAVEL = '/^\[(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[+-]\d{2}:?\d{2}|Z)?)\] ([\w-]+)\.(\w+): (.*)$/';
+
     private const NGINX = '#^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] (.*)$#';
+
     private const FPM = '/^\[(\d{2}-\w{3}-\d{4} \d{2}:\d{2}:\d{2}(?:\.\d+)?)\] (\w+): (.*)$/';
+
     private const FILE_REF = '#(/[^\s:()"\'\[\]]+\.(?:php|blade\.php|js|ts|tsx|vue))(?:\((\d+)\)|:(\d+))#';
 
     /**

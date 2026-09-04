@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Services\Services\DriverRegistry;
+use App\Support\Platform;
 use App\Support\Probe;
 use App\Support\Shell;
 use RuntimeException;
@@ -30,7 +31,7 @@ final class BrewServices
     public function list(): array
     {
         $found = [];
-        $mac = \App\Support\Platform::isMac();
+        $mac = Platform::isMac();
         foreach ($this->loadedLabels() as $label => $pid) {
             $found[$label] = ['loaded' => true, 'pid' => $pid];
         }
@@ -74,7 +75,7 @@ final class BrewServices
     /** brew services' unit name for a formula on this platform. */
     public static function label(string $formula): string
     {
-        return \App\Support\Platform::isMac() ? self::PREFIX.$formula : "homebrew.{$formula}";
+        return Platform::isMac() ? self::PREFIX.$formula : "homebrew.{$formula}";
     }
 
     public function find(string $formula): ?array
@@ -100,7 +101,7 @@ final class BrewServices
     /** @return array<string, ?int> label => pid for loaded brew-services units (launchd agents / systemd --user units) */
     private function loadedLabels(): array
     {
-        if (! \App\Support\Platform::isMac()) {
+        if (! Platform::isMac()) {
             $result = $this->shell->run(['systemctl', '--user', 'list-units', '--type=service', '--all', '--no-legend', '--plain', 'homebrew.*'], timeout: 15);
             $out = [];
             foreach (preg_split('/\R/', $result->output()) as $line) {

@@ -5,10 +5,15 @@ namespace App\Providers;
 use App\Services\BrewBridge;
 use App\Services\BrewServices;
 use App\Services\LaunchdManager;
+use App\Services\Php\AptPhp;
+use App\Services\Php\PhpProvider;
+use App\Services\ProcessManager;
 use App\Services\Services\DriverRegistry;
-use App\Support\Probe;
+use App\Services\SystemdManager;
 use App\Services\ValetBridge;
 use App\Support\NomeusConfig;
+use App\Support\Platform;
+use App\Support\Probe;
 use App\Support\Shell;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,26 +33,26 @@ class AppServiceProvider extends ServiceProvider
             $app->make(BrewBridge::class),
             $app->make(DriverRegistry::class),
             $app->make(Probe::class),
-            (string) (config('nomeus.launch_agents_dir') ?: \App\Support\Platform::unitsDir()),
+            (string) (config('nomeus.launch_agents_dir') ?: Platform::unitsDir()),
         ));
 
         $this->app->singleton(LaunchdManager::class, fn ($app) => new LaunchdManager(
             $app->make(Shell::class),
-            (string) (config('nomeus.launch_agents_dir') ?: \App\Support\Platform::unitsDir()),
+            (string) (config('nomeus.launch_agents_dir') ?: Platform::unitsDir()),
             (int) (config('nomeus.uid') ?: (function_exists('posix_getuid') ? posix_getuid() : 501)),
         ));
-        $this->app->singleton(\App\Services\SystemdManager::class, fn ($app) => new \App\Services\SystemdManager(
+        $this->app->singleton(SystemdManager::class, fn ($app) => new SystemdManager(
             $app->make(Shell::class),
-            (string) (config('nomeus.launch_agents_dir') ?: \App\Support\Platform::unitsDir()),
+            (string) (config('nomeus.launch_agents_dir') ?: Platform::unitsDir()),
         ));
         // where php comes from: brew on macOS, apt + the root helper on Linux
-        $this->app->singleton(\App\Services\Php\PhpProvider::class, fn ($app) => \App\Support\Platform::isMac()
+        $this->app->singleton(PhpProvider::class, fn ($app) => Platform::isMac()
             ? $app->make(BrewBridge::class)
-            : new \App\Services\Php\AptPhp($app->make(Shell::class)));
+            : new AptPhp($app->make(Shell::class)));
         // the supervisor everyone else asks for: launchd on macOS, systemd --user on Linux
-        $this->app->singleton(\App\Services\ProcessManager::class, fn ($app) => \App\Support\Platform::isMac()
+        $this->app->singleton(ProcessManager::class, fn ($app) => Platform::isMac()
             ? $app->make(LaunchdManager::class)
-            : $app->make(\App\Services\SystemdManager::class));
+            : $app->make(SystemdManager::class));
     }
 
     public function boot(): void {}

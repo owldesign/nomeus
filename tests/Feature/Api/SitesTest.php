@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\TaskRunner;
 use App\Support\Probe;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\Process;
@@ -27,7 +28,9 @@ beforeEach(function () {
     // Mutations spawn detached tasks; capture the shell line instead of launching anything.
     $this->spawned = [];
     $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')
-        ->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+        ->andReturnUsing(function (string $cmd) {
+            $this->spawned[] = $cmd;
+        }));
 
     // Process::fake matches patterns in insertion order, so no bare '*' here: a test that
     // re-fakes one of these keys overrides it in place, later keys would never be reached.
@@ -58,7 +61,7 @@ it('lists sites', function () {
         ->assertJsonPath('data.2.path', 'http://127.0.0.1:3000');
 });
 
-it('shows one site with artisan about for laravel sites', function () use ($h) {
+it('shows one site with artisan about for laravel sites', function () {
     Process::fake(['*artisan*about*' => Process::result(json_encode([
         'environment' => ['laravel_version' => '12.0.0', 'environment' => 'local'],
         'drivers' => ['cache' => 'file'],
@@ -84,9 +87,9 @@ it('enqueues secure, isolate, unisolate and unsecure as detached tasks', functio
 
     $r = $this->postJson('/api/sites/alpha/unsecure', [], $h)->assertStatus(202);
     $r->assertJsonPath('task.status', 'queued')->assertJsonPath('task.label', 'valet unsecure alpha')
-      ->assertJsonPath('task.argv', [$bin, 'unsecure', 'alpha']);
+        ->assertJsonPath('task.argv', [$bin, 'unsecure', 'alpha']);
     $id = $r->json('task.id');
-    expect(file_exists(app(\App\Services\TaskRunner::class)->dir()."/{$id}.json"))->toBeTrue()
+    expect(file_exists(app(TaskRunner::class)->dir()."/{$id}.json"))->toBeTrue()
         ->and($this->spawned)->toHaveCount(1)
         ->and($this->spawned[0])->toContain("artisan task:run '{$id}'");
 

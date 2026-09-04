@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\MailpitClient;
+use App\Services\ServiceManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -23,7 +24,7 @@ class MailController extends Controller
             'smtp_port' => $this->mail->smtpPort(),
             'http_port' => $this->mail->httpPort(),
             'ui_url' => $this->mail->baseUrl(),
-            'env' => $i ? app(\App\Services\ServiceManager::class)->env($i) : null,
+            'env' => $i ? app(ServiceManager::class)->env($i) : null,
         ]]);
     }
 

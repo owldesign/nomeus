@@ -2,6 +2,8 @@
 
 namespace App\Services\Services;
 
+use App\Support\ServiceInstance;
+
 abstract class AbstractDriver implements Driver
 {
     public function versionArgs(): array
@@ -14,12 +16,12 @@ abstract class AbstractDriver implements Driver
         return null;
     }
 
-    public function createDatabasePlan(\App\Support\ServiceInstance $instance, string $binDir, string $name): ?array
+    public function createDatabasePlan(ServiceInstance $instance, string $binDir, string $name): ?array
     {
         return null;
     }
 
-    public function dropDatabasePlan(\App\Support\ServiceInstance $instance, string $binDir, string $name): ?array
+    public function dropDatabasePlan(ServiceInstance $instance, string $binDir, string $name): ?array
     {
         return null;
     }
@@ -34,7 +36,7 @@ abstract class AbstractDriver implements Driver
         return [];
     }
 
-    public function workingDirectory(\App\Support\ServiceInstance $instance): string
+    public function workingDirectory(ServiceInstance $instance): string
     {
         return $instance->dir;
     }
@@ -49,7 +51,7 @@ abstract class AbstractDriver implements Driver
         return null;
     }
 
-    public function postAdopt(\App\Support\ServiceInstance $instance, string $binDir): array
+    public function postAdopt(ServiceInstance $instance, string $binDir): array
     {
         return [];
     }

@@ -7,18 +7,30 @@ use App\Support\Shell;
 
 final class PostgresDriver extends AbstractDriver
 {
-    public function type(): string { return 'postgresql'; }
+    public function type(): string
+    {
+        return 'postgresql';
+    }
 
-    public function label(): string { return 'PostgreSQL'; }
+    public function label(): string
+    {
+        return 'PostgreSQL';
+    }
 
     public function formulae(): array
     {
         return ['postgresql@17', 'postgresql@16', 'postgresql@15', 'postgresql@14'];
     }
 
-    public function defaultPort(): int { return 5432; }
+    public function defaultPort(): int
+    {
+        return 5432;
+    }
 
-    public function binary(): string { return 'postgres'; }
+    public function binary(): string
+    {
+        return 'postgres';
+    }
 
     public function initialize(ServiceInstance $i, string $binDir): array
     {
@@ -74,7 +86,10 @@ final class PostgresDriver extends AbstractDriver
         ]];
     }
 
-    public function databaseEnvKey(): ?string { return 'DB_DATABASE'; }
+    public function databaseEnvKey(): ?string
+    {
+        return 'DB_DATABASE';
+    }
 
     /** createdb is not idempotent; "already exists" on stderr is the success case here. */
     public function createDatabasePlan(ServiceInstance $i, string $binDir, string $name): ?array

@@ -16,6 +16,7 @@ final class DumpIngest
     public const KINDS = ['dump', 'query', 'job', 'view', 'request', 'log'];
 
     private HtmlDumper $html;
+
     private CliDumper $cli;
 
     public function __construct()

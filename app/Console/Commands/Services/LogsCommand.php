@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\Services;
 
+use App\Services\Doctor\RetentionDoctor;
 use App\Services\ServiceManager;
 use Illuminate\Console\Command;
 
@@ -29,7 +30,7 @@ class LogsCommand extends Command
                     fclose($fh);
                 }
             }
-            $this->info("{$i->name}: logs cleared (".\App\Services\Doctor\RetentionDoctor::human($freed).')');
+            $this->info("{$i->name}: logs cleared (".RetentionDoctor::human($freed).')');
 
             return self::SUCCESS;
         }

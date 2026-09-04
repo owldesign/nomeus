@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Node\NodeManager;
 use App\Support\Shell;
 use Illuminate\Console\Command;
 
@@ -18,7 +19,7 @@ class SelfUpdateCommand extends Command
 
     protected $description = 'Pull, install dependencies, rebuild the dashboard, regenerate the php ini, then run the doctor';
 
-    public function handle(Shell $shell, \App\Services\Node\NodeManager $node): int
+    public function handle(Shell $shell, NodeManager $node): int
     {
         $root = base_path();
         $git = is_dir("{$root}/.git") && ! $this->option('no-git');

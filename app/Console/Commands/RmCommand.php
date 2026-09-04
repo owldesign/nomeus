@@ -68,6 +68,7 @@ class RmCommand extends Command
                 }
                 if ($instance === null) {
                     $this->warn("no {$svc['type']} instance for {$target} — skipped");
+
                     continue;
                 }
                 $plan = $services->driver($instance)->dropDatabasePlan($instance, $brew->formulaBinDir($instance->formula) ?? '', $target);

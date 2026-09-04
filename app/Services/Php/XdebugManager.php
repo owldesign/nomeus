@@ -20,6 +20,7 @@ use RuntimeException;
 final class XdebugManager
 {
     public const TAP_INI = '20-xdebug.ini';
+
     public const QUARANTINE_SUFFIX = '.nomeus-off';
 
     public function __construct(

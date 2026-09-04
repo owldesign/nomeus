@@ -41,7 +41,7 @@ final readonly class Site
             'secured' => $this->secured,
             'php' => $this->php,
             'laravel' => $this->isLaravel(),
-            'manifest' => $this->type !== 'proxy' && \App\Support\Manifest::exists($this->path),   // nomeus.yml or dev.yml
+            'manifest' => $this->type !== 'proxy' && Manifest::exists($this->path),   // nomeus.yml or dev.yml
             'nginx_conf' => $this->nginxConf,
         ];
     }

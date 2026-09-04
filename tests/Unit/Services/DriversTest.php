@@ -1,18 +1,18 @@
 <?php
 
 use App\Services\Services\DriverRegistry;
-use App\Services\Services\NomeusBound;
 use App\Services\Services\DumpsDriver;
 use App\Services\Services\MailpitDriver;
 use App\Services\Services\MariaDbDriver;
 use App\Services\Services\MeilisearchDriver;
+use App\Services\Services\MySqlDriver;
+use App\Services\Services\NomeusBound;
+use App\Services\Services\PostgresDriver;
+use App\Services\Services\RedisDriver;
 use App\Services\Services\ReverbDriver;
 use App\Services\Services\SeaweedFsDriver;
 use App\Services\Services\SiteBound;
 use App\Services\Services\TypesenseDriver;
-use App\Services\Services\MySqlDriver;
-use App\Services\Services\PostgresDriver;
-use App\Services\Services\RedisDriver;
 use App\Support\ServiceInstance;
 
 $instance = fn (string $type, string $formula, int $port) => new ServiceInstance(
@@ -93,7 +93,7 @@ it('knows where brew keeps each formula\'s data and how to finish an adoption', 
     expect($pg)->toHaveCount(1)
         ->and($pg[0]['argv'][0])->toBe('/b/psql')
         ->and($pg[0]['argv'])->toContain('-p', '5432', '-d', 'postgres')
-        ->and(end($pg[0]['argv']))->toContain("CREATE ROLE postgres SUPERUSER LOGIN")
+        ->and(end($pg[0]['argv']))->toContain('CREATE ROLE postgres SUPERUSER LOGIN')
         ->and((new RedisDriver)->postAdopt($instance('redis', 'redis', 1), '/b'))->toBe([]);
 });
 

@@ -3,6 +3,7 @@
 use App\Services\BrewBridge;
 use App\Services\Dumps\CaptureFlag;
 use App\Services\Dumps\PrependInstaller;
+use App\Services\Php\XdebugState;
 use App\Support\NomeusConfig;
 use App\Support\Shell;
 use Illuminate\Support\Facades\File;
@@ -16,7 +17,7 @@ beforeEach(function () {
     $config = new NomeusConfig("{$this->root}/nomeus/config.json");
     $shell = new Shell($config);
     $this->flag = new CaptureFlag($config);
-    $this->installer = new PrependInstaller($config, new BrewBridge($shell), $this->flag, $shell, new \App\Services\Php\XdebugState($config));
+    $this->installer = new PrependInstaller($config, new BrewBridge($shell), $this->flag, $shell, new XdebugState($config));
 });
 
 afterEach(function () {

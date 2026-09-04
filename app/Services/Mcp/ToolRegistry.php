@@ -8,14 +8,18 @@ use App\Services\Dumps\DumpStore;
 use App\Services\Init\InitRunner;
 use App\Services\LogSources;
 use App\Services\LogTailer;
+use App\Services\Node\NodeManager;
 use App\Services\Php\XdebugManager;
 use App\Services\Php\XdebugState;
 use App\Services\PhpManager;
 use App\Services\ServiceManager;
+use App\Services\SiteInformation;
 use App\Services\TaskRunner;
 use App\Services\ValetBridge;
 use App\Support\Manifest;
+use App\Support\ServiceInstance;
 use App\Support\Shell;
+use App\Support\Site;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 use RuntimeException;
@@ -91,7 +95,7 @@ class ToolRegistry
         $this->add('site_info', 'One site in detail, including `php artisan about` for Laravel apps (environment, versions, drivers).', ['name' => $str('site name without the tld, e.g. "shop"')], ['name'],
             function ($a) {
                 $site = $this->site($a['name']);
-                $info = $this->app->make(\App\Services\SiteInformation::class);
+                $info = $this->app->make(SiteInformation::class);
                 $about = $info->about($site);
 
                 return $site->toArray() + [
@@ -157,7 +161,7 @@ class ToolRegistry
         $this->add('php_versions', 'Installed PHP versions: which is linked (global), which sites are isolated to which, php-fpm state, brew updates.', [], [],
             fn () => array_map(fn ($v) => $v->toArray(), $this->app->make(PhpManager::class)->versions()));
         $this->add('node_versions', 'Node versions installed through fnm, the default, and which sites pin which version (.nvmrc).', [], [],
-            fn () => ['fnm' => ($n = $this->app->make(\App\Services\Node\NodeManager::class))->fnmBin()] + $n->installed() + ['pins' => $n->pins($this->app->make(ValetBridge::class)->sites())]);
+            fn () => ['fnm' => ($n = $this->app->make(NodeManager::class))->fnmBin()] + $n->installed() + ['pins' => $n->pins($this->app->make(ValetBridge::class)->sites())]);
         $this->add('xdebug_status', 'Xdebug per PHP version (installed, mode off/on/trigger) and whether an IDE is listening on the debug port.', [], [],
             fn () => ['versions' => ($x = $this->app->make(XdebugManager::class))->status(), 'ide_listening' => $x->ideListening(), 'port' => $x->port()]);
         $this->add('set_xdebug', 'Switch Xdebug for a PHP version: off (not loaded), on (every request), trigger (only with XDEBUG_TRIGGER / the browser helper). Restarts php-fpm.',
@@ -167,7 +171,9 @@ class ToolRegistry
                 $changed = $x->setMode((string) $a['version'], (string) $a['mode']);
                 $log = [];
                 if ($changed) {
-                    $x->restartAndWait(function (string $l) use (&$log) { $log[] = $l; });
+                    $x->restartAndWait(function (string $l) use (&$log) {
+                        $log[] = $l;
+                    });
                 }
 
                 return ['ok' => true, 'version' => $a['version'], 'mode' => $a['mode'], 'restarted' => $changed, 'log' => $log];
@@ -189,7 +195,9 @@ class ToolRegistry
                 $page = $this->app->make(LogTailer::class)->read($src['path']);
                 $entries = $page['entries'];
                 if (! empty($a['level'])) {
-                    $want = match ($a['level']) { 'error' => ['emergency', 'alert', 'critical', 'error', 'emerg', 'crit'], 'warning' => ['warning', 'warn', 'notice'], 'info' => ['info'], default => ['debug'] };
+                    $want = match ($a['level']) {
+                        'error' => ['emergency', 'alert', 'critical', 'error', 'emerg', 'crit'], 'warning' => ['warning', 'warn', 'notice'], 'info' => ['info'], default => ['debug']
+                    };
                     $entries = array_values(array_filter($entries, fn ($e) => in_array($e['level'] ?? '', $want, true)));
                 }
 
@@ -234,12 +242,12 @@ class ToolRegistry
         return $this->app->make(ServiceManager::class);
     }
 
-    private function instance(string $name): \App\Support\ServiceInstance
+    private function instance(string $name): ServiceInstance
     {
         return $this->services()->find($name) ?? throw new RuntimeException("No service instance [{$name}]. list_services shows them.");
     }
 
-    private function site(string $name): \App\Support\Site
+    private function site(string $name): Site
     {
         return $this->app->make(ValetBridge::class)->find($name) ?? throw new RuntimeException("No site [{$name}]. list_sites shows them.");
     }

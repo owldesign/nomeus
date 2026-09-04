@@ -23,7 +23,10 @@ beforeEach(function () {
     $this->site = realpath($this->valetFs->parked('shop', laravel: true));
     file_put_contents("{$this->site}/nomeus.yml", "domain: shop\nservices:\n  - { type: postgresql, instance: pg17, database: shop }\n  - { type: redis }\n");
     $this->valetFs->secured('shop');
-    $this->mock(Probe::class, function ($m) { $m->shouldReceive('tcp')->andReturn(false); $m->shouldReceive('unix')->andReturn(false); });
+    $this->mock(Probe::class, function ($m) {
+        $m->shouldReceive('tcp')->andReturn(false);
+        $m->shouldReceive('unix')->andReturn(false);
+    });
     $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn'));
     Process::fake([
         '*launchctl*print-disabled*' => Process::result(''),

@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Dumps\DumpIngest;
+use Nomeus\Client\Dumps\Sender;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 
 // The client package isn't in nomeus's autoloader; load the one class the round-trip needs.
@@ -43,7 +44,7 @@ it('round-trips the client package\'s frames for every recorded kind', function 
         ['log', ['level' => 'warning', 'message' => 'careful', 'context' => []], [], 'WARNING careful'],
     ];
     foreach ($cases as [$kind, $payload, $ctx, $summary]) {
-        $line = \Nomeus\Client\Dumps\Sender::frame($kind, $payload, $ctx);
+        $line = Sender::frame($kind, $payload, $ctx);
         [$data, $context] = DumpIngest::decode($line);
         $row = $this->ingest->toRow($data, $context);
 

@@ -1,8 +1,8 @@
 <?php
 
 use App\Services\BrewServices;
+use App\Services\Services\DriverRegistry;
 use App\Support\Platform;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeServicesWorld;
 
@@ -17,7 +17,7 @@ beforeEach(function () {
         "*systemctl' '--user' 'list-units'*" => Process::result("homebrew.postgresql@17.service loaded active running Homebrew generated unit for postgresql@17\nhomebrew.redis.service loaded inactive dead Homebrew generated unit for redis\n"),
         "*systemctl' '--user' 'show'*" => Process::result("MainPID=4321\n"),
     ]);
-    $this->services = new BrewServices($this->w->shell, $this->w->brew, new \App\Services\Services\DriverRegistry, $this->w->probe, $this->units);
+    $this->services = new BrewServices($this->w->shell, $this->w->brew, new DriverRegistry, $this->w->probe, $this->units);
 });
 
 afterEach(function () {

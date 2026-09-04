@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Php\PhpProvider;
 use App\Services\Services\Driver;
 use App\Services\Services\DriverRegistry;
 use App\Services\Services\NomeusBound;
@@ -29,7 +30,7 @@ final class ServiceManager
         private readonly Probe $probe,
         private readonly BrewServices $brewServices,
         private readonly ValetBridge $valet,
-        private readonly \App\Services\Php\PhpProvider $php,
+        private readonly PhpProvider $php,
     ) {}
 
     public function dir(): string
@@ -443,7 +444,7 @@ final class ServiceManager
         foreach ($files as $file) {
             $content = (string) file_get_contents($file);
             $tail = array_slice(explode("\n", rtrim($content)), -$lines);
-            $out .= "== ".basename($file)." ==\n".implode("\n", $tail)."\n";
+            $out .= '== '.basename($file)." ==\n".implode("\n", $tail)."\n";
         }
 
         return $out;

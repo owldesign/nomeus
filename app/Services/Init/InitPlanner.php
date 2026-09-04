@@ -3,6 +3,9 @@
 namespace App\Services\Init;
 
 use App\Services\BrewBridge;
+use App\Services\Node\NodeManager;
+use App\Services\Php\PhpExtensions;
+use App\Services\Php\PhpProvider;
 use App\Services\ServiceManager;
 use App\Services\Services\DriverRegistry;
 use App\Services\ValetBridge;
@@ -10,6 +13,8 @@ use App\Support\DotenvEditor;
 use App\Support\Manifest;
 use App\Support\ServiceInstance;
 use App\Support\Shell;
+use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -24,9 +29,9 @@ final class InitPlanner
         private readonly DriverRegistry $drivers,
         private readonly BrewBridge $brew,
         private readonly Shell $shell,
-        private readonly \App\Services\Php\PhpExtensions $extensions,
-        private readonly \App\Services\Node\NodeManager $node,
-        private readonly \App\Services\Php\PhpProvider $php,
+        private readonly PhpExtensions $extensions,
+        private readonly NodeManager $node,
+        private readonly PhpProvider $php,
     ) {}
 
     /** @return list<Step> */
@@ -133,7 +138,7 @@ final class InitPlanner
         if ($m->mail) {
             $mailpit = $this->resolveInstance('mailpit', null);
             $driver = $this->drivers->get('mailpit');
-            $from = ['MAIL_FROM_ADDRESS' => "hello@{$m->domain}.{$tld}", 'NOMEUS_MAIL_TAG' => \Illuminate\Support\Str::slug($m->name)];
+            $from = ['MAIL_FROM_ADDRESS' => "hello@{$m->domain}.{$tld}", 'NOMEUS_MAIL_TAG' => Str::slug($m->name)];
             if ($mailpit === null) {
                 $steps[] = Step::run('mail', 'create mailpit', function ($log) use (&$env, $driver, $from) {
                     $i = $this->services->create('mailpit', null, null, null, true, $log);
@@ -244,7 +249,7 @@ final class InitPlanner
         $env['PATH'] = $phpBin.':'.$env['PATH'];
         // scripts that touch node (npm ci, vite build) run under the site's pinned version
         $argv = $this->node->execArgv($this->node->pinOf($m->path), $argv);
-        $result = \Illuminate\Support\Facades\Process::env($env)->path($m->path)->timeout($timeout)
+        $result = Process::env($env)->path($m->path)->timeout($timeout)
             ->run($argv, fn ($type, $buf) => $log(rtrim($buf)));
         if (! $result->successful()) {
             throw new RuntimeException(implode(' ', $argv)." exited {$result->exitCode()}");

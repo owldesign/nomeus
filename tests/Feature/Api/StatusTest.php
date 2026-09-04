@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\NomeusConfig;
 use App\Support\Probe;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -74,7 +75,7 @@ it('returns the status snapshot', function () {
         ->assertJsonPath('dashboard.url', 'http://nomeus.test')
         ->assertJsonPath('dashboard.linked', true)
         ->assertJsonPath('instances', [])
-        ->assertJsonPath('nomeus.code_dir', \App\Support\NomeusConfig::homeDir().'/Sites');
+        ->assertJsonPath('nomeus.code_dir', NomeusConfig::homeDir().'/Sites');
 });
 
 it('reads the valet version from cli/valet.php without running valet', function () {

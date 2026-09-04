@@ -1,10 +1,12 @@
 <?php
 
 use App\Services\LaunchdManager;
+use App\Services\ServiceManager;
 use App\Support\Probe;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Tests\Support\FakeBrew;
+use Tests\Support\FakeValet;
 
 beforeEach(function () {
     $this->root = sys_get_temp_dir().'/nomeus-svccli-'.uniqid();
@@ -13,7 +15,7 @@ beforeEach(function () {
         ->installed('8.4', '8.4.25')->linked('8.4');
     file_put_contents("{$this->root}/nomeus/config.json", json_encode(['brew_prefix' => $this->brewFs->root]));
     config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
-    $this->valetFs = new \Tests\Support\FakeValet;
+    $this->valetFs = new FakeValet;
     config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
     config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
     config()->set('nomeus.launch_agents_dir', "{$this->root}/agents");
@@ -41,7 +43,7 @@ beforeEach(function () {
         '*launchctl*bootstrap*' => function ($p) {
             $label = basename($p->command[3], '.plist');
             $name = substr($label, strlen(LaunchdManager::PREFIX));
-            $this->answering[] = app(\App\Services\ServiceManager::class)->find($name)?->port ?? 0;
+            $this->answering[] = app(ServiceManager::class)->find($name)?->port ?? 0;
             $this->loaded[] = $label;
 
             return Process::result('');
@@ -134,7 +136,7 @@ it('lists adoptable brew services and adopts one, and runs the doctor', function
             return Process::result('');
         },
         '*cp*-a*' => function ($p) {
-            \Illuminate\Support\Facades\File::copyDirectory(rtrim(preg_replace('#/\\.$#', '', $p->command[2]), '/'), rtrim($p->command[3], '/'));
+            File::copyDirectory(rtrim(preg_replace('#/\\.$#', '', $p->command[2]), '/'), rtrim($p->command[3], '/'));
 
             return Process::result('');
         },

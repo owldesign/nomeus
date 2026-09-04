@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Php\PhpProvider;
 use App\Support\Shell;
 use App\Support\Site;
 use Illuminate\Support\Facades\Cache;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 /** `php artisan about --json` for a Laravel site, cached briefly. null for non-Laravel sites or failures. */
 final class SiteInformation
 {
-    public function __construct(private readonly Shell $shell, private readonly \App\Services\Php\PhpProvider $php) {}
+    public function __construct(private readonly Shell $shell, private readonly PhpProvider $php) {}
 
     /** Why the last about() returned null, if it did (not cached — describes this process's attempt). */
     public ?string $lastError = null;

@@ -3,6 +3,7 @@
 use App\Services\ServiceManager;
 use App\Support\Probe;
 use App\Support\TaskSpawner;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
@@ -96,7 +97,7 @@ it('deletes with the header guard, and answers 503 when mailpit is down', functi
     $this->deleteJson('/api/mail/messages?tag=smoke', [], ['X-Nomeus' => '1'])->assertOk()->assertJsonPath('deleted', 1);
     $this->deleteJson('/api/mail/messages', [], ['X-Nomeus' => '1'])->assertOk()->assertJsonPath('deleted', 3);
 
-    Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('refused'));
+    Http::fake(fn () => throw new ConnectionException('refused'));
     $this->getJson('/api/mail/tags')->assertStatus(503)->assertJsonPath('message', fn ($m) => str_contains($m, 'not answering'));
 });
 

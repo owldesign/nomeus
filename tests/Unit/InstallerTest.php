@@ -1,9 +1,11 @@
 <?php
 
+use Illuminate\Support\Facades\Process;
+
 /** The shell side has no PHP to test it; syntax, the served copy, and the UI library's no-tty rendering. */
 it('has valid bash in every installer script', function () {
     foreach (['install/install.sh', 'install/install-linux.sh', 'install/bootstrap.sh', 'install/lib/ui.sh', 'install/sync-site.sh', 'install/linux/nomeus-helper'] as $f) {
-        $result = \Illuminate\Support\Facades\Process::run(['bash', '-n', base_path($f)]);
+        $result = Process::run(['bash', '-n', base_path($f)]);
         expect($result->successful())->toBeTrue("{$f}: ".$result->errorOutput());
     }
 });
@@ -17,7 +19,7 @@ it('renders steps without a tty and stops on a failing step with the hint', func
     $log = sys_get_temp_dir().'/nomeus-ui-'.uniqid().'.log';
     $script = 'source '.escapeshellarg(base_path('install/lib/ui.sh')).'; ui_init '.escapeshellarg($log).'; ui_banner 9.9.9; ui_done "already there" "yes";'
         .' ui_step "works" true; ui_hint "run the fix"; ui_step "breaks" sh -c "echo boom; exit 3"; echo "not reached"';
-    $result = \Illuminate\Support\Facades\Process::env(['NO_COLOR' => '1'])->run(['bash', '-c', $script]);
+    $result = Process::env(['NO_COLOR' => '1'])->run(['bash', '-c', $script]);
 
     expect($result->exitCode())->toBe(1)
         ->and($result->output())->toContain('nomeus 9.9.9')

@@ -1,6 +1,8 @@
 <?php
 
+use App\Services\LaunchdManager;
 use App\Services\Mcp\ToolRegistry;
+use App\Services\ServiceManager;
 use App\Support\Probe;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\File;
@@ -40,12 +42,16 @@ beforeEach(function () {
         '*launchctl*print*' => Process::result("gui/501 = {}\n"),
         "*'launchctl' 'list'*" => Process::result(''),
         '*launchctl*bootstrap*' => function ($p) {
-            $name = substr(basename($p->command[3], '.plist'), strlen(\App\Services\LaunchdManager::PREFIX));
-            $this->answering[] = app(\App\Services\ServiceManager::class)->find($name)?->port ?? 0;
+            $name = substr(basename($p->command[3], '.plist'), strlen(LaunchdManager::PREFIX));
+            $this->answering[] = app(ServiceManager::class)->find($name)?->port ?? 0;
 
             return Process::result('');
         },
-        '*launchctl*bootout*' => function () { $this->answering = []; return Process::result(''); },
+        '*launchctl*bootout*' => function () {
+            $this->answering = [];
+
+            return Process::result('');
+        },
         '*launchctl*' => Process::result(''),
         '*--version*' => Process::result("stub 1.0\n"),
         "*php' '-m'*" => Process::result("[PHP Modules]\nCore\nredis\n"),
@@ -99,7 +105,7 @@ it('exposes the read tools against the fake world', function () {
 });
 
 it('starts, reports and stops a service instance', function () {
-    app(\App\Services\ServiceManager::class)->create('redis', start: false);
+    app(ServiceManager::class)->create('redis', start: false);
 
     expect(($this->call)('list_services')[0]['name'])->toBe('redis');
     expect(($this->call)('whats_on_port', ['port' => 6379]))->toBe(['instance' => 'redis', 'type' => 'redis', 'main_port' => true]);

@@ -22,7 +22,9 @@ beforeEach(function () {
     });
     $this->spawned = [];
     $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')
-        ->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+        ->andReturnUsing(function (string $cmd) {
+            $this->spawned[] = $cmd;
+        }));
     Process::fake([
         '*launchctl*print-disabled*' => Process::result(''),
         '*launchctl*print*' => Process::result('', '', 113),

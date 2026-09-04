@@ -4,6 +4,7 @@ namespace App\Console\Commands\Services;
 
 use App\Services\BrewBridge;
 use App\Services\Services\DriverRegistry;
+use App\Services\Services\SiteBound;
 use Illuminate\Console\Command;
 
 class AvailableCommand extends Command
@@ -17,7 +18,7 @@ class AvailableCommand extends Command
         $this->table(['type', 'name', 'formulae (● installed)', 'default port'], array_map(fn ($d) => [
             $d->type(),
             $d->label(),
-            $d instanceof \App\Services\Services\SiteBound
+            $d instanceof SiteBound
                 ? "site package {$d->sitePackage()}   (--site=<name>)"
                 : implode('  ', array_map(fn ($f) => ($brew->isFormulaInstalled($f) ? '● ' : '○ ').$f, $d->formulae())),
             $d->defaultPort(),

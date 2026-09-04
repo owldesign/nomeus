@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Services\Dumps\PrependInstaller;
+use App\Services\Php\XdebugManager;
+use App\Services\Services\SiteBound;
 use App\Support\Probe;
 use App\Support\Shell;
 use RuntimeException;
@@ -16,8 +19,8 @@ final class ServiceDoctor
         private readonly BrewServices $brewServices,
         private readonly Shell $shell,
         private readonly Probe $probe,
-        private readonly \App\Services\Dumps\PrependInstaller $prepend,
-        private readonly ?\App\Services\Php\XdebugManager $xdebug = null,
+        private readonly PrependInstaller $prepend,
+        private readonly ?XdebugManager $xdebug = null,
     ) {}
 
     /** @return list<array{level:'ok'|'warn'|'fail', check:string, detail:string}> */
@@ -63,13 +66,15 @@ final class ServiceDoctor
 
             if (! $st['installed']) {
                 $driver = $this->services->driver($i);
-                $add('fail', $name, $driver instanceof \App\Services\Services\SiteBound
+                $add('fail', $name, $driver instanceof SiteBound
                     ? "{$driver->sitePackage()} is no longer installed in site {$i->options['site']} — composer require {$driver->sitePackage()} there"
                     : "formula {$i->formula} is not installed — brew install {$i->formula}");
+
                 continue;
             }
             if (! file_exists($this->launchd->plistPath($i->name))) {
                 $add('fail', $name, 'launchd agent plist missing — services:delete --keep-data then recreate, or restore from git');
+
                 continue;
             }
             match (true) {

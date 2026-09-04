@@ -79,7 +79,8 @@ it('handles sqlite files, missing env and proxies', function () {
     $this->artisan('db beta --print')->expectsOutput("{$this->beta}/database/database.sqlite")->assertSuccessful();
     $this->artisan('db beta')->expectsOutputToContain('SQLite file not found')->assertFailed();
 
-    mkdir("{$this->beta}/database"); touch("{$this->beta}/database/database.sqlite");
+    mkdir("{$this->beta}/database");
+    touch("{$this->beta}/database/database.sqlite");
     $this->artisan('db beta')->assertSuccessful();
     Process::assertRan(fn ($p) => $p->command === ['open', '-a', 'TablePlus', "{$this->beta}/database/database.sqlite"]);
 

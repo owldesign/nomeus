@@ -4,17 +4,20 @@ use App\Services\TaskRunner;
 use App\Support\TaskSpawner;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Tests\Support\FakeBrew;
 
 beforeEach(function () {
     $this->dir = sys_get_temp_dir().'/nomeus-tasks-'.uniqid();
     mkdir($this->dir, 0755, true);
-    $this->brewFs = new \Tests\Support\FakeBrew;
+    $this->brewFs = new FakeBrew;
     file_put_contents("{$this->dir}/config.json", json_encode(['code_dir' => '~/Sites', 'brew_prefix' => $this->brewFs->root]));
     config()->set('nomeus.config_path', "{$this->dir}/config.json");
 
     $this->spawned = [];
     $this->mock(TaskSpawner::class, fn ($m) => $m->shouldReceive('spawn')
-        ->andReturnUsing(function (string $cmd) { $this->spawned[] = $cmd; }));
+        ->andReturnUsing(function (string $cmd) {
+            $this->spawned[] = $cmd;
+        }));
 });
 
 afterEach(function () {
@@ -29,8 +32,8 @@ it('spawns a task with an explicit environment and records it as queued', functi
         ->and(file_exists("{$this->dir}/tasks/{$task->id}.json"))->toBeTrue()
         ->and(file_exists("{$this->dir}/tasks/{$task->id}.log"))->toBeTrue()
         ->and($this->spawned)->toHaveCount(1)
-        ->and($this->spawned[0])->toContain("env HOME=")
-        ->and($this->spawned[0])->toContain("PATH=")
+        ->and($this->spawned[0])->toContain('env HOME=')
+        ->and($this->spawned[0])->toContain('PATH=')
         ->and($this->spawned[0])->toContain("artisan task:run '{$task->id}'");
 });
 

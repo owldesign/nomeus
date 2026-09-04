@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Php\PhpProvider;
 use App\Support\PhpVersion;
 use App\Support\Probe;
 use App\Support\Shell;
@@ -11,7 +12,7 @@ use RuntimeException;
 final class PhpManager
 {
     public function __construct(
-        private readonly \App\Services\Php\PhpProvider $brew,   // BrewBridge on macOS, AptPhp on Linux
+        private readonly PhpProvider $brew,   // BrewBridge on macOS, AptPhp on Linux
         private readonly ValetBridge $valet,
         private readonly Shell $shell,
         private readonly Probe $probe,
