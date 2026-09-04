@@ -1,0 +1,61 @@
+# release — a GitHub Release for every v* tag, body from that version's CHANGELOG.md section.
+# The README's release badge links to /releases; this is what fills it.
+name: release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      NOMEUS_PLATFORM: macos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, sqlite3, pdo_sqlite, posix, pcntl
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate --ansi --quiet
+      - run: vendor/bin/pest --ci
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: config/nomeus.php carries the tagged version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          grep -q "'version' => '${version}'" config/nomeus.php || { echo "config/nomeus.php is not at ${version} — bump it before tagging" >&2; exit 1; }
+
+      - name: notes from CHANGELOG.md
+        id: notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            /^## \[/ { on = index($0, "## [" v "]") == 1 }
+            on
+          ' CHANGELOG.md > notes.md
+          if ! [ -s notes.md ]; then
+            echo "no CHANGELOG.md section for $version — run: php artisan docs:changelog --next=$version" >&2
+            exit 1
+          fi
+          # drop the heading line itself; the release title carries it
+          tail -n +2 notes.md > body.md
+          printf '\n---\n`curl -fsSL https://nomeus.dev/install | bash` · upgrade with `nomeus self-update`\n' >> body.md
+          cat body.md
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: nomeus ${{ github.ref_name }}
+          body_path: body.md
+          prerelease: ${{ contains(github.ref_name, '-') }}

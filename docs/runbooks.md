@@ -32,3 +32,4 @@ They are the build history — and the record of every trap met on a real machin
 | 8a | [design](runbook-8a-design.html) | the tokens, the star LED and primitives, Status + Services on the new system |
 | 8b | [design 2](runbook-8b-design.html) | Panel/Table/Tabs/Field; Sites, PHP, Tasks, Mail, Logs, Debug on the same system; aliases removed |
 | 8c | [site](runbook-8c-site.html) | nomeus.dev: the designed landing page, fonts, the two screenshots |
+| 9a | [public-ready](runbook-9a-public.html) | CI on every push, a Release per tag with notes from `CHANGELOG.md`, `docs:changelog`, CONTRIBUTING, issue templates; v2.0.0 |

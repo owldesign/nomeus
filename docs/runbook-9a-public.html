@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nomeus · runbook 9a · public-ready</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>nomeus <small>· runbook 9a · public-ready</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~20 min · phases 0–4</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>a stranger can clone, test, contribute and file a useful issue; every push is tested on CI; every tag becomes a Release with notes.</b>
+  Precondition: 8c committed and pushed, working tree clean, on <code>main</code>. Ends at <b>v2.0.0</b>.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test locally <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay, run the suite</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-9a.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; git status --short &amp;&amp; vendor/bin/pest</pre>
+<pre class="out">new: .github/workflows/ci.yml, release.yml, ISSUE_TEMPLATE/{config,bug,feature}.yml, PULL_REQUEST_TEMPLATE.md, CHANGELOG.md, CONTRIBUTING.md, SECURITY.md,
+     app/Console/Commands/DocsChangelogCommand.php, tests/Feature/DocsChangelogTest.php, docs/runbook-9a-public.html
+mod: README.md, composer.json, config/nomeus.php (version 2.0.0), docs/commands.md, docs/runbooks.md
+Tests: 227 passed (222 + 5)</pre>
+    </div>
+    <div class="callout gold">The changelog tests fake <code>git</code> through <code>Process::fake</code> and dispatch on the argv (<code>$p-&gt;command[1]</code>), because Laravel matches array commands against their quoted command line — the pattern-string keys you'd expect don't hit.</div>
+  </div>
+
+  <div class="step" data-step="0.2"><label><input type="checkbox"><span class="id">0.2</span><span class="title">The two generated docs, from the real code and the real tags</span></label>
+    <div class="body">
+<pre class="cmd">php artisan docs:commands &amp;&amp; php artisan docs:changelog &amp;&amp; git diff --stat -- docs/commands.md CHANGELOG.md</pre>
+<pre class="out">wrote …/docs/commands.md (5x commands) · wrote …/CHANGELOG.md (12 releases, 0 generated, 12 kept)
+docs/commands.md may differ from the zip's hand-edit — that's the point of regenerating; commit whatever the code says.
+CHANGELOG.md: only the Unreleased section moves (it's rebuilt from v1.12.0..HEAD every run); the 12 released sections in the zip are hand-curated from the runbooks and are kept verbatim.</pre>
+    </div>
+    <div class="callout blue">Open <code>CHANGELOG.md</code>. 1.9.0 / 1.9.1 / 1.11.0 were written from the runbook table, not from commits (those tags have no or duplicated subjects). Fix any line that misdescribes what that tag actually contained — it stays as you leave it.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>CI green on main <span class="t">~6 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Commit and push the slice (not the tag yet)</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "9a: ci workflow, releases from tags, changelog, contributing, issue templates" &amp;&amp; git push</pre>
+<pre class="out">Actions → "ci" starts: pest (php 8.3), pest (php 8.4), dashboard build, docs are current. "pages" does not run (no site/ change).</pre>
+    </div>
+    <div class="callout gold"><code>ci.yml</code> runs the suite on <b>ubuntu</b> with <code>NOMEUS_PLATFORM=macos</code>. That works only because nothing in the suite touches the machine — the <code>Pest.php</code> guard is what makes the Linux runner a valid stand-in. If a job fails on something like <code>/opt/homebrew</code> or <code>launchctl</code>, that's a test leaking, not CI.</div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Watch all four jobs</span></label>
+    <div class="body">
+<pre class="cmd">gh run watch --exit-status || open https://github.com/owldesign/nomeus/actions/workflows/ci.yml</pre>
+<pre class="out">✓ pest (php 8.3) · ✓ pest (php 8.4) · ✓ dashboard build (uploads public/build as an artifact) · ✓ docs are current — total ~2–3 min, composer cached after the first run</pre>
+    </div>
+    <div class="callout red">"docs are current" fails on <code>docs/commands.md</code> → you skipped 0.2; regenerate and push. Fails on <code>CHANGELOG.md</code> → a tag has no <code>## [x.y.z]</code> section; <code>php artisan docs:changelog</code> adds it.</div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">The badge</span></label>
+    <div class="body">
+<pre class="cmd">open https://github.com/owldesign/nomeus</pre>
+<pre class="out">the ci badge beside release shows "passing" (shields caches ~5 min; the raw badge at actions/workflows/ci.yml/badge.svg is immediate)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>v2.0.0 <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Name the release in the changelog</span></label>
+    <div class="body">
+<pre class="cmd">php artisan docs:changelog --next=2.0.0 &amp;&amp; sed -n 7,14p CHANGELOG.md</pre>
+<pre class="out">## [2.0.0](https://github.com/owldesign/nomeus/compare/v1.12.0...v2.0.0) - 2026-09-03
+- readme: banner, badges, screenshots …
+- site: the flock behind hero and footer …
+- 9a: ci workflow, releases from tags, changelog, contributing, issue templates</pre>
+<p>Edit those bullets into what 2.0 means to a reader (the CI, the releases, the design system landing) — this section is now "pending" and survives further <code>docs:changelog</code> runs until the tag exists. <code>config/nomeus.php</code> already says <code>2.0.0</code> in the zip (the release workflow refuses a tag the config doesn't match). Then:</p>
+<pre class="cmd">git commit -am "release: 2.0.0" &amp;&amp; git push &amp;&amp; git tag -a v2.0.0 -m "nomeus 2.0.0 — public-ready" &amp;&amp; git push --tags</pre>
+    </div>
+    <div class="callout gold">Why 2.0 now and not after the Linux proof: the version marks the project's shape, not its platforms. 1.x was the build; 2.x is the thing people can clone, test and release. Linux lands as a 2.x minor.</div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">The release workflow</span></label>
+    <div class="body">
+<pre class="cmd">gh run watch --exit-status; gh release view v2.0.0 || open https://github.com/owldesign/nomeus/releases</pre>
+<pre class="out">"release" → test, then release: a GitHub Release "nomeus v2.0.0" whose body is the 2.0.0 section of CHANGELOG.md plus the install / self-update line. The README's release badge now reads v2.0.0 and links somewhere real.</pre>
+    </div>
+    <div class="callout red">"no CHANGELOG.md section for 2.0.0" — the tag was pushed before the changelog commit reached main (order in 2.1 matters), or the section heading isn't exactly <code>## [2.0.0]</code>. Fix, then <code>git tag -d v2.0.0 &amp;&amp; git push --delete origin v2.0.0</code> and re-tag.</div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">self-update sees it</span></label>
+    <div class="body">
+<pre class="cmd">nomeus self-update &amp;&amp; nomeus status --json | grep '"version"'</pre>
+<pre class="out">pull · deps · build · ini · doctor · "nomeus 2.0.0 — reload the dashboard." · "version": "2.0.0" (self-update works on whichever checkout the shim resolves to — readlink in 3.2 tells you which)</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>The stranger's path <span class="t">~4 min</span></h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Issue templates render</span></label>
+    <div class="body">
+<pre class="cmd">open https://github.com/owldesign/nomeus/issues/new/choose</pre>
+<pre class="out">Bug (what / expected / "nomeus doctor --json" as a required JSON block / version / OS / where) · Feature · two contact links (Docs, Security). Open Bug and check the placeholder <code>nomeus doctor --json | pbcopy</code> is what you'd want pasted.</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">CONTRIBUTING is true on this machine</span></label>
+    <div class="body">
+<pre class="cmd">readlink $(brew --prefix)/bin/nomeus &amp;&amp; composer test 2&gt;&amp;1 | tail -2 &amp;&amp; composer lint 2&gt;&amp;1 | tail -3</pre>
+<pre class="out">…/nomeus/bin/nomeus — the shim-as-symlink claim holds · Tests: 227 passed · pint: either clean or a list of files. If pint lists files, either run <code>vendor/bin/pint</code> and commit "style: pint" as its own commit, or drop the "Style: pint" line from CONTRIBUTING — don't leave a rule the repo doesn't meet.</pre>
+    </div>
+    <div class="callout blue">Read CONTRIBUTING.md once as the stranger: the two-checkout note, the four test rules, the release recipe. Anything that names a file or flag that doesn't exist — fix it now; it's the first thing a contributor reads.</div>
+  </div>
+
+  <div class="step" data-step="3.3"><label><input type="checkbox"><span class="id">3.3</span><span class="title">Security reporting is enabled</span></label>
+    <div class="body">
+<pre class="cmd">open https://github.com/owldesign/nomeus/settings/security_analysis</pre>
+<pre class="out">"Private vulnerability reporting" → Enable. SECURITY.md links to /security/advisories/new, which 404s until this is on.</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 4 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">4</span>Hand-off</h2>
+
+  <div class="step" data-step="4.1"><label><input type="checkbox"><span class="id">4.1</span><span class="title">Next</span></label>
+    <div class="body"><p>Paste the four CI job names with their times, the release URL, and pint's verdict. After 9a: polish notes from screenshots (9b), then the Linux VM run whenever there's appetite — it now has a CHANGELOG line waiting and an issue template that asks for the right thing.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>pest on CI: "Test resolved BrewBridge on the real prefix /opt/homebrew"</b> — impossible on ubuntu (no <code>/opt/homebrew/bin/brew</code>), so if you see it locally it's a test that stopped setting <code>nomeus.config_path</code>; the guard is doing its job.</div>
+  <div class="callout red"><b>pest on CI fails only on php 8.3</b> — a syntax or API feature newer than 8.3 (composer says <code>^8.3</code>). Either fix the code or raise the floor in composer.json and drop 8.3 from the matrix; don't do one without the other.</div>
+  <div class="callout red"><b>"dashboard build" fails on <code>npm ci</code></b> — package-lock.json out of sync with package.json; <code>npm install</code> locally, commit the lock.</div>
+  <div class="callout red"><b>"dashboard build" fails on the manifest check</b> — vite wrote somewhere other than <code>public/build</code>; check <code>vite.config.ts</code> <code>build.outDir</code> — self-update assumes the same path.</div>
+  <div class="callout red"><b>release job: "Resource not accessible by integration"</b> — Settings → Actions → General → Workflow permissions → "Read and write". <code>release.yml</code> asks for <code>contents: write</code> but the repo default can override it.</div>
+  <div class="callout red"><b>docs:changelog: "no tags found"</b> — a shallow clone (<code>git fetch --tags --unshallow</code>), or tags not fetched (<code>git fetch --tags</code>). CI's docs job checks out with <code>fetch-depth: 0</code> for this reason.</div>
+  <div class="callout red"><b>Unreleased shows commits you'd already tagged</b> — the tag is lightweight and older than the branch tip you think; <code>git describe --tags</code> tells you what HEAD is relative to.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'nomeus-runbook-9a';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

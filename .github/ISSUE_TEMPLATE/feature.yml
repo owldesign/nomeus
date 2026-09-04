@@ -1,0 +1,16 @@
+name: Feature
+description: Something nomeus should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you're doing by hand today, or what Herd Pro / another tool does that nomeus doesn't.
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: The shape you'd expect
+      description: A command line, a dashboard action, a `nomeus.yml` key — whatever it would look like from the outside.

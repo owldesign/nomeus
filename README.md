@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/owldesign/nomeus/releases"><img alt="release" src="https://img.shields.io/github/v/tag/owldesign/nomeus?label=release&color=e3b341&labelColor=121722&style=flat-square"></a>
+  <a href="https://github.com/owldesign/nomeus/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/github/actions/workflow/status/owldesign/nomeus/ci.yml?branch=main&label=ci&labelColor=121722&style=flat-square"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-3fb950?labelColor=121722&style=flat-square"></a>
   <img alt="macOS" src="https://img.shields.io/badge/macOS-supported-79b8ff?labelColor=121722&style=flat-square">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-in%20progress-6f7683?labelColor=121722&style=flat-square">
@@ -110,7 +111,7 @@ nomeus self-update                 # pull · deps · build · ini · doctor
 
 - **Not a menubar app.** [PHP Monitor](https://phpmon.app) is free and good; use it alongside. Databases: TablePlus through `nomeus db`.
 - **Not on Windows.** Linux is in progress — the code is in ([`docs/linux.md`](docs/linux.md)), the Ubuntu proof isn't yet.
-- **Not backed by a company.** Issues and pull requests here; 220+ tests and a runbook per slice are the safety net.
+- **Not backed by a company.** Issues and pull requests here; the test suite on CI and a runbook per slice are the safety net.
 
 ## Docs
 
@@ -123,11 +124,12 @@ nomeus self-update                 # pull · deps · build · ini · doctor
 | [`docs/linux.md`](docs/linux.md) | the Linux port, what runs where |
 | [`docs/design/`](docs/design) | tokens, component specs, the briefs |
 | [`docs/runbooks.md`](docs/runbooks.md) | the build log — every slice, with every trap met on a real machine |
+| [`CHANGELOG.md`](CHANGELOG.md) | what each tag contains |
 
 ## Development
 
 ```bash
-vendor/bin/pest          # 220+ tests; every process and HTTP call is faked, nothing touches the machine
+vendor/bin/pest          # every process and HTTP call is faked, nothing touches the machine
 npm run build            # the dashboard (React, Tailwind v4, TanStack Query)
 nomeus self-update       # from a checkout with a remote
 ```
@@ -135,6 +137,9 @@ nomeus self-update       # from a checkout with a remote
 The repo grew in vertical slices — plan, code with tests, an HTML runbook, a run on a real Mac, the fixes that run produced — and
 [`docs/runbooks.md`](docs/runbooks.md) is that history. If you're reading the code, `app/Services` is the map:
 `ValetBridge`, `ServiceManager` + `Services/*Driver`, `TaskRunner`, `Init/InitPlanner`, `Dumps/`, `Php/`, `Doctor/`, `Mcp/`.
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md) has the two-checkout setup, the test rules the suite enforces, and how releases are cut;
+[`CHANGELOG.md`](CHANGELOG.md) is generated from the tags.
 
 ## License
 

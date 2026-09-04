@@ -1,0 +1,52 @@
+name: Bug
+description: Something nomeus does wrong on your machine
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Run `nomeus doctor` first — most reports are a warning it already names, with the fix beside it.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command or dashboard action, and what you saw. Paste the terminal output or the task log (`nomeus task:log <id>`).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: nomeus doctor --json
+      description: Paste the whole output. It carries versions, paths, ports and every check — it's how the report gets reproduced.
+      render: json
+      placeholder: nomeus doctor --json | pbcopy
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: nomeus version
+      description: the `version` line of `nomeus status --json`, or the first line `nomeus doctor` prints
+      placeholder: 2.0.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: macOS / Linux version and architecture
+      placeholder: macOS 26.1, Apple Silicon
+    validations:
+      required: true
+  - type: dropdown
+    id: how
+    attributes:
+      label: Where it happened
+      options: [CLI, Dashboard (nomeus.test), MCP (Claude / Cursor), Installer]
+    validations:
+      required: true

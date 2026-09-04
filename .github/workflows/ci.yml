@@ -1,0 +1,108 @@
+# ci — the test suite and the dashboard build, on every push and pull request.
+# Runs on ubuntu-latest with NOMEUS_PLATFORM=macos: every process and HTTP call in the suite is faked
+# and nothing touches the machine, so the macOS code paths are exercised without a macOS runner.
+name: ci
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['site/**', 'docs/**', '*.md']
+  pull_request:
+    paths-ignore: ['site/**', 'docs/**', '*.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pest (php ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+    env:
+      NOMEUS_PLATFORM: macos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, sqlite3, pdo_sqlite, posix, pcntl
+          coverage: none
+          tools: composer:v2
+
+      - name: composer cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-${{ matrix.php }}-
+
+      - run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: app key (tests never read .env, but the encrypter wants a key to exist)
+        run: cp .env.example .env && php artisan key:generate --ansi --quiet
+
+      - run: vendor/bin/pest --ci
+
+  build:
+    name: dashboard build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+
+      - name: the build must produce a manifest (self-update relies on it)
+        run: test -s public/build/manifest.json && du -sh public/build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-build-${{ github.sha }}
+          path: public/build
+          retention-days: 7
+
+  docs:
+    name: docs are current
+    runs-on: ubuntu-latest
+    env:
+      NOMEUS_PLATFORM: macos
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # docs:changelog reads the tags
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, sqlite3, pdo_sqlite, posix
+          coverage: none
+          tools: composer:v2
+
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate --ansi --quiet
+
+      - name: docs/commands.md matches the code
+        run: php artisan docs:commands && git diff --exit-code -- docs/commands.md
+
+      - name: CHANGELOG.md has a section for every tag
+        # not regenerated here — the Unreleased section legitimately lags HEAD between releases
+        run: |
+          missing=0
+          for t in $(git tag --list 'v*'); do
+            grep -q "^## \[${t#v}\]" CHANGELOG.md || { echo "no section for $t"; missing=1; }
+          done
+          exit $missing

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Docs
+    url: https://github.com/owldesign/nomeus/tree/main/docs
+    about: commands, nomeus.yml, layout, mcp, linux — read these first
+  - name: Security
+    url: https://github.com/owldesign/nomeus/blob/main/SECURITY.md
+    about: how to report something that shouldn't be public
