@@ -37,7 +37,7 @@ Rules the suite enforces, not just asks for:
   a Homebrew prefix, a `~/.nomeus` — use them rather than mocking `ValetBridge` or `ServiceManager`.
 - `NOMEUS_PLATFORM=linux` runs the Linux code paths on a Mac (and `macos` runs the macOS ones on CI's ubuntu).
 
-CI runs the suite on PHP 8.3 and 8.4, builds the dashboard, and checks that `docs/commands.md` matches the code and that
+CI runs the suite on PHP 8.4 (the floor: the lock resolves Symfony 8), builds the dashboard, and checks that `docs/commands.md` matches the code and that
 every tag has a `CHANGELOG.md` section.
 
 ## The shape of a change

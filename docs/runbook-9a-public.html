@@ -102,7 +102,8 @@
   <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay, run the suite</span></label>
     <div class="body">
 <pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-9a.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; git status --short &amp;&amp; vendor/bin/pest</pre>
-<pre class="out">new: .github/workflows/ci.yml, release.yml, ISSUE_TEMPLATE/{config,bug,feature}.yml, PULL_REQUEST_TEMPLATE.md, CHANGELOG.md, CONTRIBUTING.md, SECURITY.md,
+<pre class="out">composer.json's php floor is now ^8.4.1 (what the lock actually resolves); <code>composer update --lock</code> in 1.1 refreshes the lock's content-hash only — no package changes.
+new: .github/workflows/ci.yml, release.yml, ISSUE_TEMPLATE/{config,bug,feature}.yml, PULL_REQUEST_TEMPLATE.md, CHANGELOG.md, CONTRIBUTING.md, SECURITY.md,
      app/Console/Commands/DocsChangelogCommand.php, tests/Feature/DocsChangelogTest.php, docs/runbook-9a-public.html
 mod: README.md, composer.json, config/nomeus.php (version 2.0.0), docs/commands.md, docs/runbooks.md
 Tests: 227 passed (222 + 5)</pre>
@@ -127,8 +128,8 @@ CHANGELOG.md: only the Unreleased section moves (it's rebuilt from v1.12.0..HEAD
 
   <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Commit and push the slice (not the tag yet)</span></label>
     <div class="body">
-<pre class="cmd">git add -A &amp;&amp; git commit -m "9a: ci workflow, releases from tags, changelog, contributing, issue templates" &amp;&amp; git push</pre>
-<pre class="out">Actions → "ci" starts: pest (php 8.3), pest (php 8.4), dashboard build, docs are current. "pages" does not run (no site/ change).</pre>
+<pre class="cmd">composer update --lock &amp;&amp; git add -A &amp;&amp; git commit -m "9a: ci workflow, releases from tags, changelog, contributing, issue templates" &amp;&amp; git push</pre>
+<pre class="out">Actions → "ci" starts: pest (php 8.4), dashboard build, docs are current. "pages" does not run (no site/ change).</pre>
     </div>
     <div class="callout gold"><code>ci.yml</code> runs the suite on <b>ubuntu</b> with <code>NOMEUS_PLATFORM=macos</code>. That works only because nothing in the suite touches the machine — the <code>Pest.php</code> guard is what makes the Linux runner a valid stand-in. If a job fails on something like <code>/opt/homebrew</code> or <code>launchctl</code>, that's a test leaking, not CI.</div>
   </div>
@@ -136,7 +137,7 @@ CHANGELOG.md: only the Unreleased section moves (it's rebuilt from v1.12.0..HEAD
   <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Watch all four jobs</span></label>
     <div class="body">
 <pre class="cmd">gh run watch --exit-status || open https://github.com/owldesign/nomeus/actions/workflows/ci.yml</pre>
-<pre class="out">✓ pest (php 8.3) · ✓ pest (php 8.4) · ✓ dashboard build (uploads public/build as an artifact) · ✓ docs are current — total ~2–3 min, composer cached after the first run</pre>
+<pre class="out">✓ pest (php 8.4) · ✓ dashboard build (uploads public/build as an artifact) · ✓ docs are current — total ~2–3 min, composer cached after the first run</pre>
     </div>
     <div class="callout red">"docs are current" fails on <code>docs/commands.md</code> → you skipped 0.2; regenerate and push. Fails on <code>CHANGELOG.md</code> → a tag has no <code>## [x.y.z]</code> section; <code>php artisan docs:changelog</code> adds it.</div>
   </div>
@@ -223,7 +224,8 @@ CHANGELOG.md: only the Unreleased section moves (it's rebuilt from v1.12.0..HEAD
   <h2><span class="n">!</span>Troubleshooting</h2>
 
   <div class="callout red"><b>pest on CI: "Test resolved BrewBridge on the real prefix /opt/homebrew"</b> — impossible on ubuntu (no <code>/opt/homebrew/bin/brew</code>), so if you see it locally it's a test that stopped setting <code>nomeus.config_path</code>; the guard is doing its job.</div>
-  <div class="callout red"><b>pest on CI fails only on php 8.3</b> — a syntax or API feature newer than 8.3 (composer says <code>^8.3</code>). Either fix the code or raise the floor in composer.json and drop 8.3 from the matrix; don't do one without the other.</div>
+  <div class="callout red"><b>"Your lock file does not contain a compatible set of packages" on CI</b> — the matrix PHP is below what the lock resolves (Symfony 8 → 8.4.1). The matrix and <code>composer.json</code>'s floor must both say what the lock says.</div>
+  <div class="callout red"><b>"The lock file is not up to date with the latest changes in composer.json"</b> — a warning after the floor change; <code>composer update --lock</code> rewrites the content-hash and nothing else.</div>
   <div class="callout red"><b>"dashboard build" fails on <code>npm ci</code></b> — package-lock.json out of sync with package.json; <code>npm install</code> locally, commit the lock.</div>
   <div class="callout red"><b>"dashboard build" fails on the manifest check</b> — vite wrote somewhere other than <code>public/build</code>; check <code>vite.config.ts</code> <code>build.outDir</code> — self-update assumes the same path.</div>
   <div class="callout red"><b>release job: "Resource not accessible by integration"</b> — Settings → Actions → General → Workflow permissions → "Read and write". <code>release.yml</code> asks for <code>contents: write</code> but the repo default can override it.</div>

@@ -27,7 +27,7 @@ Regenerate CHANGELOG.md from git tags; keeps sections you have edited
 - `--stdout` — print instead of writing
 - `--next` — label the Unreleased section as this version (used when tagging, e.g. --next=2.0.0)
 
-### `docs:commands [--out=] [--stdout]`
+### `docs:commands [--out=docs/commands.md] [--stdout]`
 
 Regenerate docs/commands.md from the registered nomeus commands
 
@@ -49,7 +49,7 @@ Write the auto_prepend_file ini into every installed PHP version (needed once; a
 
 - `--restart` — run `valet restart php` afterwards so php-fpm loads the ini
 
-### `dumps:serve [--port=] [--host=]`
+### `dumps:serve [--port=9912] [--host=127.0.0.1]`
 
 Receive dumps and recorded events (VarDumper server protocol) and store them for the Debug page
 
@@ -68,7 +68,7 @@ Check every layer nomeus depends on and name the fix for anything wrong
 
 - `--section` — valet, php, nomeus, services, dumps, mail, retention
 
-### `dumps [--kind=] [--lines=] [--follow]`
+### `dumps [--kind=] [--lines=20] [--follow]`
 
 Show recent dumps and recorded events in the terminal
 
@@ -97,7 +97,7 @@ Set a site up from its nomeus.yml: link, tls, php, node, services, databases, ma
 - `--dry-run` — show the plan and change nothing
 - `--skip-scripts` — do everything except the post-init commands
 
-### `logs [site] [--file=] [--nginx] [--fpm] [--lines=] [--level=] [--follow]`
+### `logs [site] [--file=] [--nginx] [--fpm] [--lines=50] [--level=] [--follow]`
 
 Show (and follow) a site's Laravel log, or valet's nginx / php-fpm logs
 
@@ -105,7 +105,7 @@ Show (and follow) a site's Laravel log, or valet's nginx / php-fpm logs
 - `--file` — a specific log file name in that site (e.g. laravel-2026-09-02.log)
 - `--nginx` — valet's nginx error log instead
 - `--fpm` — valet's php-fpm log instead
-- `--lines` — how many recent entries to start with
+- `--lines=50` — how many recent entries to start with
 - `--level` — only entries at this severity (error, warning, info, debug)
 - `--follow` — keep printing new entries until Ctrl-C
 
@@ -123,7 +123,7 @@ Serve the Model Context Protocol over stdio (for Claude Desktop, Claude Code, Cu
 - `--call` — call one tool and print the result (with --args)
 - `--args` — JSON arguments for --call
 
-### `new [name] [--dir=] [--laravel] [--from=] [--empty] [--php=] [--node=] [--db=] [--redis] [--service=] [--mail] [--secure] [--no-scripts] [--open] [--edit] [--dry-run] [--yes]`
+### `new [name] [--dir=] [--laravel] [--from=] [--empty] [--php=] [--node=] [--db=] [--redis] [--service=*] [--mail] [--secure] [--no-scripts] [--open] [--edit] [--dry-run] [--yes]`
 
 Create a site: scaffold, nomeus.yml, init — interactive when run without flags
 
@@ -185,11 +185,11 @@ Show nomeus, Valet, PHP and service status
 - `--json` — Emit the snapshot as JSON
 - `--diagnose` — JSON snapshot plus env and raw subprocess output — compare with /api/status?diagnose=1
 
-### `tasks [--limit=]`
+### `tasks [--limit=20]`
 
 Recent background tasks (dashboard actions) and their outcome
 
-- `--limit` — How many recent tasks to show
+- `--limit=20` — How many recent tasks to show
 
 ### `xdebug [--json]`
 
@@ -245,7 +245,7 @@ List PHP extensions per version, or install one from the shivammathur/extensions
 
 ### `php:install <version>`
 
-Install a PHP version from the shivammathur/php tap (streams brew output)
+Install a PHP version from the 
 
 - `version` — e.g. 8.1 or php@8.1
 
@@ -317,7 +317,7 @@ Service instances and their state
 
 - `--json` — Emit as JSON
 
-### `services:logs <name> [--lines=] [--clear]`
+### `services:logs <name> [--lines=50] [--clear]`
 
 Tail a service instance's logs
 
@@ -375,10 +375,10 @@ Switch Xdebug: off (not loaded) · on (every request) · trigger (XDEBUG_TRIGGER
 - `--all` — every version that has xdebug
 - `--no-restart` — write the ini only (php-fpm keeps the old mode until valet restart php)
 
-### `xdebug:watch [--interval=] [--once]`
+### `xdebug:watch [--interval=2] [--once]`
 
 Follow the IDE: xdebug on while it listens, off when it stops (the agent behind xdebug:mode detect)
 
-- `--interval` — seconds between polls
+- `--interval=2` — seconds between polls
 - `--once` — one poll, apply, exit (tests / a manual sync)
 

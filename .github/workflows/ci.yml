@@ -25,11 +25,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.3', '8.4']
+        php: ['8.4']   # the lock resolves Symfony 8 (php >= 8.4.1); add 8.5 here once the lock is proven on it
     env:
       NOMEUS_PLATFORM: macos
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -39,7 +39,7 @@ jobs:
           tools: composer:v2
 
       - name: composer cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.composer/cache
           key: composer-${{ runner.os }}-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
@@ -56,9 +56,9 @@ jobs:
     name: dashboard build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -69,7 +69,7 @@ jobs:
       - name: the build must produce a manifest (self-update relies on it)
         run: test -s public/build/manifest.json && du -sh public/build
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dashboard-build-${{ github.sha }}
           path: public/build
@@ -81,7 +81,7 @@ jobs:
     env:
       NOMEUS_PLATFORM: macos
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # docs:changelog reads the tags
 
