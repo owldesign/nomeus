@@ -1,7 +1,8 @@
 # nomeus — hand-off
 
-Repo `github.com/owldesign/nomeus` · site `nomeus.dev` · latest tag **v2.1.0** · checkout `~/Code/nomeus` (the `nomeus`
-shim points at it) · 236 pest tests at the tag, 237 with 10a applied · 30 Swift tests in `apps/macos`.
+Repo `github.com/owldesign/nomeus` · site `nomeus.dev` · latest tag **v2.2.0** · checkout `~/Code/nomeus` (the `nomeus`
+shim points at it; `~/.nomeus/config.json` `home` is this checkout — there is no `~/.nomeus/app` on this Mac, whatever
+`CLAUDE.md` says) · 237 pest tests · 30 Swift tests in `apps/macos`.
 
 ## Where things are
 
@@ -10,9 +11,9 @@ doctor rows (fail `agent <n>` with reasons + fix / ok `agents`), dashboard-fixab
 doctor, `refreshAgent` re-anchors nomeus-bound records (`site_path`/`php_bin_dir`) so `migrate:devkit` is covered too.
 Scope: the dump server and the xdebug watcher only — brew-backed agents are `services:upgrade`'s job.
 
-**10a in flight — Nomeus.app.** Applied to the checkout as an overlay, **not committed**. Runbook
-`docs/runbook-10a-macos.html`; phases 0–2 walked on a real Mac (macOS 26.5, Xcode 26); the walk is at **step 3.1**
-(commit, push, watch `macos.yml`). Findings, all fixed and written into the runbook as red callouts:
+**10a done — Nomeus.app** (v2.2.0, the first Release with `Nomeus-<version>.zip` attached). Runbook
+`docs/runbook-10a-macos.html`, walked end to end on a real Mac (macOS 26.5, Xcode 26); the released 2.2.0 build is
+what runs in `/Applications` now. Findings, all fixed and written into the runbook as red callouts:
 
 1. Secured `nomeus.test` → nginx 301 http→https → URLSession re-issued the POST as GET → 405 on every task route.
    Fixed twice: transport no longer follows redirects (model adopts the new origin, retries the same method once,
@@ -52,14 +53,19 @@ What 10a adds, file by file:
 | `resources/js/components/Layout.tsx` | sticky shell |
 | `README.md`, `docs/runbooks.md`, `.gitignore` | Nomeus.app section, 10a row, `apps/macos/{.build,dist,.swiftpm}` |
 
-Remaining for 10a: runbook phase 3 (commit as `10a: Nomeus.app — SwiftPM menu bar shell over the API`, push, watch
-`macos.yml`, run the CI artifact, cut 2.2.0 — first Release with the zip), write back anything CI teaches.
+CI: `macos.yml` runs in ~1 min (test 23 s, bundle 22 s, Swift 6.2.4); `release.yml` test → release → app in ~2 min,
+zip on the Release right after. Nothing remains for 10a.
 
 ## CI
 `ci.yml`: php 8.4 required, 8.5 reported (`continue-on-error`) — promote 8.5 to the required list once it has been
 green a while. `macos.yml` only triggers on `apps/macos/**`, the favicon and `config/nomeus.php` (macOS minutes).
 
 ## Open
+- `CLAUDE.md` Layout says "Two checkouts … `~/.nomeus/app` (what `nomeus self-update` maintains)". Not true here:
+  `self-update` pulls `home` from `~/.nomeus/config.json`, which is `~/Code/nomeus`. Fix the line or create the
+  second checkout — decide which, then make the runbooks' "other checkout" verify steps match.
+- `actions/upload-artifact@v4` in `macos.yml` targets Node 20 (forced onto 24, an annotation on every run); bump when
+  a v5 exists.
 - **10b candidate**: doctor rows (9b) in the menu — "n issues · fix" line calling `/api/doctor` and `/api/doctor/fix`.
 - brew-side path drift (Cellar path moving under a running agent) if it ever bites.
 - Linux VM run when there's appetite (`docs/linux.md`, `install-linux.sh`; the issue template asks for
