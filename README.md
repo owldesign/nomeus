@@ -12,8 +12,8 @@
 </p>
 
 <p align="center">
-  <b>Nomeus</b> (νομεύς, <i>shepherd</i>) is a free, MIT-licensed, self-hosted alternative to Laravel Herd Pro for macOS.<br>
-  One Laravel app that is a CLI, a dashboard and a menu bar app, built on the two things you already run: <b>Laravel Valet</b> and <b>Homebrew</b>.
+  <b>Nomeus</b> (νομεύς, <i>shepherd</i>) is a free, MIT-licensed local environment for Laravel on macOS — the jobs a paid one charges for, on the two things you already run: <b>Laravel Valet</b> and <b>Homebrew</b>.<br>
+  One Laravel app that is a CLI, a dashboard and a menu bar app.
 </p>
 
 <p align="center">
@@ -28,26 +28,21 @@
 
 <br>
 
-## What Herd Pro sells, from parts you already run
+## What it does
 
-| Herd Pro | Nomeus |
-|---|---|
-| Sites, PHP versions, isolation, TLS | Valet, driven through `nomeus sites` / `php:*` and the Sites and PHP pages |
-| Services (Postgres, MySQL, Redis, …) | native Homebrew binaries under nomeus-owned launchd agents — **multiple instances**, clone, **adopt from `brew services`**, doctor |
-| Mail | a Mailpit instance; **one inbox per app** via tags from `nomeus/client` |
-| `herd init` / `herd.yml` | `nomeus init` / `nomeus.yml` — link, tls, php, node, services, databases, mail, `.env`, scripts; idempotent |
-| Log viewer | every site's `storage/logs`, nginx and php-fpm; offset-based tail; `file:line` into your IDE |
-| Dumps (`dump()`, queries, jobs, views, requests, logs) | nomeus's own dump server through an `auto_prepend_file` — **no package needed** for `dump()`/`dd()`; the request tabs via the client package |
-| Xdebug | per PHP version: **off / on / trigger / detect** (detect follows your IDE) |
-| Node | versions through fnm, `.nvmrc` pins honoured by `init` |
-| Menu bar app | [Nomeus.app](#nomeusapp) — services, sites, a notification when an instance stops answering, launch at login, the dashboard in a window; Swift, ad-hoc signed |
-
-And four things Herd doesn't have:
-
+- **Sites, PHP versions, isolation, TLS** — Valet, driven through `nomeus sites` / `php:*` and the Sites and PHP pages.
+- **Services** — PostgreSQL, MySQL, MariaDB, Redis, Meilisearch, Typesense, SeaweedFS (S3), Reverb and Mailpit as native Homebrew binaries under nomeus-owned launchd agents: **multiple instances**, clone, **adopt from `brew services`**, doctor.
+- **Mail** — a Mailpit instance with **one inbox per app** via tags from `nomeus/client`.
+- **`nomeus init` / `nomeus.yml`** — link, tls, php, node, services, databases, mail, `.env`, scripts; idempotent.
 - **`nomeus new shop --laravel --db=postgresql --redis --mail`** — scaffold → `nomeus.yml` → `init`, from the CLI or a form.
+- **Logs** — every site's `storage/logs`, nginx and php-fpm; offset-based tail; `file:line` into your IDE.
+- **Dumps** — nomeus's own dump server through an `auto_prepend_file`: **no package needed** for `dump()`/`dd()`; queries, jobs, views, requests and logs per request via the client package.
+- **Xdebug** — per PHP version: **off / on / trigger / detect** (detect follows your IDE).
+- **Node** — versions through fnm, `.nvmrc` pins honoured by `init`.
 - **`nomeus doctor`** — sixty-odd checks across Valet, PHP, launchd, ports, ini files and retention; every warning names the exact fix, and the dashboard runs it as a task.
 - **`nomeus mcp`** — your stack as tools for Claude Desktop, Claude Code and Cursor: *"what's on port 5433?"*, *"which sites use redis?"*, *"switch xdebug to trigger"*. `nomeus mcp:install claude`.
 - **Everything is a task** — every dashboard action is a detached CLI run with a streaming log, so a Valet restart can't sever the request that asked for it.
+- **[Nomeus.app](#nomeusapp)** — services, sites, a notification when an instance stops answering, launch at login, the dashboard in a window; Swift, ad-hoc signed.
 
 <br>
 

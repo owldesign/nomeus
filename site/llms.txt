@@ -1,6 +1,6 @@
 # Nomeus
 
-> Nomeus (νομεύς, "shepherd") is a free, MIT-licensed, self-hosted alternative to Laravel Herd Pro for macOS. It is one Laravel application that is both a CLI (`nomeus …`) and a dashboard at https://nomeus.test, plus Nomeus.app, a native menu bar app over the same API (since 2.2.0), built on Laravel Valet (sites, PHP versions, TLS) and Homebrew (binaries). Everything Herd Pro charges for is provided from free parts, plus things Herd does not have.
+> Nomeus (νομεύς, "shepherd") is a free, MIT-licensed, self-hosted local environment for Laravel on macOS — the jobs a paid environment such as Laravel Herd Pro charges for, at no cost. It is one Laravel application that is both a CLI (`nomeus …`) and a dashboard at https://nomeus.test, plus Nomeus.app, a native menu bar app over the same API (since 2.2.0), built on Laravel Valet (sites, PHP versions, TLS) and Homebrew (binaries). Everything is built from free parts, plus things the paid environments do not have (multiple instances per service, adopt from brew services, a doctor that names the fix, an MCP server).
 
 Install (macOS with Xcode Command Line Tools and Homebrew):
 

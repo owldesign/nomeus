@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Nomeus — Herd Pro, without the subscription. Free, self-hosted, on Valet and Homebrew</title>
-<meta name="description" content="Nomeus is a free, MIT-licensed, self-hosted Laravel Herd Pro alternative for macOS: multi-instance Postgres/MySQL/Redis services, per-app mail, a dump server, log tailing, Xdebug, Node versions and an MCP server — built on Laravel Valet and Homebrew. One command installs it.">
+<title>Nomeus — a free local Laravel environment for macOS, on Valet and Homebrew</title>
+<meta name="description" content="Nomeus is a free, MIT-licensed local environment for Laravel on macOS: multi-instance Postgres, MySQL and Redis, an inbox per app, a dump server, log tailing, Xdebug, Node versions, an MCP server and a menu bar app — built on Laravel Valet and Homebrew. One command installs it.">
 <link rel="canonical" href="https://nomeus.dev/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,16 +16,16 @@
 <!-- social previews -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nomeus">
-<meta property="og:title" content="Nomeus — Herd Pro, without the subscription">
-<meta property="og:description" content="A free, self-hosted Laravel Herd Pro alternative for macOS: services, mail, dumps, logs, Xdebug and an MCP server on Valet and Homebrew. curl -fsSL https://nomeus.dev/install | bash">
+<meta property="og:title" content="Nomeus — a free local Laravel environment for macOS">
+<meta property="og:description" content="Sites, services, mail, dumps, logs, Xdebug, an MCP server and a menu bar app on Valet and Homebrew. Free, self-hosted, MIT. curl -fsSL https://nomeus.dev/install | bash">
 <meta property="og:url" content="https://nomeus.dev/">
 <meta property="og:image" content="https://nomeus.dev/assets/hero-services.png">
 <meta property="og:image:width" content="1600">
 <meta property="og:image:height" content="1000">
 <meta property="og:image:alt" content="The Nomeus dashboard: the Services page with star-shaped status LEDs, one row expanded">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Nomeus — Herd Pro, without the subscription">
-<meta name="twitter:description" content="Free, self-hosted, MIT. Multi-instance services, per-app mail, dumps, logs, Xdebug, Node, MCP — on Laravel Valet and Homebrew.">
+<meta name="twitter:title" content="Nomeus — a free local Laravel environment for macOS">
+<meta name="twitter:description" content="Free, self-hosted, MIT. Multi-instance services, per-app mail, dumps, logs, Xdebug, Node, MCP and a menu bar app — on Laravel Valet and Homebrew.">
 <meta name="twitter:image" content="https://nomeus.dev/assets/hero-services.png">
 <!-- structured data -->
 <script type="application/ld+json">
@@ -35,7 +35,7 @@
   "name": "Nomeus",
   "alternateName": "nomeus",
   "url": "https://nomeus.dev/",
-  "description": "A free, self-hosted Laravel Herd Pro alternative for macOS: multi-instance services (PostgreSQL, MySQL, MariaDB, Redis, Meilisearch, Typesense, SeaweedFS), per-app mail via Mailpit, a dump server, log tailing with IDE links, Xdebug (off/on/trigger/detect), Node versions via fnm, and an MCP server — built on Laravel Valet and Homebrew.",
+  "description": "A free, self-hosted local environment for Laravel on macOS: multi-instance services (PostgreSQL, MySQL, MariaDB, Redis, Meilisearch, Typesense, SeaweedFS), per-app mail via Mailpit, a dump server, log tailing with IDE links, Xdebug (off/on/trigger/detect), Node versions via fnm, and an MCP server — built on Laravel Valet and Homebrew.",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "macOS",
   "softwareVersion": "1.12.0",
@@ -135,7 +135,7 @@ footer a{color:var(--mid)}
   <svg class="star" width="16" height="16" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="oklch(0.79 0.14 68)"/></svg>
   <span class="m lantern" style="font-size:15px;font-weight:600">nomeus</span>
   <div class="nav-links">
-    <a href="#table">vs herd pro</a>
+    <a href="#start">get started</a>
     <a href="#install">install</a>
     <a href="https://github.com/owldesign/nomeus">github</a>
   </div>
@@ -155,8 +155,8 @@ footer a{color:var(--mid)}
 </div>
 <header class="wrap hero">
   <div>
-    <h1>Herd Pro, without the subscription — on Valet and Homebrew.</h1>
-    <p class="mid" style="max-width:52ch;margin-bottom:28px">Nomeus is a free, self-hosted local environment for macOS: multi-instance services, per-app mail, a dump server, log tailing and Xdebug — one Laravel app that is both a CLI and a dashboard at <span class="m" style="font-size:13.5px;color:var(--text)">nomeus.test</span>, with Nomeus.app in the menu bar. MIT.</p>
+    <h1>A complete local Laravel environment. Free, on Valet and Homebrew.</h1>
+    <p class="mid" style="max-width:52ch;margin-bottom:28px">Nomeus runs your sites, services, mail, dumps, logs and Xdebug from one place — a CLI, a dashboard at <span class="m" style="font-size:13.5px;color:var(--text)">nomeus.test</span> and Nomeus.app in the menu bar. Several Postgres versions side by side, an inbox per app, dump() with the request's queries beside it. MIT, self-hosted, no account.</p>
     <div class="cmd">
       <code><span class="faint">$ </span>curl -fsSL https://nomeus.dev/install | bash</code>
       <button data-copy="curl -fsSL https://nomeus.dev/install | bash">copy</button>
@@ -170,21 +170,20 @@ footer a{color:var(--mid)}
 </header>
 </div>
 
-<section id="table" class="band tint">
+<section id="start" class="band tint">
 <div class="wrap sec">
-  <h2>What Herd Pro sells, from parts you already run</h2>
-  <p class="dim" style="max-width:64ch;margin:8px 0 28px">Valet serves the sites. Homebrew provides the binaries. Nomeus is the shepherd that keeps them accounted for.</p>
+  <h2>Get started</h2>
+  <p class="dim" style="max-width:64ch;margin:8px 0 28px">One install, then a handful of commands. Everything the CLI does is also a button on the dashboard at nomeus.test; services and sites are a click in the menu bar.</p>
   <div class="table">
-    <div class="thead"><span>herd pro</span><span>nomeus</span></div>
-    <div class="trow"><b>Sites, PHP versions, isolation, TLS</b><span>Valet, driven through nomeus sites / php:* and the Sites and PHP pages</span></div>
-    <div class="trow"><b>Services (Postgres, MySQL, Redis, …)</b><span>native Homebrew binaries under nomeus-owned launchd agents — multiple instances, clone, adopt from brew services, doctor</span></div>
-    <div class="trow"><b>Mail</b><span>a Mailpit instance; one inbox per app via X-Tags from nomeus/client</span></div>
-    <div class="trow"><b>herd init / herd.yml</b><span>nomeus init / nomeus.yml — link, tls, php, node, services, databases, mail, .env, scripts; idempotent</span></div>
-    <div class="trow"><b>Log viewer</b><span>every site's storage/logs, nginx and php-fpm logs; offset-based tail; file:line into the IDE</span></div>
-    <div class="trow"><b>Dumps (dump(), queries, jobs, views, …)</b><span>nomeus's own dump server (VarDumper's server protocol through an auto_prepend_file); request tabs via the client package</span></div>
-    <div class="trow"><b>Menu bar app</b><span>Nomeus.app — services with start / stop / restart, sites, a notification when an instance stops answering, launch at login, the dashboard in a window; Swift, ad-hoc signed, no developer account</span></div>
-    <div class="trow" style="border-bottom:none"><b>Xdebug</b><span>per PHP version: off / on / trigger / detect (follows the IDE), from the CLI or the Debug page</span></div>
-    <div class="m dim" style="padding:11px 20px;font-size:12px;border-top:1px solid oklch(0.29 0.014 255 / 0.55)">also: node versions via fnm (nomeus node:*) · Nomeus.app on every GitHub Release · databases: TablePlus through nomeus db</div>
+    <div class="thead"><span>command</span><span>what happens</span></div>
+    <div class="trow"><b>curl -fsSL https://nomeus.dev/install | bash</b><span>Valet, the Homebrew bundle, the dashboard at nomeus.test, the php ini — ending with nomeus doctor. Re-running is a no-op.</span></div>
+    <div class="trow"><b>nomeus new shop --laravel --db=postgresql --redis --mail --secure</b><span>scaffold, write nomeus.yml, run init: shop.test linked and secured, a database on Postgres, Redis, an inbox tagged shop, the .env filled in</span></div>
+    <div class="trow"><b>nomeus services:create postgresql 17 --name=pg17</b><span>a native Homebrew Postgres under its own launchd agent; nomeus services:clone pg17 pg17-test puts a second one, data included, on the next free port</span></div>
+    <div class="trow"><b>nomeus services:adopt mysql@9.7</b><span>takes over what brew services already runs — data copied, port kept, brew's copy left in place</span></div>
+    <div class="trow"><b>nomeus xdebug:mode detect --php=8.4</b><span>Xdebug on while the IDE listens, off when it stops; also off / on / trigger, per PHP version</span></div>
+    <div class="trow"><b>nomeus doctor</b><span>sixty-odd checks across Valet, PHP, launchd, ports and ini files; every warning names the command that fixes it</span></div>
+    <div class="trow" style="border-bottom:none"><b>nomeus mcp:install claude</b><span>the same stack as tools in Claude Desktop, Claude Code or Cursor: "what's on port 5433?", "switch xdebug to trigger"</span></div>
+    <div class="m dim" style="padding:11px 20px;font-size:12px;border-top:1px solid oklch(0.29 0.014 255 / 0.55)">also: node versions via fnm (nomeus node:*) · databases: TablePlus through nomeus db · Nomeus.app on every GitHub Release · fifty-odd commands in docs/commands.md</div>
   </div>
 </div>
 </section>
@@ -256,7 +255,7 @@ a second postgres on 5433?
   </div>
   <div>
     <h2 style="margin-bottom:16px">What it costs</h2>
-    <p class="mid" style="font-size:14px;max-width:58ch">Nothing. MIT-licensed, self-hosted, no account, no telemetry. Herd Pro is $99/year per seat; Nomeus is the same jobs on software you already trust — Valet, Homebrew, launchd — arranged so you can read every line that touches your machine.</p>
+    <p class="mid" style="font-size:14px;max-width:58ch">Nothing. MIT-licensed, self-hosted, no account, no telemetry. Everything a paid local environment charges for, and a few things none of them have, on software you already trust — Valet, Homebrew, launchd — arranged so you can read every line that touches your machine. Coming from Herd Pro? Same jobs, same one-file-per-site idea, at $0.</p>
   </div>
 </div>
 </section>
