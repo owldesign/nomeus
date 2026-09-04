@@ -19,11 +19,11 @@ Write a key in ~/.nomeus/config.json
 
 ## docs
 
-### `docs:changelog [--out=] [--stdout] [--next=]`
+### `docs:changelog [--out=CHANGELOG.md] [--stdout] [--next=]`
 
 Regenerate CHANGELOG.md from git tags; keeps sections you have edited
 
-- `--out` — where to write, relative to the app root
+- `--out=CHANGELOG.md` — where to write, relative to the app root
 - `--stdout` — print instead of writing
 - `--next` — label the Unreleased section as this version (used when tagging, e.g. --next=2.0.0)
 
@@ -245,7 +245,7 @@ List PHP extensions per version, or install one from the shivammathur/extensions
 
 ### `php:install <version>`
 
-Install a PHP version from the 
+Install a PHP version from the shivammathur/php tap (streams brew output)
 
 - `version` — e.g. 8.1 or php@8.1
 

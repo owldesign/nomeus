@@ -6,7 +6,9 @@ use App\Support\Platform;
 afterEach(fn () => Platform::force(null));
 
 it('detects the platform and can be forced', function () {
-    expect(Platform::name())->toBe(PHP_OS_FAMILY === 'Darwin' ? 'macos' : 'linux');
+    // NOMEUS_PLATFORM wins when set (CI runs the macOS paths on ubuntu that way); otherwise the OS decides
+    $env = getenv('NOMEUS_PLATFORM');
+    expect(Platform::name())->toBe(in_array($env, ['macos', 'linux'], true) ? $env : (PHP_OS_FAMILY === 'Darwin' ? 'macos' : 'linux'));
 
     Platform::force('linux');
     expect(Platform::isLinux())->toBeTrue()

@@ -36,7 +36,7 @@ class DocsCommandsCommand extends Command
                     $sig .= ' '.($arg->isRequired() ? "<{$arg->getName()}>" : "[{$arg->getName()}]");
                 }
                 foreach ($def->getOptions() as $opt) {
-                    $sig .= ' [--'.$opt->getName().($opt->acceptValue() ? '=' : '').']';
+                    $sig .= ' [--'.$opt->getName().($opt->acceptValue() ? '='.($opt->isArray() ? '*' : $this->default($opt)) : '').']';
                 }
                 $md .= "### `{$sig}`\n\n{$command->getDescription()}\n\n";
                 $lines = [];
@@ -47,7 +47,8 @@ class DocsCommandsCommand extends Command
                 }
                 foreach ($def->getOptions() as $opt) {
                     if ($opt->getDescription()) {
-                        $lines[] = "- `--{$opt->getName()}` — {$opt->getDescription()}";
+                        $default = $opt->isArray() ? '' : $this->default($opt);
+                        $lines[] = "- `--{$opt->getName()}".($default !== '' ? "={$default}" : '')."` — {$opt->getDescription()}";
                     }
                 }
                 if ($lines) {
@@ -70,5 +71,13 @@ class DocsCommandsCommand extends Command
         $this->info("wrote {$out} (".count(array_merge(...array_map('array_keys', array_values($groups)))).' commands)');
 
         return self::SUCCESS;
+    }
+
+    /** A scalar default worth showing (`--lines=50`); '' when there is none. Must be deterministic across machines. */
+    private function default(InputOption $opt): string
+    {
+        $d = $opt->getDefault();
+
+        return is_scalar($d) && $d !== false && (string) $d !== '' ? (string) $d : '';
     }
 }

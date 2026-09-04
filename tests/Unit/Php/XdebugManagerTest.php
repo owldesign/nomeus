@@ -37,6 +37,9 @@ beforeEach(function () {
     touch("{$this->valetFs->configDir}/valet.sock");
     config()->set('nomeus.config_path', "{$this->root}/nomeus/config.json");
     config()->set('nomeus.valet_config_dir', $this->valetFs->configDir);
+    // without this, valetBin() falls back to ~/.composer/vendor/bin/valet — present on a Mac with Valet, absent on CI,
+    // where the argv becomes a bare `valet` that no `*bin/valet*` fake matches
+    config()->set('nomeus.valet_bin', $this->valetFs->valetBin());
     $this->mock(Probe::class, function ($m) {
         $m->shouldReceive('tcp')->andReturn(false);
         $m->shouldReceive('unix')->andReturn(true);
