@@ -226,14 +226,17 @@
   <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Commit, push, watch macos.yml</span></label>
     <div class="body">
 <pre class="cmd">cd ~/Code/nomeus &amp;&amp; git add -A &amp;&amp; git commit -m "10a: Nomeus.app — SwiftPM menu bar shell over the API" &amp;&amp; git push</pre>
-<pre class="out">Actions → macos: test (30 passed) → bundle → artifact "Nomeus.app" containing Nomeus-2.1.0.zip. ~5 min on a macos-15 runner, mostly the universal release build. ci (pest, 8.4 required / 8.5 reported) runs too — apps/macos/ isn't on its paths-ignore — and stays green: no PHP changed.</pre>
+<pre class="out">Actions → macos: test (30 passed) → bundle → artifact "Nomeus.app" containing Nomeus-2.1.0.zip. ~1 min on a macos-15 runner (test 23 s, bundle 22 s; Swift 6.2.4 from latest-stable Xcode). ci (pest, 8.4 required / 8.5 reported) runs too — apps/macos/ isn't on its paths-ignore — and stays green: no PHP changed.</pre>
+    <div class="callout red">Walked: both green on the first push, <code>macos</code> in 64 s wall — the "~5 min" guess above was wrong by 5×; the runner's Xcode does the universal release build in 22 s. One annotation: <code>actions/upload-artifact@v4</code> targets Node 20 and is forced onto 24 — bump it when a v5 exists, harmless until then.</div>
     <div class="callout gold">Two workflows, two jobs. <code>macos.yml</code> triggers on <code>apps/macos/**</code>, the favicon and <code>config/nomeus.php</code> — PHP-only pushes don't burn macOS minutes (10× the Linux rate on private repos; free on public). Tags are <code>release.yml</code>'s: its new <code>app</code> job runs <em>after</em> the Release exists and <code>gh release upload</code>s the zip, so there's no race with the notes and a failed Swift build leaves the Release standing without the zip instead of blocking it.</div>
     </div>
   </div>
 
   <div class="step" data-step="3.2"><label><input type="checkbox"><span class="id">3.2</span><span class="title">Download the CI artifact and run it</span></label>
     <div class="body">
-<p>From the run page, download the artifact, unzip, <code>xattr -dr com.apple.quarantine</code>, open. Same app, built by the runner — proves the build isn't leaning on anything local.</p>
+<pre class="cmd">gh run download --name Nomeus.app -D /tmp/ci &amp;&amp; cd /tmp/ci &amp;&amp; ditto -x -k Nomeus-*.zip . &amp;&amp; codesign --verify --verbose=2 Nomeus.app &amp;&amp; lipo -info Nomeus.app/Contents/MacOS/Nomeus &amp;&amp; xattr -dr com.apple.quarantine Nomeus.app &amp;&amp; open Nomeus.app</pre>
+<pre class="out">valid on disk / satisfies its Designated Requirement · x86_64 arm64 · same panel, "All services running". CFBundleVersion is the commit count (44 here), so a runner build and a local build of the same commit carry the same number.</pre>
+<p>Same app, built by the runner — proves the build isn't leaning on anything local. A zip fetched with <code>gh</code> carries no quarantine flag (only <code>com.apple.provenance</code>), so the <code>xattr</code> line is a no-op here; a browser download gets the 2.4 dialog. Quit it and <code>lsregister -f /Applications/Nomeus.app</code> afterwards, as in 2.4.</p>
     </div>
   </div>
 
