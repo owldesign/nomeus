@@ -13,7 +13,7 @@
 
 <p align="center">
   <b>Nomeus</b> (νομεύς, <i>shepherd</i>) is a free, MIT-licensed, self-hosted alternative to Laravel Herd Pro for macOS.<br>
-  One Laravel app that is both a CLI and a dashboard, built on the two things you already run: <b>Laravel Valet</b> and <b>Homebrew</b>.
+  One Laravel app that is a CLI, a dashboard and a menu bar app, built on the two things you already run: <b>Laravel Valet</b> and <b>Homebrew</b>.
 </p>
 
 <p align="center">
@@ -40,6 +40,7 @@
 | Dumps (`dump()`, queries, jobs, views, requests, logs) | nomeus's own dump server through an `auto_prepend_file` — **no package needed** for `dump()`/`dd()`; the request tabs via the client package |
 | Xdebug | per PHP version: **off / on / trigger / detect** (detect follows your IDE) |
 | Node | versions through fnm, `.nvmrc` pins honoured by `init` |
+| Menu bar app | [Nomeus.app](#nomeusapp) — services, sites, a notification when an instance stops answering, launch at login, the dashboard in a window; Swift, ad-hoc signed |
 
 And four things Herd doesn't have:
 
@@ -109,7 +110,7 @@ nomeus self-update                 # pull · deps · build · ini · doctor
 
 ## What it is not
 
-- **Not a menubar app.** [PHP Monitor](https://phpmon.app) is free and good; use it alongside. Databases: TablePlus through `nomeus db`.
+- **Not notarized.** [Nomeus.app](#nomeusapp) is ad-hoc signed — no Apple developer account — so its first launch takes one `xattr` line. Databases: TablePlus through `nomeus db`.
 - **Not on Windows.** Linux is in progress — the code is in ([`docs/linux.md`](docs/linux.md)), the Ubuntu proof isn't yet.
 - **Not backed by a company.** Issues and pull requests here; the test suite on CI and a runbook per slice are the safety net.
 

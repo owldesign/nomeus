@@ -1,6 +1,6 @@
 # Nomeus
 
-> Nomeus (νομεύς, "shepherd") is a free, MIT-licensed, self-hosted alternative to Laravel Herd Pro for macOS. It is one Laravel application that is both a CLI (`nomeus …`) and a dashboard at https://nomeus.test, built on Laravel Valet (sites, PHP versions, TLS) and Homebrew (binaries). Everything Herd Pro charges for is provided from free parts, plus things Herd does not have.
+> Nomeus (νομεύς, "shepherd") is a free, MIT-licensed, self-hosted alternative to Laravel Herd Pro for macOS. It is one Laravel application that is both a CLI (`nomeus …`) and a dashboard at https://nomeus.test, plus Nomeus.app, a native menu bar app over the same API (since 2.2.0), built on Laravel Valet (sites, PHP versions, TLS) and Homebrew (binaries). Everything Herd Pro charges for is provided from free parts, plus things Herd does not have.
 
 Install (macOS with Xcode Command Line Tools and Homebrew):
 
@@ -22,10 +22,11 @@ Source: https://github.com/owldesign/nomeus — the one-liner clones it to ~/.no
 - Doctor: `nomeus doctor` checks every layer and prints the exact fix for each problem; the dashboard can run the fix.
 - MCP: `nomeus mcp` exposes the stack to Claude Desktop, Claude Code and Cursor as tools (`nomeus mcp:install claude|code|cursor`).
 - Self-update: `nomeus self-update` (git pull, dependencies, build, ini, doctor).
+- Menu bar: Nomeus.app (Swift, macOS 14+) — services start/stop/restart, sites, a notification when an instance stops answering, launch at login, the dashboard in a window. `Nomeus-<version>.zip` is attached to every GitHub Release; ad-hoc signed, so first launch needs `xattr -dr com.apple.quarantine /Applications/Nomeus.app`.
 
 ## What it is not
 
-- Not a menubar app (PHP Monitor is recommended alongside).
+- Not notarized: Nomeus.app is ad-hoc signed (no Apple developer account); the first launch needs one `xattr` line.
 - Not on Windows; Linux support is in progress (Ubuntu via apt PHP + Linuxbrew + systemd).
 - Not backed by a company; issues and pull requests on GitHub. 220+ tests; every feature slice has a runbook.
 

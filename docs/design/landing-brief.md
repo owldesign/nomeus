@@ -29,7 +29,7 @@ what it does and does not do".
 3. **Three or four short "how it works" facts**, each with a code snippet or a screenshot: a `nomeus.yml` next to the
    `init` output; `nomeus services:adopt` taking over a `brew services` cluster; a `dump()` arriving on the Debug page
    with the request's queries beside it; `nomeus doctor`.
-4. **Honesty block**: what it is not — no menubar app (PHP Monitor is recommended), no Windows/Linux yet, no support
+4. **Honesty block**: what it is not — not notarized (Nomeus.app is ad-hoc signed; the menubar line used to point at PHP Monitor, until 10a), no Windows/Linux yet, no support
    contract; and what it costs: nothing, MIT.
 5. **Install** section repeating the one-liner with the two prerequisites (Xcode CLT, Homebrew) and what the script does.
 6. Footer: GitHub, docs, the runbooks as "the build log", ZHUK LLC / Owl Design.

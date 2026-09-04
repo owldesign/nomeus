@@ -156,7 +156,7 @@ footer a{color:var(--mid)}
 <header class="wrap hero">
   <div>
     <h1>Herd Pro, without the subscription — on Valet and Homebrew.</h1>
-    <p class="mid" style="max-width:52ch;margin-bottom:28px">Nomeus is a free, self-hosted local environment for macOS: multi-instance services, per-app mail, a dump server, log tailing and Xdebug — one Laravel app that is both a CLI and a dashboard at <span class="m" style="font-size:13.5px;color:var(--text)">nomeus.test</span>. MIT.</p>
+    <p class="mid" style="max-width:52ch;margin-bottom:28px">Nomeus is a free, self-hosted local environment for macOS: multi-instance services, per-app mail, a dump server, log tailing and Xdebug — one Laravel app that is both a CLI and a dashboard at <span class="m" style="font-size:13.5px;color:var(--text)">nomeus.test</span>, with Nomeus.app in the menu bar. MIT.</p>
     <div class="cmd">
       <code><span class="faint">$ </span>curl -fsSL https://nomeus.dev/install | bash</code>
       <button data-copy="curl -fsSL https://nomeus.dev/install | bash">copy</button>
@@ -182,8 +182,9 @@ footer a{color:var(--mid)}
     <div class="trow"><b>herd init / herd.yml</b><span>nomeus init / nomeus.yml — link, tls, php, node, services, databases, mail, .env, scripts; idempotent</span></div>
     <div class="trow"><b>Log viewer</b><span>every site's storage/logs, nginx and php-fpm logs; offset-based tail; file:line into the IDE</span></div>
     <div class="trow"><b>Dumps (dump(), queries, jobs, views, …)</b><span>nomeus's own dump server (VarDumper's server protocol through an auto_prepend_file); request tabs via the client package</span></div>
+    <div class="trow"><b>Menu bar app</b><span>Nomeus.app — services with start / stop / restart, sites, a notification when an instance stops answering, launch at login, the dashboard in a window; Swift, ad-hoc signed, no developer account</span></div>
     <div class="trow" style="border-bottom:none"><b>Xdebug</b><span>per PHP version: off / on / trigger / detect (follows the IDE), from the CLI or the Debug page</span></div>
-    <div class="m dim" style="padding:11px 20px;font-size:12px;border-top:1px solid oklch(0.29 0.014 255 / 0.55)">also: node versions via fnm (nomeus node:*) · menubar: PHP Monitor (free) · databases: TablePlus through nomeus db</div>
+    <div class="m dim" style="padding:11px 20px;font-size:12px;border-top:1px solid oklch(0.29 0.014 255 / 0.55)">also: node versions via fnm (nomeus node:*) · Nomeus.app on every GitHub Release · databases: TablePlus through nomeus db</div>
   </div>
 </div>
 </section>
@@ -248,7 +249,7 @@ a second postgres on 5433?
   <div>
     <h2>What it is not</h2>
     <div class="notlist">
-      <div><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="none" stroke="var(--faint)" stroke-width="1.5"/></svg><span>Not a menubar app. <a href="https://phpmon.app">PHP Monitor</a> is free and good; use it alongside.</span></div>
+      <div><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="none" stroke="var(--faint)" stroke-width="1.5"/></svg><span>Not notarized. Nomeus.app is ad-hoc signed — no Apple developer account — so the first launch takes one <span class="m" style="font-size:13px">xattr</span> line, below.</span></div>
       <div><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="none" stroke="var(--faint)" stroke-width="1.5"/></svg><span>Not on Windows, and Linux is still in progress. macOS with Valet is the supported machine today.</span></div>
       <div><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="none" stroke="var(--faint)" stroke-width="1.5"/></svg><span>Not supported by a company. Issues and PRs on GitHub; 220+ tests and per-slice runbooks are the safety net.</span></div>
     </div>
@@ -270,6 +271,7 @@ a second postgres on 5433?
   </div>
   <div class="mid" style="max-width:64ch;font-size:14px">
     <p style="margin-bottom:12px">What it does: clones <span class="m" style="font-size:13px">github.com/owldesign/nomeus</span> to <span class="m" style="font-size:13px">~/.nomeus/app</span> and runs <span class="m" style="font-size:13px">install/install.sh</span>: Homebrew bundle, Valet, dependencies, the dashboard build, <span class="m" style="font-size:13px">nomeus.test</span>, the php ini — ending with <span class="m" style="font-size:13px">nomeus doctor</span>. Re-running is a no-op. <span class="m" style="font-size:13px">--trust</span> runs <span class="m" style="font-size:13px">valet trust</span> so the dashboard can act without password prompts; leave it off to be asked.</p>
+    <p style="margin-bottom:12px">Nomeus.app: download <span class="m" style="font-size:13px">Nomeus-&lt;version&gt;.zip</span> from <a href="https://github.com/owldesign/nomeus/releases">Releases</a>, drop it in Applications, then <span class="m" style="font-size:13px">xattr -dr com.apple.quarantine /Applications/Nomeus.app</span> — Gatekeeper refuses an ad-hoc signed app once (macOS 26 calls it "damaged"; it isn't). macOS 14 or later.</p>
     <p class="dim" style="font-size:13px"><span class="m">/install</span> on this domain serves the raw <a href="https://github.com/owldesign/nomeus/blob/main/install/bootstrap.sh">install/bootstrap.sh</a> from the repo — read it before you pipe it.</p>
   </div>
 </div>
