@@ -99,6 +99,10 @@ class SelfUpdateCommand extends Command
             return self::FAILURE;
         }
 
+        // the dump server / xdebug watcher agents carry this app's paths: after a pull (or a moved checkout) make them current
+        $this->line('<fg=yellow>▶ agents:rewrite</>');
+        $this->call('agents:rewrite');
+
         $this->line('<fg=yellow>▶ doctor</>');
         $this->call('doctor');
         $this->info('nomeus '.config('nomeus.version').' — reload the dashboard.');

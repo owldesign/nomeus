@@ -44,6 +44,27 @@ final class SystemdManager implements ProcessManager
         return $this->plistPath($name);
     }
 
+    public function readAgent(string $name): ?array
+    {
+        $path = $this->plistPath($name);
+        if (! is_file($path)) {
+            return null;
+        }
+        $argv = [];
+        $cwd = null;
+        foreach (preg_split('/\R/', (string) file_get_contents($path)) ?: [] as $line) {
+            if (str_starts_with($line, 'ExecStart=')) {
+                // unit() writes every argument double-quoted with \\ and \" escaped
+                preg_match_all('/"((?:[^"\\\\]|\\\\.)*)"/', substr($line, 10), $m);
+                $argv = array_map(fn (string $a) => str_replace(['\\"', '\\\\'], ['"', '\\'], $a), $m[1]);
+            } elseif (str_starts_with($line, 'WorkingDirectory=')) {
+                $cwd = substr($line, 17);
+            }
+        }
+
+        return ['argv' => $argv, 'cwd' => $cwd];
+    }
+
     public function removePlist(string $name): void
     {
         @unlink($this->plistPath($name));

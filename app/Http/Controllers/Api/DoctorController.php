@@ -38,7 +38,7 @@ class DoctorController extends Controller
     }
 
     /** Idempotent or reversible fixes the doctor prints; anything else (rm, delete, self-update, migrate) stays in the terminal. */
-    public const FIXABLE = ['dumps:install', 'xdebug:mode', 'xdebug:install', 'php:ext', 'node:install', 'services:start', 'services:restart', 'services:logs', 'services:adopt', 'services:upgrade', 'secure', 'link', 'mail', 'services:create', 'dumps:clear'];
+    public const FIXABLE = ['dumps:install', 'xdebug:mode', 'xdebug:install', 'php:ext', 'node:install', 'services:start', 'services:restart', 'services:logs', 'services:adopt', 'services:upgrade', 'secure', 'link', 'mail', 'services:create', 'dumps:clear', 'agents:rewrite'];
 
     /** `nomeus self-update` as a task — the dashboard survives its own rebuild because the task is detached. */
     public function update(Request $request): JsonResponse

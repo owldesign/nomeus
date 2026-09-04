@@ -24,6 +24,14 @@ interface ProcessManager
 
     public function removePlist(string $name): void;
 
+    /**
+     * What the unit file on disk would run: its argv and working directory. null when there is no file.
+     * The agent auditor compares this with what the driver would write today.
+     *
+     * @return ?array{argv: list<string>, cwd: ?string}
+     */
+    public function readAgent(string $name): ?array;
+
     /** @return array{loaded:bool, pid:?int, state:?string, last_exit:?int, disabled:bool} */
     public function state(string $name): array;
 

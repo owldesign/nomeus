@@ -51,6 +51,39 @@ final class LaunchdManager implements ProcessManager
         @unlink($this->plistPath($name));
     }
 
+    public function readAgent(string $name): ?array
+    {
+        $path = $this->plistPath($name);
+        if (! is_file($path)) {
+            return null;
+        }
+        $xml = @simplexml_load_string((string) file_get_contents($path));
+        if ($xml === false || ! isset($xml->dict)) {
+            return ['argv' => [], 'cwd' => null];
+        }
+        // a plist dict is a flat sequence: <key>…</key> followed by its value node
+        $argv = [];
+        $cwd = null;
+        $key = null;
+        foreach ($xml->dict->children() as $node) {
+            if ($node->getName() === 'key') {
+                $key = (string) $node;
+
+                continue;
+            }
+            if ($key === 'ProgramArguments' && $node->getName() === 'array') {
+                foreach ($node->string as $s) {
+                    $argv[] = (string) $s;
+                }
+            } elseif ($key === 'WorkingDirectory') {
+                $cwd = (string) $node;
+            }
+            $key = null;
+        }
+
+        return ['argv' => $argv, 'cwd' => $cwd];
+    }
+
     public function plist(string $label, array $argv, string $workingDir, string $logFile, array $env): string
     {
         $x = fn (string $s): string => htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');

@@ -160,3 +160,53 @@ it('runs only the fixes the doctor proposes, as tasks', function () {
     $this->postJson('/api/doctor/fix', ['command' => 'rm -rf /'], ['X-Nomeus' => '1'])->assertUnprocessable();
     $this->postJson('/api/doctor/fix', ['command' => 'nomeus dumps:install'])->assertForbidden();
 });
+
+// ── 9b: agents that run a moved checkout ────────────────────────────────────
+
+it('fails the doctor on a dump server agent that points at a checkout that is gone, and agents:rewrite fixes it', function () {
+    $services = app(ServiceManager::class);
+    $services->create('dumps', name: 'dumps', port: 9912, start: false);
+    $plist = "{$this->root}/agents/dev.nomeus.svc.dumps.plist";
+    $old = "{$this->root}/Code/devkit";   // never created: the renamed checkout
+    file_put_contents($plist, str_replace([base_path('artisan'), '<string>'.base_path().'</string>'], ["{$old}/artisan", "<string>{$old}</string>"], file_get_contents($plist)));
+
+    $rows = collect($this->getJson('/api/doctor?section=nomeus')->assertOk()->json('data.rows'))->keyBy('check');
+    expect($rows['agent dumps']['level'])->toBe('fail')
+        ->and($rows['agent dumps']['detail'])->toContain("{$old}/artisan is missing")
+        ->and($rows['agent dumps']['detail'])->toEndWith('— nomeus agents:rewrite')
+        ->and($rows->has('agents'))->toBeFalse();
+
+    $this->artisan('agents:rewrite --dry-run')->expectsOutputToContain('dry run')->assertSuccessful();
+    expect(file_get_contents($plist))->toContain("{$old}/artisan");
+
+    // launchd doesn't hold the agent (it was created with --no-start), so the rewrite must not try to bounce it
+    Process::fake(['*launchctl*print*' => fn ($p) => $p->command[2] === 'gui/501' ? Process::result("gui/501 = {}\n") : Process::result('', '', 113)]);
+    $this->artisan('agents:rewrite')->expectsOutputToContain('1 agent(s) rewritten: dumps')->assertSuccessful();
+    Process::assertNotRan(fn ($p) => ($p->command[1] ?? '') === 'bootstrap');
+    expect(file_get_contents($plist))->toContain('<string>'.base_path('artisan').'</string>')
+        ->and(file_get_contents($plist))->not->toContain($old)
+        ->and($services->find('dumps')->options['site_path'])->toBe(base_path());
+
+    $rows = collect($this->getJson('/api/doctor?section=nomeus')->json('data.rows'))->keyBy('check');
+    expect($rows['agents']['level'])->toBe('ok')->and($rows['agents']['detail'])->toBe('1 nomeus-bound agent(s) run '.base_path());
+    $this->artisan('agents:rewrite')->expectsOutputToContain('✓ dumps — runs this app')->assertSuccessful();
+
+    // the dashboard may run it as a fix
+    $php = app(Shell::class)->phpBin();
+    $this->postJson('/api/doctor/fix', ['command' => 'nomeus agents:rewrite'], ['X-Nomeus' => '1'])->assertStatus(202)
+        ->assertJsonPath('task.argv', [$php, base_path('artisan'), 'agents:rewrite', '--no-interaction']);
+});
+
+it('says so when no nomeus-bound agent is installed, and self-update rewrites agents before its doctor', function () {
+    $this->artisan('agents:rewrite')->expectsOutputToContain('no nomeus-bound agents installed')->assertSuccessful();
+    expect(collect($this->getJson('/api/doctor?section=nomeus')->json('data.rows'))->pluck('check')->all())->not->toContain('agents');
+
+    if (! is_dir(base_path('.git'))) {
+        $this->markTestSkipped('not a git checkout');
+    }
+    Process::fake([
+        '*git*rev-list*HEAD..*' => Process::result("0\n"),
+        "*'composer' 'install'*" => Process::result(''),
+    ]);
+    $this->artisan('self-update --no-build')->expectsOutputToContain('▶ agents:rewrite')->expectsOutputToContain('no nomeus-bound agents installed')->run();
+});

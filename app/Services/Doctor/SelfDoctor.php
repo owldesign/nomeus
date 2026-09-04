@@ -2,6 +2,7 @@
 
 namespace App\Services\Doctor;
 
+use App\Services\AgentAuditor;
 use App\Services\Php\AptPhp;
 use App\Services\ValetBridge;
 use App\Support\NomeusConfig;
@@ -16,6 +17,7 @@ final class SelfDoctor implements Section
         private readonly NomeusConfig $config,
         private readonly ValetBridge $valet,
         private readonly Shell $shell,
+        private readonly AgentAuditor $agents,
     ) {}
 
     public function name(): string
@@ -62,6 +64,18 @@ final class SelfDoctor implements Section
             $r->expect(is_file('/etc/sudoers.d/nomeus'), 'sudoers', '/etc/sudoers.d/nomeus', 'no NOPASSWD rule for the helper — install/install-linux.sh writes /etc/sudoers.d/nomeus');
             $linger = trim($this->shell->run(['loginctl', 'show-user', (string) (getenv('USER') ?: get_current_user()), '-p', 'Linger', '--value'], timeout: 10)->output());
             $r->expect($linger === 'yes', 'linger', 'user services outlive the login session', 'loginctl enable-linger '.(getenv('USER') ?: get_current_user()).' — without it services stop when you log out', 'warn');
+        }
+
+        // the dump server and xdebug watcher run *this* app: a moved checkout leaves them exec'ing a path that is gone
+        $audit = $this->agents->audit();
+        $stale = array_filter($audit, fn ($e) => $e['stale']);
+        if ($audit !== []) {
+            foreach ($stale as $e) {
+                $r->fail("agent {$e['name']}", implode('; ', $e['reasons']).' — nomeus agents:rewrite');
+            }
+            if ($stale === []) {
+                $r->ok('agents', count($audit).' nomeus-bound agent(s) run '.base_path());
+            }
         }
 
         if (is_dir(base_path('.git'))) {

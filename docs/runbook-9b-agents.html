@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nomeus · runbook 9b · agents</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121820; --line:#1f2a36; --fg:#cfd6de; --dim:#7a8794;
+    --gold:#ffc83d; --red:#ff5c5c; --blue:#5aa9ff; --done:#3b4652;
+    --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--bg);color:var(--fg);font:13px/1.55 var(--mono)}
+  body{margin:0}
+  a{color:var(--blue)}
+  header{
+    position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 85%,transparent);
+    padding:14px 24px 10px;border-bottom:1px solid var(--line);
+  }
+  .bar{max-width:920px;margin:0 auto;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+  .bar h1{margin:0;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .bar h1 small{color:var(--dim);font-weight:400}
+  .progress{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--dim)}
+  .progress meter{width:140px;height:8px}
+  .progress b{color:var(--fg);font-weight:500}
+  button.reset{background:none;border:1px solid var(--line);color:var(--dim);font:inherit;padding:2px 8px;cursor:pointer}
+  button.reset:hover{color:var(--red);border-color:var(--red)}
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px}
+  .intro{color:var(--dim);border-left:2px solid var(--line);padding:2px 12px;margin:0 0 30px}
+  .intro b{color:var(--fg);font-weight:500}
+
+  section.phase{margin:0 0 40px}
+  section.phase>h2{
+    display:flex;align-items:baseline;gap:14px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);font-size:15px;font-weight:600
+  }
+  section.phase>h2 .n{font-size:28px;line-height:1;color:var(--gold);font-weight:700;min-width:36px}
+  section.phase>h2 .t{margin-left:auto;color:var(--dim);font-weight:400;font-size:12px}
+  section.phase>h2 .c{color:var(--dim);font-weight:400;font-size:12px}
+
+  .step{padding:10px 0 12px 0;border-bottom:1px dashed var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .step input{margin:3px 0 0;accent-color:var(--gold);width:14px;height:14px;flex:none}
+  .step .id{color:var(--blue);min-width:34px;flex:none}
+  .step .title{font-weight:500}
+  .step.done .title{color:var(--done);text-decoration:line-through}
+  .step .body{margin:6px 0 0 58px}
+  .step p{margin:4px 0}
+
+  pre{margin:8px 0;padding:8px 10px;background:var(--panel);border:1px solid var(--line);overflow-x:auto;position:relative;white-space:pre}
+  pre.cmd{border-left:3px solid var(--gold)}
+  pre.cmd::before{content:"$ ";color:var(--gold)}
+  pre.out{border-left:3px solid var(--blue);color:var(--dim)}
+  pre.out::before{content:"→ ";color:var(--blue)}
+  pre .cp{position:absolute;top:4px;right:4px;background:var(--bg);border:1px solid var(--line);color:var(--dim);font:11px var(--mono);padding:1px 6px;cursor:pointer}
+  pre .cp:hover{color:var(--gold);border-color:var(--gold)}
+  code{color:var(--gold)}
+
+  .callout{margin:10px 0 4px 58px;padding:8px 12px;border:1px solid;border-left-width:4px;background:var(--panel)}
+  .callout.gold{border-color:var(--gold)}
+  .callout.red{border-color:var(--red)}
+  .callout.blue{border-color:var(--blue)}
+  .callout::before{font-weight:700;margin-right:8px}
+  .callout.gold::before{content:"note";color:var(--gold)}
+  .callout.red::before{content:"gotcha";color:var(--red)}
+  .callout.blue::before{content:"verify";color:var(--blue)}
+  .callout pre{margin:6px 0 2px}
+
+  .trouble .callout{margin-left:0}
+  .trouble .callout::before{content:"symptom";color:var(--red)}
+  .trouble .callout b{color:var(--fg);font-weight:500}
+
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (max-width:640px){ .step .body,.callout{margin-left:0} .progress meter{width:90px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>nomeus <small>· runbook 9b · agents</small></h1>
+    <span class="c" style="color:var(--dim)">macOS · ~15 min · phases 0–3</span>
+    <div class="progress">
+      <meter id="meter" min="0" max="1" value="0"></meter>
+      <span><b id="done">0</b>/<span id="total">0</span></span>
+      <button class="reset" id="reset" type="button">reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<p class="intro">
+  What you're proving: <b>an agent that points at a checkout that moved is named by the doctor, fixed by one command, and can't come back after self-update.</b>
+  Precondition: v2.0.0 tagged, CI green, tree clean. What's being fixed: the 9a 2.3 finding — <code>dev.nomeus.svc.dumps</code> exec'ing <code>~/Code/devkit/artisan</code>, exit 78.
+</p>
+
+<!-- ───────────────────────────── PHASE 0 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">0</span>Apply, test locally <span class="t">~3 min</span></h2>
+
+  <div class="step" data-step="0.1"><label><input type="checkbox"><span class="id">0.1</span><span class="title">Overlay, run the suite</span></label>
+    <div class="body">
+<pre class="cmd">cd ~/Code &amp;&amp; unzip -o nomeus-9b.zip -d ~/Code/ &amp;&amp; cd nomeus &amp;&amp; git status --short &amp;&amp; vendor/bin/pest</pre>
+<pre class="out">new: app/Services/AgentAuditor.php, app/Console/Commands/AgentsRewriteCommand.php, tests/Unit/AgentAuditorTest.php, docs/runbook-9b-agents.html
+mod: ProcessManager (+readAgent), LaunchdManager, SystemdManager, ServiceManager (refreshAgent re-anchors nomeus-bound records), Doctor/SelfDoctor,
+     Api/DoctorController (agents:rewrite fixable), SelfUpdateCommand (agents:rewrite before doctor), tests/Feature/Api/DoctorTest.php,
+     .github/workflows/ci.yml (php 8.5, non-blocking), config/nomeus.php (2.1.0), docs/commands.md, docs/runbooks.md
+Tests: 237 passed (227 + 8 unit + 2 feature)</pre>
+    </div>
+    <div class="callout gold">Brew-backed services are deliberately out of scope: their paths come from the formula and <code>services:upgrade</code> owns them. This slice covers the two agents that run <i>nomeus itself</i> — the dump server and the xdebug watcher.</div>
+  </div>
+
+  <div class="step" data-step="0.2"><label><input type="checkbox"><span class="id">0.2</span><span class="title">docs:commands agrees</span></label>
+    <div class="body">
+<pre class="cmd">php artisan docs:commands &amp;&amp; git diff --stat -- docs/commands.md; vendor/bin/pint &amp;&amp; git diff --stat</pre>
+<pre class="out">no diff on docs/commands.md (the zip's hand-written `agents` block matches the generator) — if there is one, commit what the code says. pint may touch the new files' formatting; that's fine to fold into the 9b commit.</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 1 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">1</span>Reproduce the 9a failure, then fix it the new way <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="1.1"><label><input type="checkbox"><span class="id">1.1</span><span class="title">Today's state</span></label>
+    <div class="body">
+<pre class="cmd">php artisan agents:rewrite --dry-run &amp;&amp; php artisan doctor --section=nomeus | grep -i agent</pre>
+<pre class="out">✓ dumps — runs this app   (you recreated it by hand in 9a 2.3)
+✓ xdebug-detect — runs this app   (only if detect mode is on for some php; otherwise the line is absent)
+doctor: ok · agents · 1 nomeus-bound agent(s) run /Users/owldesign/Code/nomeus</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="1.2"><label><input type="checkbox"><span class="id">1.2</span><span class="title">Break it the way it broke: point the plist at the old checkout</span></label>
+    <div class="body">
+<pre class="cmd">sed -i '' 's#/Users/owldesign/Code/nomeus/artisan#/Users/owldesign/Code/devkit/artisan#; s#&lt;string&gt;/Users/owldesign/Code/nomeus&lt;/string&gt;#&lt;string&gt;/Users/owldesign/Code/devkit&lt;/string&gt;#' ~/Library/LaunchAgents/dev.nomeus.svc.dumps.plist &amp;&amp; launchctl kickstart -k gui/$(id -u)/dev.nomeus.svc.dumps; sleep 2; php artisan doctor --section=nomeus | grep -i agent; php artisan services:list | grep dumps</pre>
+<pre class="out">fail · agent dumps · /Users/owldesign/Code/devkit/artisan is missing; working directory /Users/owldesign/Code/devkit is missing; runs /Users/owldesign/Code/devkit/artisan, this app is /Users/owldesign/Code/nomeus/artisan — nomeus agents:rewrite
+services:list: dumps crash-looping (last exit 78) — the exact 9a symptom, now with its cause on the line above it</pre>
+    </div>
+    <div class="callout gold">launchd re-reads the plist only at bootstrap; <code>kickstart -k</code> after editing the file restarts the job with what it has in memory (the old, correct argv) — so if <code>services:list</code> still says running, do <code>launchctl bootout gui/$(id -u)/dev.nomeus.svc.dumps &amp;&amp; launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.nomeus.svc.dumps.plist</code> to load the broken file for real. The doctor's verdict doesn't depend on that: it reads the file.</div>
+  </div>
+
+  <div class="step" data-step="1.3"><label><input type="checkbox"><span class="id">1.3</span><span class="title">Fix from the dashboard</span></label>
+    <div class="body">
+<pre class="out">https://nomeus.test → Doctor → the `agent dumps` row has a run-fix button (agents:rewrite is on the fixable list) → task log:
+  dumps: /Users/…/devkit/artisan is missing; …
+  dumps: rewritten → /opt/homebrew/bin/php /Users/owldesign/Code/nomeus/artisan
+  1 agent(s) rewritten: dumps</pre>
+<pre class="cmd">php artisan doctor --section=nomeus | grep -i agent &amp;&amp; grep -A3 ProgramArguments ~/Library/LaunchAgents/dev.nomeus.svc.dumps.plist &amp;&amp; grep site_path ~/.nomeus/services/dumps/service.json &amp;&amp; nomeus services:list | grep dumps</pre>
+<pre class="out">ok · agents · 1 nomeus-bound agent(s) run … · the plist names ~/Code/nomeus/artisan · service.json site_path is ~/Code/nomeus (the record was re-anchored, not just the file) · dumps running on 9912</pre>
+    </div>
+    <div class="callout blue">Open the Debug page and trigger a dump in any site — it should land. The bounce was stop → rewrite → start, so the SQLite store is untouched.</div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 2 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">2</span>self-update can't reintroduce it; CI on 8.5 <span class="t">~5 min</span></h2>
+
+  <div class="step" data-step="2.1"><label><input type="checkbox"><span class="id">2.1</span><span class="title">Commit, push, watch</span></label>
+    <div class="body">
+<pre class="cmd">git add -A &amp;&amp; git commit -m "9b: agents:rewrite, the doctor check for agents that run a moved checkout, self-update hook; php 8.5 on ci" &amp;&amp; git push &amp;&amp; gh run watch --exit-status</pre>
+<pre class="out">pest (php 8.4) ✓ · pest (php 8.5) ✓ or ✗-but-grey (continue-on-error: it reports, it doesn't block) · dashboard build ✓ · docs are current ✓</pre>
+    </div>
+    <div class="callout gold">If 8.5 is red, open it once: a deprecation turned fatal is the usual reason. Note it for the 8.5 promotion, don't fix it in this slice.</div>
+  </div>
+
+  <div class="step" data-step="2.2"><label><input type="checkbox"><span class="id">2.2</span><span class="title">self-update runs the rewrite</span></label>
+    <div class="body">
+<pre class="cmd">nomeus self-update 2&gt;&amp;1 | grep -A2 "agents:rewrite"</pre>
+<pre class="out">▶ agents:rewrite
+✓ dumps — runs this app
+▶ doctor</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="2.3"><label><input type="checkbox"><span class="id">2.3</span><span class="title">v2.1.0</span></label>
+    <div class="body">
+<pre class="cmd">php artisan docs:changelog --next=2.1.0 &amp;&amp; sed -n 7,12p CHANGELOG.md</pre>
+<p>Tidy the bullets, then (config/nomeus.php is already 2.1.0 in the zip):</p>
+<pre class="cmd">git commit -am "release: 2.1.0" &amp;&amp; git push &amp;&amp; git tag -a v2.1.0 -m "nomeus 2.1.0 — agents" &amp;&amp; git push --tags &amp;&amp; gh run watch --exit-status &amp;&amp; gh release view v2.1.0 | head -5</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── PHASE 3 ───────────────────────────── -->
+<section class="phase">
+  <h2><span class="n">3</span>Hand-off</h2>
+
+  <div class="step" data-step="3.1"><label><input type="checkbox"><span class="id">3.1</span><span class="title">Next</span></label>
+    <div class="body"><p>Paste the 1.2 doctor line, the 1.3 task log, and the 8.5 job verdict. Open: promote 8.5 when it's been green; the brew-side of the same problem (<code>brew upgrade</code> moving a Cellar path under a running agent) if it ever bites; the Linux VM run.</p></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── TROUBLE ───────────────────────────── -->
+<section class="phase trouble">
+  <h2><span class="n">!</span>Troubleshooting</h2>
+
+  <div class="callout red"><b>agents:rewrite: "dumps did not start answering on 127.0.0.1:9912 after 30s"</b> — the rewrite is right but the server can't start; <code>nomeus services:logs dumps</code>. A leftover <code>auto_prepend_file=~/.devkit/php/prepend.php</code> in a <code>99-*.ini</code> (seen in the 9a log) is <code>nomeus dumps:install</code>.</div>
+  <div class="callout red"><b>doctor says the agent is stale but agents:rewrite prints "✓ runs this app"</b> — two different apps: the doctor ran under the dashboard (<code>~/.nomeus/app</code>?) and the CLI from <code>~/Code/nomeus</code>. <code>nomeus status --json | grep -A1 version</code> and <code>readlink $(brew --prefix)/bin/nomeus</code> — decide which checkout is "the app" and point the other at it.</div>
+  <div class="callout red"><b>The xdebug-detect row appears stale right after enabling detect</b> — <code>XdebugWatcher::enable()</code> writes <code>Shell::phpBin()</code>, and if <code>&lt;brew&gt;/bin/php</code> was relinked since, the file and today's value differ; <code>agents:rewrite</code> is the fix, and it's the correct verdict.</div>
+</section>
+</main>
+
+<script>
+(function () {
+  var KEY = 'nomeus-runbook-9b';
+  var mem = {};
+  var store = {
+    get: function () { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return mem; } },
+    set: function (v) { mem = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* in-memory only */ } }
+  };
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var state = store.get();
+  var meter = document.getElementById('meter'), done = document.getElementById('done'), total = document.getElementById('total');
+  total.textContent = steps.length; meter.max = steps.length;
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var id = s.getAttribute('data-step'), on = !!state[id];
+      s.querySelector('input').checked = on; s.classList.toggle('done', on); if (on) n++;
+    });
+    meter.value = n; done.textContent = n;
+  }
+  steps.forEach(function (s) {
+    s.querySelector('input').addEventListener('change', function (e) {
+      state[s.getAttribute('data-step')] = e.target.checked; store.set(state); render();
+    });
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (confirm('Clear all checkboxes?')) { state = {}; store.set(state); render(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var text = pre.textContent.trim();
+    var b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = 'copy';
+    b.addEventListener('click', function () {
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+        function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1200); },
+        function () { b.textContent = 'select'; }
+      );
+    });
+    pre.appendChild(b);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

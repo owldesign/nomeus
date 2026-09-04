@@ -510,14 +510,24 @@ final class ServiceManager
         }
     }
 
-    /** Rewrite an instance's launchd plist from its current record (paths, label, env). */
-    public function refreshAgent(ServiceInstance $i): void
+    /**
+     * Rewrite an instance's launchd plist from its current record (paths, label, env). A nomeus-bound instance
+     * (the dump server) is re-anchored to *this* app and *this* php first: those were recorded at creation, and
+     * a checkout that moved or a php that was relinked leaves launchd exec'ing paths that no longer exist.
+     */
+    public function refreshAgent(ServiceInstance $i): ServiceInstance
     {
         $driver = $this->driver($i);
+        if ($driver instanceof NomeusBound) {
+            $i = $i->with(['options' => ['site' => 'nomeus', 'site_path' => base_path(), 'php_bin_dir' => dirname($this->shell->phpBin())] + $i->options]);
+            $i->save();
+        }
         $binDir = $driver instanceof SiteBound || $driver instanceof NomeusBound
             ? (string) ($i->options['php_bin_dir'] ?? dirname($this->shell->phpBin()))
             : ($this->brew->formulaBinDir($i->formula) ?? throw new RuntimeException("Formula {$i->formula} is not installed."));
         $this->writeAgent($i, $driver, $binDir);
+
+        return $i;
     }
 
     /** Directories, service.json — the parts every instance has before anything runs. */
