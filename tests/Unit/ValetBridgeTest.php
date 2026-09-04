@@ -83,7 +83,7 @@ it('surfaces valet failures with their output', function () {
     Process::fake(['*' => Process::result('', "Error: The [x] site could not be found in Valet's site list.", 1)]);
 
     $this->bridge->secure('x');
-})->throws(ValetCommandFailed::class, "could not be found");
+})->throws(ValetCommandFailed::class, 'could not be found');
 
 it('rejects unsafe names and bad php versions before touching valet', function () {
     Process::fake();
