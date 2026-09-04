@@ -112,6 +112,18 @@ code{font-family:var(--mono)}
 .notlist{display:flex;flex-direction:column;gap:12px;font-size:14px;color:var(--mid);max-width:58ch;margin-top:16px}
 .notlist>div{display:flex;gap:12px}
 .notlist svg{flex-shrink:0;margin-top:4px}
+/* the flock: faint stars behind the hero and the footer, a few of them lit — decoration that says what the product does */
+.hero-wrap,footer.band{position:relative;overflow:hidden}
+.flock{position:absolute;inset:0;pointer-events:none;z-index:0}
+.flock svg{position:absolute;right:0;top:0;height:100%;width:auto;max-width:100%;opacity:0.9}
+.hero-wrap>.wrap,footer.band>.wrap{position:relative;z-index:1}
+.flock .lit{filter:drop-shadow(0 0 4px oklch(0.76 0.16 150 / 0.55))}
+.flock .lantern-star{filter:drop-shadow(0 0 6px oklch(0.79 0.14 68 / 0.45))}
+@keyframes twinkle{0%,100%{opacity:1}50%{opacity:0.35}}
+.flock .lit:nth-child(2){animation:twinkle 4.5s ease-in-out infinite}
+.flock .lit:nth-child(3){animation:twinkle 6s ease-in-out 1.5s infinite}
+.flock .lit:nth-child(4){animation:twinkle 5.2s ease-in-out 3s infinite}
+@media (prefers-reduced-motion:reduce){.flock .lit{animation:none}}
 footer .wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap;padding-top:32px;padding-bottom:32px;font-family:var(--mono);font-size:12.5px;color:var(--dim)}
 footer a{color:var(--mid)}
 @media (max-width:460px){.hero,.cards,.cols{grid-template-columns:1fr}}
@@ -129,6 +141,18 @@ footer a{color:var(--mid)}
   </div>
 </nav>
 
+<div class="hero-wrap">
+<div class="flock" aria-hidden="true">
+<svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg">
+  <g fill="var(--line-strong)">
+    <path transform="translate(520 60) scale(0.9)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(610 150) scale(0.7)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(720 90) scale(1.1)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(660 260) scale(0.8)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(800 210) scale(0.6)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(560 340) scale(0.55)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(760 380) scale(0.9)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(850 60) scale(0.5)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(640 440) scale(0.65)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(840 470) scale(0.75)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/>
+  </g>
+  <g fill="var(--ok)">
+    <path transform="translate(0 0) scale(0.0001)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path class="lit" transform="translate(580 100) scale(0.75)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path class="lit" transform="translate(700 170) scale(0.75)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path class="lit" transform="translate(830 320) scale(0.6)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/>
+  </g>
+  <path class="lantern-star" transform="translate(760 40) scale(1.3)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="var(--lantern)"/>
+</svg>
+</div>
 <header class="wrap hero">
   <div>
     <h1>Herd Pro, without the subscription — on Valet and Homebrew.</h1>
@@ -144,6 +168,7 @@ footer a{color:var(--mid)}
     <img src="assets/hero-services.png" onerror="this.style.display='none'" alt="The Nomeus Services page: a table of running service instances with star-shaped status LEDs, one row expanded to its .env block and log tail" width="1600" height="1000">
   </div>
 </header>
+</div>
 
 <section id="table" class="band tint">
 <div class="wrap sec">
@@ -251,6 +276,16 @@ a second postgres on 5433?
 </section>
 
 <footer class="band">
+<div class="flock" aria-hidden="true">
+<svg viewBox="0 0 900 140" xmlns="http://www.w3.org/2000/svg">
+  <g fill="var(--line-strong)">
+    <path transform="translate(520 20) scale(0.7)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(600 70) scale(0.55)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(690 30) scale(0.85)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(770 90) scale(0.6)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(850 40) scale(0.5)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path transform="translate(640 110) scale(0.5)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/>
+  </g>
+  <g fill="var(--ok)">
+    <path transform="translate(0 0) scale(0.0001)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path class="lit" transform="translate(560 60) scale(0.6)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path class="lit" transform="translate(730 60) scale(0.6)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/><path class="lit" transform="translate(830 100) scale(0.5)" d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z"/>
+  </g>
+</svg>
+</div>
 <div class="wrap">
   <span style="display:flex;align-items:center;gap:8px"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 0C8.55 4.9 11.1 7.45 16 8C11.1 8.55 8.55 11.1 8 16C7.45 11.1 4.9 8.55 0 8C4.9 7.45 7.45 4.9 8 0Z" fill="var(--lantern)"/></svg>nomeus — νομεύς, shepherd</span>
   <span style="flex:1"></span>
