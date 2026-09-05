@@ -56,11 +56,22 @@ What 10a adds, file by file:
 CI: `macos.yml` runs in ~1 min (test 23 s, bundle 22 s, Swift 6.2.4); `release.yml` test → release → app in ~2 min,
 zip on the Release right after. Nothing remains for 10a.
 
+**Copy after 10a** (commits `c9d291d`, `98f1323`, both live on nomeus.dev via `pages.yml`): the site, README and
+`site/llms.txt` no longer say "not a menubar app" and no longer lead with Herd Pro. Hero: "A complete local Laravel
+environment. Free, on Valet and Homebrew." The comparison table became a "Get started" section (seven commands,
+same `.table` styling, nav link `#start`); README's table became "What it does". Herd Pro is named once on the site
+(end of "What it costs"), once in llms.txt, and in the hidden `keywords` meta / JSON-LD keywords (kept for search).
+Details in `docs/SESSION_NOTES.md`.
+
 ## CI
 `ci.yml`: php 8.4 required, 8.5 reported (`continue-on-error`) — promote 8.5 to the required list once it has been
 green a while. `macos.yml` only triggers on `apps/macos/**`, the favicon and `config/nomeus.php` (macOS minutes).
 
 ## Open
+- `docs/design/landing-brief.md` still describes the old page (Herd-first hero, comparison table). It is the brief the
+  page was designed from, left as history; rewrite it if it is meant to stay current.
+- Site `keywords` meta and JSON-LD keywords still list "Herd Pro alternative" — invisible, kept for search; drop if the
+  softer positioning should be total.
 - `CLAUDE.md` Layout says "Two checkouts … `~/.nomeus/app` (what `nomeus self-update` maintains)". Not true here:
   `self-update` pulls `home` from `~/.nomeus/config.json`, which is `~/Code/nomeus`. Fix the line or create the
   second checkout — decide which, then make the runbooks' "other checkout" verify steps match.
